@@ -1,9 +1,10 @@
 % ******************************************************************************
 % Example of a GOAFEM algorithm taken from [Mommer, Stevenson; 2009].
+% This was used to generate data for Figure 8 (left).
 % ******************************************************************************
 
 %% paramters
-nDofsMax = 1e4;
+nDofsMax = 1e7;
 theta = 0.5;
 pmax = 3;
 
@@ -76,21 +77,29 @@ for p = 1:pmax
 end
 
 %% plot convergence rates
-pmax = size(nDofs, 1);
-figure()
+% figure()
+% for p = 1:pmax
+%     idx = find(nDofs(p,:) > 0);
+%     loglog(nDofs(p,idx), goalErrEst(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
+%     hold on
+% end
+% for p = unique([1,pmax])
+%     x = nDofs(p,idx) / nDofs(p,1);
+%     loglog(nDofs(p,1)*x, goalErrEst(p,1)*x.^(-p), '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', ['\alpha = ', num2str(p)])
+% end
+% legend
+% xlabel('number of dofs')
+% ylabel('goal error estimator')
+% title('goal error estimator over number of dofs')
+
 for p = 1:pmax
-    idx = find(nDofs(p,:) > 0);
-    loglog(nDofs(p,idx), goalErrEst(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
-    hold on
+    idx = find(nElem(p,:) > 0);
+    fileID = fopen(['goafemP', num2str(p), '.dat'], 'w');
+    fprintf(fileID, 'nElements,nDofs,goalErrorEstimate\n');
+    fprintf(fileID, '%d,%d,%.3e\n', ...
+        [nElem(p,idx); nDofs(p,idx); goalErrEst(p,idx)]);
+    fclose(fileID);
 end
-for p = unique([1,pmax])
-    x = nDofs(p,idx) / nDofs(p,1);
-    loglog(nDofs(p,1)*x, goalErrEst(p,1)*x.^(-p), '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', ['\alpha = ', num2str(p)])
-end
-legend
-xlabel('number of dofs')
-ylabel('goal error estimator')
-title(['goal error estimator over number of dofs'])
 
 %% local function for residual a posteriori error estimation
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2

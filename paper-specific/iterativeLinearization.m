@@ -1,16 +1,17 @@
 % ******************************************************************************
 % Example from Section 5.3 of [Heid, Praetorius, Wihler; 2021].
+% This was used to generate data for Figure 8 (right).
 % ******************************************************************************
 
 %% paramters
-nElemMax = 1e4;
+nElemMax = 1e7;
 theta = 0.5;
 lambda = 0.5;
 deltaZ = 0.1;
 linearizations = ["zarantonello", "kacanov", "newton"];
 
 %% initialization for every linearization method
-[nElem, eta, E] = deal(zeros(length(linearizations), 1000));
+[nElem, eta, E, time] = deal(zeros(length(linearizations), 1000));
 for k = 1:length(linearizations)
     %% setup geometry & spaces
     printLogMessage('*** starting %s iteration', linearizations(k))
@@ -27,6 +28,7 @@ for k = 1:length(linearizations)
     u.setData(0);
 
     %% adaptive algorithm
+    tic
     i = 1;
     Eold = 0;
     qr = QuadratureRule.ofOrder(1);
@@ -51,6 +53,7 @@ for k = 1:length(linearizations)
             
             if i > 1, Eold = E(k,i-1); end
             E(k,i) = sum(integrateElement(eDensity, qr)) + u.data * F;
+            time(k,i) = toc;
             
             %% stopping criterion of the iterative solver
             if sqrt(E(k,i) - Eold) <= lambda * eta(k,i)
@@ -79,7 +82,17 @@ for k = 1:length(linearizations)
 end
 
 %% plot convergence rates
-plotData(nElem, 'number of elements', eta, 'error estimator', linearizations)
+% plotData(nElem, 'number of elements', eta, 'error estimator', linearizations)
+% plotData(time, 'computation time', eta, 'error estimator', linearizations)
+
+for k = 1:length(linearizations)
+    idx = find(nElem(k,:) > 0);
+    fileID = fopen(strcat('ailfem-', linearizations(k), '.dat'), 'w');
+    fprintf(fileID, 'nElements,estimator,energy,time\n');
+    fprintf(fileID, '%d,%.3e,%.3e,%.3e\n', ...
+        [nElem(k,idx); eta(k,idx); E(k,idx); time(k,idx)]);
+    fclose(fileID);
+end
 
 %% helper function for plotting
 function plotData(xdata, xlab, ydata, ylab, names)

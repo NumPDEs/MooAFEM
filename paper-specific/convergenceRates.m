@@ -1,12 +1,13 @@
 % ******************************************************************************
 % Adaptive FEM algorithm with known solution and convergence rates for higher
 % order finite elements.
+% This was used to generate data for Figure 6.
 % ******************************************************************************
 
 %% paramters
-nDofsMax = 1e4;
+nDofsMax = 1e7;
 theta = 0.5;
-pmax = 8;
+pmax = 4;
 
 %% initialization for every polynomial degree
 [nElem, nDofs, errEst, h1Err] = deal(zeros(pmax, 1000));
@@ -60,9 +61,18 @@ for p = 1:pmax
     end
 end
 
-%% plot convergence rates
-plotData(nDofs, 'number of dofs', errEst, 'error estimator')
-plotData(nDofs, 'number of dofs', h1Err, 'H^1 error')
+%% plot convergence ratesofs, 'number of dofs', h1Err, 'H^1 error')
+% plotData(nDofs, 'number of dofs', errEst, 'error estimator')
+% plotData(nDofs, 'number of dofs', h1Err, 'H^1 error')
+
+for p = 1:pmax
+    idx = find(nElem(p,:) > 0);
+    fileID = fopen(['afemP', num2str(p), '.dat'], 'w');
+    fprintf(fileID, 'nElements,nDofs,estimator,H1Error\n');
+    fprintf(fileID, '%d,%d,%.3e,%.3e\n', ...
+        [nElem(p,idx); nDofs(p,idx); errEst(p,idx); h1Err(p,idx)]);
+    fclose(fileID);
+end
 
 %% helper function for plotting
 function plotData(xdata, xlab, ydata, ylab)
