@@ -1,0 +1,20 @@
+# exclude plots, data and pdfs
+*.pdf
+*.tar.gz
+*.fig
+*.mat
+*.png
+*.eps
+
+# OSX / *nix default autosave extensions
+*.m~
+*.asv
+
+# Compiled MEX binaries (all platforms)
+*.mex*
+
+# Simulink Code Generation
+slprj/
+
+# Simulink autosave extension
+.autosave
