@@ -51,3 +51,17 @@ runtests('tests/', 'IncludeSubfolders', true)
 
 % run tests and perform code coverage analysis
 runtests('tests/', ['IncludeSubfolders', true,] 'ReportCoverageFor', 'lib/')
+```
+
+## Citation
+
+If you use the MooAFEM package in your own research, please acknowledge this by citing the accompanying [documentation paper](https://arxiv.org/abs/2203.01845):
+```
+@Article{MooAFEM,
+  author        = {Michael Innerberger and Dirk Praetorius},
+  title         = {{MooAFEM}: An object oriented {Matlab} code for higher-order (nonlinear) adaptive {FEM}},
+  year          = {2022},
+  archiveprefix = {arXiv},
+  eprint        = {2203.01845},
+}
+``` 
