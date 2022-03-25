@@ -70,6 +70,7 @@ classdef Mesh < handle
         saveTikzConforming(obj, varargin)
         refineLocally(obj, marked, method)
         refineUniform(obj, n, method)
+        changeRefinementEdge(obj, newRefinementEdge)
         edges = getCombinedBndEdges(obj, idx)
     end
     
