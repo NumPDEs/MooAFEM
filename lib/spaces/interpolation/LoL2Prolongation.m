@@ -22,12 +22,12 @@ classdef LoL2Prolongation < Prolongation
     end
     
     methods (Access='protected')
-        function interpolate(obj, src, ~)
+        function interpolate(obj, src, data)
             % use that for lowest order L2 elements the dofs correspond to elements
             % and indices of new elements is known
             nChildElems = ones(src.nElements, 1);
-            for k = 1:length(src.bisecGroups)
-                nChildElems(src.bisecGroups{k}.elementIdx) = src.bisecGroups{k}.nDescendants;
+            for k = 1:length(data.bisecGroups)
+                nChildElems(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
             end
             obj.interpolatedData = repelem(obj.u.data, nChildElems);
         end

@@ -22,14 +22,12 @@ end
 
 %% prepare data for refinement and make it available to listeners
 refinementAlgorithm = feval(method, obj);
-[obj.markedEdges, obj.bisecGroups] = refinementAlgorithm.prepareRefinementData(marked);
-obj.notify('IsAboutToRefine')
+bisecData = refinementAlgorithm.prepareRefinementData(marked);
+obj.notify('IsAboutToRefine', bisecData)
 
 %%  do actual refinement and clear data of old mesh
-obj.updateData();
-obj.markedEdges = [];
-obj.bisecGroups = [];
+obj.updateData(bisecData);
 obj.trafo = [];
-obj.notify('HasChanged');
+obj.notify('HasChanged', bisecData);
 
 end

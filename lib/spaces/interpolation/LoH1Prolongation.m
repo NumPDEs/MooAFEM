@@ -22,19 +22,19 @@ classdef LoH1Prolongation < Prolongation
     end
     
     methods (Access='protected')
-        function interpolate(obj, src, ~)
+        function interpolate(obj, ~, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
-            uInnerNodes = cell(numel(src.bisecGroups), 1);
-            for k = 1:numel(src.bisecGroups)
-                if ~isempty(src.bisecGroups{k}.innerNodes)
-                    uInnerNodes{k} = eval(obj.u, src.bisecGroups{k}.innerNodes, ...
-                        src.bisecGroups{k}.elementIdx);
+            uInnerNodes = cell(data.nBisecGroups, 1);
+            for k = 1:numel(data.bisecGroups)
+                if ~isempty(data.bisecGroups{k}.innerNodes)
+                    uInnerNodes{k} = eval(obj.u, data.bisecGroups{k}.innerNodes, ...
+                        data.bisecGroups{k}.elementIdx);
                 end
             end
             midpoint = Barycentric1D([1;1]/2);
             obj.interpolatedData = [obj.u.data, ...
-                evalEdge(obj.u, midpoint, src.markedEdges), ...
+                evalEdge(obj.u, midpoint, data.bisectedEdges), ...
                 horzcat(uInnerNodes{:})];
         end
     end

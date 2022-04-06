@@ -17,10 +17,11 @@ classdef NVB
             obj.mesh = mesh;
         end
         
-        function [markedEdges, bisecGroups] = prepareRefinementData(obj, markedElements)
+        function bisecData = prepareRefinementData(obj, markedElements)
             markedEdges = obj.markedElementsToEdges(markedElements);
             markedEdges = obj.meshClosure(markedEdges);
             bisecGroups = obj.groupElements(markedEdges, markedElements);
+            bisecData = BisectionEventData(markedEdges, bisecGroups);
         end
     end
     
