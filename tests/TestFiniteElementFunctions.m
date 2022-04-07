@@ -81,14 +81,14 @@ methods (Access='private')
     function refineAndInterpolate(~, mesh, fes, v, val)
         v.setData(val);
         if isa(fes.finiteElement, 'LowestOrderH1Fe')
-            oldVals = LoH1Prolongation(v);
+            P = LoH1Prolongation(fes);
         elseif isa(fes.finiteElement, 'LowestOrderL2Fe')
-            oldVals = LoL2Prolongation(v);
+            P = LoL2Prolongation(fes);
         else
-            oldVals = LinearFeProlongation(v);
+            P = LinearFeProlongation(fes);
         end
         mesh.refineUniform();
-        v.setData(oldVals.interpolatedData);
+        v.setData(P.prolongate(v));
     end
 end
     
