@@ -7,35 +7,55 @@
 %       at mesh refinement.
 
 classdef LoH1Prolongation < Prolongation
-    %% properties
-    properties (GetAccess='public', SetAccess='protected')
-        interpolatedData
-    end
-    
     %% methods
     methods (Access='public')
-        function obj = LoH1Prolongation(feFunction)
-            assert(isa(feFunction.fes.finiteElement, 'LowestOrderH1Fe'), ...
-                'Prolongation only implemented for lowest order H1 conforming finite elements.')
-            obj = obj@Prolongation(feFunction);
+        function obj = LoH1Prolongation(fes)
+            assert(isa(fes.finiteElement, 'LowestOrderH1Fe'), ...
+                'LoH1Prolongation needs a lowest order H1 finite element space.')
+            obj = obj@Prolongation(fes);
         end
     end
     
     methods (Access='protected')
-        function interpolate(obj, ~, data)
+        function setupMatrix(obj, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
-            uInnerNodes = cell(data.nBisecGroups, 1);
-            for k = 1:numel(data.bisecGroups)
-                if ~isempty(data.bisecGroups{k}.innerNodes)
-                    uInnerNodes{k} = eval(obj.u, data.bisecGroups{k}.innerNodes, ...
-                        data.bisecGroups{k}.elementIdx);
-                end
+            
+            nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
+                sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
+            dofs = getDofs(obj.fes);
+            
+            [I, J, V] = deal(zeros(nNewDofs, 1));
+            
+            % node dofs stay the same
+            idx = 1:mesh.nCoordinates; 
+            I(idx) = idx';
+            J(idx) = idx';
+            V(idx) = ones(idx(end), 1);
+            dofNr = mesh.nCoordinates;
+            
+            % edge dofs are mean of edge dofs
+            n = nnz(data.bisectedEdges);
+            idx = idx(end) + (1:2*n);
+            I(idx) = repelem(dofNr + (1:n)', 2);
+            J(idx) = reshape(dofs.edge2Dofs(:,data.bisectedEdges), [], 1);
+            V(idx) = ones(2*n, 1)/2;
+            dofNr = idx(end) + n;
+            
+            % inner dofs are weighted sum of element dofs
+            idxEnd = idx(end);
+            for k = 1:data.nBisecGroups
+                nInnerDofs = data.bisecGroups{k}.nInnerNodes;
+                n = data.bisecGroups{k}.nMembers*nInnerDofs;
+                idx = idxEnd + (1:3*n);
+                I(idx) = repelem(dofNr + (1:n)', 3);
+                J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], nInnerDofs), [], 1);
+                V(idx) = reshape(repmat(data.bisecGroups{k}.innerNodes, 1, nInnerDofs), [], 1);
+                dofNr = dofNr + n;
+                idxEnd = idxEnd + 3*n;
             end
-            midpoint = Barycentric1D([1;1]/2);
-            obj.interpolatedData = [obj.u.data, ...
-                evalEdge(obj.u, midpoint, data.bisectedEdges), ...
-                horzcat(uInnerNodes{:})];
+            
+            obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
         end
     end
 end
