@@ -39,8 +39,7 @@ for p = 1:pmax
     lfG.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     %% set up lifting operators for rhs FEM-data
-    Pv = LoL2Prolongation(v);
-    Pw = LoL2Prolongation(w);
+    P = LoL2Prolongation(ncFes);
 
     %% adaptive loop
     i = 1;
@@ -70,8 +69,8 @@ for p = 1:pmax
         marked = markGoafemMS(eta2, zeta2, theta);
         mesh.refineLocally(marked, 'NVB');
         i = i+1;
-        v.setData(Pv.interpolatedData);
-        w.setData(Pw.interpolatedData);
+        v.setData(P.prolongate(v));
+        w.setData(P.prolongate(w));
     end
 end
 

@@ -7,29 +7,27 @@
 %       at mesh refinement.
 
 classdef LoL2Prolongation < Prolongation
-    %% properties
-    properties (GetAccess='public', SetAccess='protected')
-        interpolatedData
-    end
-    
     %% methods
     methods (Access='public')
-        function obj = LoL2Prolongation(feFunction)
-            assert(isa(feFunction.fes.finiteElement, 'LowestOrderL2Fe'), ...
-                'Prolongation only implemented for lowest order L2 finite elements.')
-            obj = obj@Prolongation(feFunction);
+        function obj = LoL2Prolongation(fes)
+            assert(isa(fes.finiteElement, 'LowestOrderL2Fe'), ...
+                'LoL2Prolongation needs a lowest order L2 finite element space.')
+            obj = obj@Prolongation(fes);
         end
     end
     
     methods (Access='protected')
-        function interpolate(obj, src, data)
+        function setupMatrix(obj, mesh, data)
             % use that for lowest order L2 elements the dofs correspond to elements
             % and indices of new elements is known
-            nChildElems = ones(src.nElements, 1);
-            for k = 1:length(data.bisecGroups)
-                nChildElems(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
+            nChildren = ones(mesh.nElements, 1);
+            for k = 1:data.nBisecGroups
+                nChildren(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
             end
-            obj.interpolatedData = repelem(obj.u.data, nChildElems);
+            nNewElements = sum(nChildren);
+            
+            obj.matrix = sparse(1:nNewElements, repelem(1:mesh.nElements, nChildren), ...
+                ones(nNewElements,1), nNewElements, mesh.nElements);
         end
     end
 end
