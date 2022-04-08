@@ -28,6 +28,8 @@ obj.notify('IsAboutToRefine', bisecData)
 %%  do actual refinement and clear data of old mesh
 obj.updateData(bisecData);
 obj.trafo = [];
-obj.notify('HasChanged', bisecData);
+obj.notify('JustRefined');
+
+obj.notify('RefineCompleted')
 
 end

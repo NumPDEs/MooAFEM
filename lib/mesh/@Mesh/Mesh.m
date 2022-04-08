@@ -31,7 +31,8 @@ classdef Mesh < handle
     %% events
     events
         IsAboutToRefine
-        HasChanged
+        JustRefined
+        RefineCompleted
     end
     
     %% public methods
