@@ -1,10 +1,11 @@
 % LoL2Prolongation (subclass of Prolongation) Prolongate lowest order L^2 finite
 %   element function to refined mesh.
 %
-%   Pu = LoL2Prolongation(u) returns a handle to the prolongation object.
+%   P = LoL2Prolongation(fes) returns a handle to the prolongation object
+%       associated to the finite element space fes. The prolongation matrix
+%       P.matrix is set automatically at mesh refinement.
 %
-%   Pu.interpolatedData is the data of the prolongation and is set automatically
-%       at mesh refinement.
+%   prolongate(P, u) returns the prolongated data of FeFunction u.
 
 classdef LoL2Prolongation < Prolongation
     %% methods
@@ -18,8 +19,8 @@ classdef LoL2Prolongation < Prolongation
     
     methods (Access='protected')
         function setupMatrix(obj, mesh, data)
-            % use that for lowest order L2 elements the dofs correspond to elements
-            % and indices of new elements is known
+            % use that for lowest order L2 elements the dofs correspond to
+            % elements and indices of new elements is known
             nChildren = ones(mesh.nElements, 1);
             for k = 1:data.nBisecGroups
                 nChildren(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;

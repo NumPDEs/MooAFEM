@@ -1,10 +1,11 @@
 % LoH1Prolongation (subclass of Prolongation) Prolongate lowest order H^1
 %   conforming finite element function to refined mesh.
 %
-%   Pu = LoH1Prolongation(u) returns a handle to the prolongation object.
+%   P = LoH1Prolongation(fes) returns a handle to the prolongation object
+%       associated to the finite element space fes. The prolongation matrix
+%       P.matrix is set automatically at mesh refinement.
 %
-%   Pu.interpolatedData is the data of the prolongation and is set automatically
-%       at mesh refinement.
+%   prolongate(P, u) returns the prolongated data of FeFunction u.
 
 classdef LoH1Prolongation < Prolongation
     %% methods
@@ -20,12 +21,10 @@ classdef LoH1Prolongation < Prolongation
         function setupMatrix(obj, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
-            
-            nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
-                sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
             dofs = getDofs(obj.fes);
-            
-            [I, J, V] = deal(zeros(nNewDofs, 1));
+            nEntries = mesh.nCoordinates + 2*nnz(data.bisectedEdges) + ...
+                3*sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
+            [I, J, V] = deal(zeros(nEntries, 1));
             
             % node dofs stay the same
             idx = 1:mesh.nCoordinates; 
@@ -55,6 +54,8 @@ classdef LoH1Prolongation < Prolongation
                 idxEnd = idxEnd + 3*n;
             end
             
+            nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
+                sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
             obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
         end
     end
