@@ -88,7 +88,7 @@ methods (Access='private')
             P = LinearFeProlongation(fes);
         end
         mesh.refineUniform();
-        v.setData(P.prolongate(v));
+        v.setData(prolongate(P, v));
     end
 end
     

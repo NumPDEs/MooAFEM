@@ -69,8 +69,8 @@ for p = 1:pmax
         marked = markGoafemMS(eta2, zeta2, theta);
         mesh.refineLocally(marked, 'NVB');
         i = i+1;
-        v.setData(P.prolongate(v));
-        w.setData(P.prolongate(w));
+        v.setData(prolongate(P, v));
+        w.setData(prolongate(P, w));
     end
 end
 

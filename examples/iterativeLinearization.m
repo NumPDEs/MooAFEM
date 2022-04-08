@@ -73,7 +73,7 @@ for k = 1:length(linearizations)
         %% refine mesh
         marked = markDoerflerSorting(eta2, theta);
         mesh.refineLocally(marked, 'NVB');
-        u.setData(P.prolongate(u));
+        u.setData(prolongate(P, u));
         i = i+1;
     end
 end
