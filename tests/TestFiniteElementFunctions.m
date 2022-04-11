@@ -85,7 +85,7 @@ methods (Access='private')
         elseif isa(fes.finiteElement, 'LowestOrderL2Fe')
             P = LoL2Prolongation(fes);
         else
-            P = LinearFeProlongation(fes);
+            P = GeneralFeProlongation(fes);
         end
         mesh.refineUniform();
         v.setData(prolongate(P, v));
