@@ -15,11 +15,6 @@ classdef Mesh < handle
         boundaries (:,1) cell
     end
     
-    properties (GetAccess = 'public', SetAccess = 'private', Hidden = true)
-        markedEdges (:,1) logical
-        bisecGroups (:,1) cell
-    end
-    
     %% dependent properties (computed from data)
     properties (Dependent)
         nCoordinates
@@ -36,7 +31,8 @@ classdef Mesh < handle
     %% events
     events
         IsAboutToRefine
-        HasChanged
+        JustRefined
+        RefineCompleted
     end
     
     %% public methods
@@ -76,7 +72,7 @@ classdef Mesh < handle
     
     %% protected methods
     methods (Access='protected')
-        updateData(obj)
+        updateData(obj, bisecData)
     end
     
     %% get methods for dependent data

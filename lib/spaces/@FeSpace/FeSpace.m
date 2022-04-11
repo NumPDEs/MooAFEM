@@ -39,7 +39,7 @@ classdef FeSpace < handle
             end
             
             % register fespace as an observer of mesh
-            obj.listenerHandle = mesh.listener('HasChanged', @obj.handleChangedMesh);
+            obj.listenerHandle = mesh.listener('JustRefined', @obj.handleChangedMesh);
             
             % initialize lazily evaluated properties
             obj.dofs = [];

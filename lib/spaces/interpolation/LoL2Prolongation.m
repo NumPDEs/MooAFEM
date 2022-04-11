@@ -1,35 +1,34 @@
 % LoL2Prolongation (subclass of Prolongation) Prolongate lowest order L^2 finite
 %   element function to refined mesh.
 %
-%   Pu = LoL2Prolongation(u) returns a handle to the prolongation object.
+%   P = LoL2Prolongation(fes) returns a handle to the prolongation object
+%       associated to the finite element space fes. The prolongation matrix
+%       P.matrix is set automatically at mesh refinement.
 %
-%   Pu.interpolatedData is the data of the prolongation and is set automatically
-%       at mesh refinement.
+%   prolongate(P, u) returns the prolongated data of FeFunction u.
 
 classdef LoL2Prolongation < Prolongation
-    %% properties
-    properties (GetAccess='public', SetAccess='protected')
-        interpolatedData
-    end
-    
     %% methods
     methods (Access='public')
-        function obj = LoL2Prolongation(feFunction)
-            assert(isa(feFunction.fes.finiteElement, 'LowestOrderL2Fe'), ...
-                'Prolongation only implemented for lowest order L2 finite elements.')
-            obj = obj@Prolongation(feFunction);
+        function obj = LoL2Prolongation(fes)
+            assert(isa(fes.finiteElement, 'LowestOrderL2Fe'), ...
+                'LoL2Prolongation needs a lowest order L2 finite element space.')
+            obj = obj@Prolongation(fes);
         end
     end
     
     methods (Access='protected')
-        function interpolate(obj, src, ~)
-            % use that for lowest order L2 elements the dofs correspond to elements
-            % and indices of new elements is known
-            nChildElems = ones(src.nElements, 1);
-            for k = 1:length(src.bisecGroups)
-                nChildElems(src.bisecGroups{k}.elementIdx) = src.bisecGroups{k}.nDescendants;
+        function setupMatrix(obj, mesh, data)
+            % use that for lowest order L2 elements the dofs correspond to
+            % elements and indices of new elements is known
+            nChildren = ones(mesh.nElements, 1);
+            for k = 1:data.nBisecGroups
+                nChildren(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
             end
-            obj.interpolatedData = repelem(obj.u.data, nChildElems);
+            nNewElements = sum(nChildren);
+            
+            obj.matrix = sparse(1:nNewElements, repelem(1:mesh.nElements, nChildren), ...
+                ones(nNewElements,1), nNewElements, mesh.nElements);
         end
     end
 end

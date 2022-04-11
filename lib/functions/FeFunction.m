@@ -43,7 +43,7 @@ classdef FeFunction < Evaluable
             obj.dataIsValid = true;
             
             % register FeFunction as an observer of mesh
-            obj.listenerHandle = fes.mesh.listener('HasChanged', @obj.handleChangedMesh);
+            obj.listenerHandle = fes.mesh.listener('JustRefined', @obj.handleChangedMesh);
         end
         
         function setData(obj, data)
