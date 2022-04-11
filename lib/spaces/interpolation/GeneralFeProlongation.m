@@ -101,9 +101,9 @@ function mesh = getBisectedUnitTriangle(bisecMethod)
     % TODO: this should be handled by bisection method itself?
     switch bisecMethod
         case 'Bisec1'
-            mesh.refineLocally(1, 'NVBEdge');
+            mesh.refineLocally(3, 'NVBEdge');
         case 'Bisec12'
-            mesh.refineLocally([1,2], 'NVBEdge');
+            mesh.refineLocally([2,3], 'NVBEdge');
         case 'Bisec13'
             mesh.refineLocally([1,3], 'NVBEdge');
         case 'Bisec123'
@@ -118,11 +118,14 @@ function mesh = getBisectedUnitTriangle(bisecMethod)
 end
 
 function elementwiseLocations = getElementwiseLocationsAsBarycentric(mesh, locations)
-    elementwiseLocations = reshape(elementwiseCoordinates(mesh, locations), 2, [], 1);
+    % collect dofs such that all locations of one child appear before thos of other children
+    % -> permute dimensions: 2 = children, 3 = barycentric coordinates
+    elementwiseLocations = permute(elementwiseCoordinates(mesh, locations), [1,3,2]);
+    elementwiseLocations = reshape(elementwiseLocations, 2, [], 1);
     elementwiseLocations = Barycentric2D(...
         cat(Dim.Vector, elementwiseLocations, 1-sum(elementwiseLocations, Dim.Vector)));
 end
 
 function idx = getConsecutiveIndices(parents, nIndices)
-    idx = reshape((0:(nIndices-1)) + parents, [], 1);
+    idx = reshape(((0:(nIndices-1)) + parents)', [], 1);
 end
