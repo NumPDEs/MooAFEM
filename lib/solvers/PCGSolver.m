@@ -1,7 +1,17 @@
 % PCGSolver (abstract subclass of Solver) Solves linear equations
 %   iteratively, using a preconditioner.
 %
-% 
+% solver.setup(A, b, [x0]) sets up solver for the linear system A*x=b with
+%   initial guess x0 (0 per default). The right-hand side b can have
+%   multiple columns.
+%
+% solver.step() performs one PCG step.
+%
+% isConverged(solver) returns state of convergence of the solver for each
+%   column of the right-hand side.
+%
+% solver.solve(A, b, [x0]) performs an automatic loop of solver.step()
+%   until convergence in each column of the right-hand side is reached.
 
 classdef PCGSolver < Solver
     %% properties
@@ -20,6 +30,7 @@ classdef PCGSolver < Solver
         Cresidual
         searchDirection
         normb
+        activeComponents
     end
     
     %% methods
@@ -65,28 +76,39 @@ classdef PCGSolver < Solver
             obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
             obj.iterationCount = zeros(1, size(b,2));
             obj.normb = sqrt(sum(b.^2, 1));
+            obj.activeComponents = true(1, size(b,2));
         end
         
         
         % one step
         function step(obj)
-            % TODO: handle 0-solution in a correct way!
+            % only iterate on active components
+            idx = ~isConverged(obj);
+            stillActive = idx(obj.activeComponents);
+            obj.activeComponents = obj.activeComponents & idx;
+            
+            % update solution
+            obj.searchDirection = obj.searchDirection(:,stillActive);
             AsearchDirection = obj.A * obj.searchDirection;
-            alpha = obj.residualCNorm ./ sum(obj.searchDirection.*AsearchDirection, 1);
-            obj.x = obj.x + alpha .* obj.searchDirection;
-            obj.residual = obj.residual - alpha .* AsearchDirection;
+            alpha = obj.residualCNorm(:,idx) ./ sum(obj.searchDirection.*AsearchDirection, 1);
+            obj.x(:,idx) = obj.x(:,idx) + alpha .* obj.searchDirection;
+            
+            % update residual
+            obj.residual = obj.residual(:,stillActive) - alpha .* AsearchDirection;
             obj.Cresidual = obj.preconditionAction(obj.residual);
-            residualCNormOld = obj.residualCNorm;
-            obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
-            beta = obj.residualCNorm ./ residualCNormOld;
+            residualCNormOld = obj.residualCNorm(:,idx);
+            obj.residualCNorm(:,idx) = sum(obj.residual.*obj.Cresidual, 1);
+            
+            % update search direction
+            beta = obj.residualCNorm(:,idx) ./ residualCNormOld;
             obj.searchDirection = obj.Cresidual + beta .* obj.searchDirection;
-            obj.iterationCount = obj.iterationCount+1;
+            obj.iterationCount(:,idx) = obj.iterationCount(:,idx)+1;
         end
         
         % stopping criterion
         function tf = isConverged(obj)
-            tf = (obj.iterationCount > 0);
-            tf = tf & ((obj.iterationCount >= obj.maxIter) ...
+            tf = ((obj.iterationCount >= obj.maxIter) ...
+                        | (sqrt(obj.residualCNorm) < obj.tol) ...
                         | (sqrt(obj.residualCNorm)./obj.normb < obj.tol));
         end
     end
