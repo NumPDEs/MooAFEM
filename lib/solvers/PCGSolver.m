@@ -15,12 +15,15 @@
 
 classdef PCGSolver < Solver
     %% properties
+    properties (Access=public)
+        maxIter (1,:) double {mustBePositive}
+        tol (1,:) double {mustBePositive}
+    end
+    
     properties (SetAccess=protected, GetAccess=public)
         A
         b
         x
-        maxIter
-        tol
         residualCNorm
         iterationCount
     end
