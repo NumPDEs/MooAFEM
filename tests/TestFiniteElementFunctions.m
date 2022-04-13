@@ -66,7 +66,7 @@ methods (Test)
         testCase.verifyEqual(nnz(testCase.u.data == scalar), nFreeDofs)
     end
     
-    function linearInterpolationPreservesConstants(testCase)
+    function prolongationPreservesConstants(testCase)
         mesh = Mesh.loadFromGeometry('unitsquare');
         fes = FeSpace(mesh, testCase.u.fes.finiteElement);
         v = FeFunction(fes);
@@ -74,6 +74,22 @@ methods (Test)
         qr = QuadratureRule.ofOrder(1);
         integral = sum(integrateElement(v, qr), Dim.Elements);
         testCase.verifyEqual(integral, pi, 'AbsTol', sqrt(eps))
+    end
+    
+    function generalProlongationPreservesBasisFunctions(testCase)
+        mesh = Mesh.loadFromGeometry('unitsquare');
+        fes = FeSpace(mesh, testCase.u.fes.finiteElement);
+        qr = QuadratureRule.ofOrder(max(fes.finiteElement.order,1));
+        v = FeFunction(fes);
+        P = GeneralFeProlongation(fes);
+        for k = 1:min(5, size(getDofs(fes).element2Dofs, 1))
+            testCase.setToElementwiseBasisFunction(v, k);
+            before = sum(integrateElement(v, qr));
+            mesh.refineLocally(1, 'NVB');
+            v.setData(prolongate(P, v));
+            after = sum(integrateElement(v, qr));
+            testCase.verifyEqual(before, after, 'AbsTol', sqrt(eps))
+        end
     end
 end
 
@@ -89,6 +105,13 @@ methods (Access='private')
         end
         mesh.refineUniform();
         v.setData(prolongate(P, v));
+    end
+    
+    function setToElementwiseBasisFunction(~, v, k)
+        v.setData(0);
+        data = v.data;
+        data(getDofs(v.fes).element2Dofs(k,:)) = 1;
+        v.setData(data);
     end
 end
     
