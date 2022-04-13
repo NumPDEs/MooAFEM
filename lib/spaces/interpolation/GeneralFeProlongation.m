@@ -54,28 +54,30 @@ classdef GeneralFeProlongation < Prolongation
             % for non-refined elements, just transfer the dofs
             elems = find(nChildElems == 1);
             n = numel(elems)*nLocalDofs;
-            idx = (1:n)';
-            I(idx) = getConsecutiveIndices(element2newDof(elems), nLocalDofs);
-            J(idx) = reshape(oldDofs.element2Dofs(:,elems), [], 1);
-            V(idx) = 1;
+            if n ~= 0
+                idx = (1:n)';
+                I(idx) = getConsecutiveIndices(element2newDof(elems), nLocalDofs);
+                J(idx) = reshape(oldDofs.element2Dofs(:,elems), [], 1);
+                V(idx) = 1;
+            end
             ptr = n;
             
             % handle refined elements
             localMatrix = squeeze(evalShapeFunctions(fe, dofLocations));
-            for k = 1:data.nBisecGroups
-                if data.bisecGroups{k}.nMembers ~= 0
-                    unitTriangle = getBisectedUnitTriangle(class(data.bisecGroups{k}));
-                    newDofLocations = getElementwiseLocationsAsBarycentric(unitTriangle, dofLocations);
-                    newDofWeights = localMatrix \ squeeze(evalShapeFunctions(fe, newDofLocations));
+            for k = find(cellfun(@(x) x.nMembers~=0, data.bisecGroups))'
+                unitTriangle = getBisectedUnitTriangle(class(data.bisecGroups{k}));
+                newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
+                newDofWeights = divideElementwise(...
+                    reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
 
-                    elems = data.bisecGroups{k}.elementIdx;
-                    n = data.bisecGroups{k}.nMembers * numel(newDofWeights);
-                    idx = ptr + (1:n)';
-                    I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), newDofLocations.nNodes), nLocalDofs);
-                    J(idx) = reshape(repelem(oldDofs.element2Dofs(:,elems), 1, newDofLocations.nNodes), [], 1);
-                    V(idx) = reshape(repmat(newDofWeights, 1, data.bisecGroups{k}.nMembers), [], 1);
-                    ptr = ptr + n;
-                end
+                nNewLocs = newDofLocations.nNodes;
+                elems = data.bisecGroups{k}.elementIdx;
+                n = data.bisecGroups{k}.nMembers * numel(newDofWeights);
+                idx = ptr + (1:n)';
+                I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), nNewLocs), nLocalDofs);
+                J(idx) = reshape(repelem(oldDofs.element2Dofs(:,elems), 1, nNewLocs), [], 1);
+                V(idx) = reshape(repmat(newDofWeights, 1, data.bisecGroups{k}.nMembers), [], 1);
+                ptr = ptr + n;
             end
             
             nNewDofs = element2newDof(end)-1;
@@ -117,13 +119,20 @@ function mesh = getBisectedUnitTriangle(bisecMethod)
     end
 end
 
-function elementwiseLocations = getElementwiseLocationsAsBarycentric(mesh, locations)
-    % collect dofs such that all locations of one child appear before thos of other children
+function elementwiseLocations = getNewLocationsElementwise(mesh, locations)
+    % collect dofs such that all locations of one child appear before those of other children
     % -> permute dimensions: 2 = children, 3 = barycentric coordinates
     elementwiseLocations = permute(elementwiseCoordinates(mesh, locations), [1,3,2]);
     elementwiseLocations = reshape(elementwiseLocations, 2, [], 1);
     elementwiseLocations = Barycentric2D(...
         cat(Dim.Vector, elementwiseLocations, 1-sum(elementwiseLocations, Dim.Vector)));
+end
+
+function C = divideElementwise(A, B)
+    % TODO: from 2022a on, this can be replaced by pagemrdivide(A, B)
+    n = size(A,1);
+    C = B' \ reshape(permute(A, [2,1,3]), n, []);
+    C = reshape(permute(reshape(C, n, n, []), [2,1,3]), n, []);
 end
 
 function idx = getConsecutiveIndices(parents, nIndices)
