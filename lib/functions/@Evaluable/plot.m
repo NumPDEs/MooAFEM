@@ -59,18 +59,17 @@ else
         warning('Custom plot options discarded due to subdivisions.')
     end
     for s = smin:smax
-        idx = find(subdivision == s);
-        if ~isempty(idx)
+        currentElems = find(subdivision == s);
+        if ~isempty(currentElems)
             % subtriangles on one element
             bary = Barycentric2D(partition3(s)/s);
             [elements, outerEdges] = getSubtriangles(s);
-            nSubtriangles = size(elements, 1) * numel(idx);
             
             % compute plot data
-            coordinates = mesh.elementwiseCoordinates(bary, idx);
+            coordinates = mesh.elementwiseCoordinates(bary, currentElems);
             Xel = splitFirstDimension(coordinates, elements);
             Xlin = splitFirstDimension(coordinates, outerEdges);
-            data = guaranteeSize(eval(obj, bary, idx), mesh.nElements, bary.nNodes);
+            data = guaranteeSize(eval(obj, bary, currentElems), numel(currentElems), bary.nNodes);
             Zel = splitFirstDimension(data, elements);
             Zlin = splitFirstDimension(data, outerEdges);
             
