@@ -1,4 +1,4 @@
-% PCGSolver (abstract subclass of Solver) Solves linear equations
+% PcgSolver (abstract subclass of Solver) Solves linear equations
 %   iteratively, using a preconditioner.
 %
 % solver.setup(A, b, [x0]) sets up solver for the linear system A*x=b with
@@ -13,7 +13,7 @@
 % solver.solve(A, b, [x0]) performs an automatic loop of solver.step()
 %   until convergence in each column of the right-hand side is reached.
 
-classdef PCGSolver < Solver
+classdef PcgSolver < Solver
     %% properties
     properties (Access=public)
         maxIter (1,:) double {mustBePositive}
@@ -37,8 +37,8 @@ classdef PCGSolver < Solver
     end
     
     %% methods
-    methods
-        function obj = PCGSolver(varargin)
+    methods (Access=public)
+        function obj = PcgSolver(varargin)
             obj = obj@Solver(varargin);
             obj.maxIter = 100;
             obj.tol = 1e-8;
@@ -116,7 +116,7 @@ classdef PCGSolver < Solver
         end
     end
     
-    methods(Abstract)
+    methods (Abstract,Access=public)
         preconditionAction(obj, x)
     end
 end
