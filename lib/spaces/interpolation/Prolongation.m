@@ -5,10 +5,10 @@ classdef Prolongation < handle
     %% properties
     properties (GetAccess='public', SetAccess='protected')
         matrix {mustBeSparse}
+        fes FeSpace
     end
     
     properties (Access='protected')
-        fes FeSpace
         listenerHandle
     end
     

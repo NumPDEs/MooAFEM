@@ -39,7 +39,6 @@ classdef PcgSolver < Solver
     %% methods
     methods (Access=public)
         function obj = PcgSolver(varargin)
-            obj = obj@Solver(varargin);
             obj.maxIter = 100;
             obj.tol = 1e-8;
         end
@@ -60,12 +59,16 @@ classdef PcgSolver < Solver
         end
         
         % initialize iteration
-        function setup(obj, A, b, x0)
+        function setup(obj, A, b, x0, c)
             arguments
                 obj
                 A (:,:) double {Solver.mustBeQuadratic}
                 b (:,:) double {Solver.mustBeCompatible(A, b)}
                 x0 (:,:) double {Solver.mustBeCompatible(A, x0)} = zeros(size(b));
+            end
+            
+            arguments (Repeating)
+                c % catching possible additional arguments
             end
             
             assert(isequal(size(b,2), size(x0,2)), 'Right-hand size and initial guess must be of compatible size.')

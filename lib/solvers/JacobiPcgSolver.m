@@ -1,4 +1,4 @@
-% JacobiPcgSolver (subclass of PCGSolver) inear equations iteratively using
+% JacobiPcgSolver (subclass of PcgSolver) inear equations iteratively using
 %   the CG method with diagonal preconditioner.
 
 classdef JacobiPcgSolver < PcgSolver

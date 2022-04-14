@@ -51,7 +51,7 @@ while ~meshSufficientlyFine
     A = assemble(blf);
     rhs = [assemble(lfF), assemble(lfG)];
     uz0 = [u.data', z.data'];
-    solver.setup(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
+    solver.setup(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:), 1);
     
     while ~all(isConverged(solver))
         solver.step();

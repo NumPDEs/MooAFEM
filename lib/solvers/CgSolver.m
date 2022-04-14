@@ -1,4 +1,4 @@
-% CgSolver (subclass of PCGSolver) Solves linear equations iteratively using
+% CgSolver (subclass of PcgSolver) Solves linear equations iteratively using
 %   the CG method without preconditioner.
 
 classdef CgSolver < PcgSolver
