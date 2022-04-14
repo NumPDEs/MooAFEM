@@ -5,7 +5,7 @@
 %% paramters
 nDofsMax = 1e4;
 theta = 0.5;
-p = 2;
+p = 3;
 
 %% setup geometry & spaces
 [nElem, nDofs, nIterPrimal, nIterDual, goalErrEst] = deal(zeros(1, 1000));
@@ -13,7 +13,7 @@ p = 2;
 printLogMessage('*** GOAFEM with p = %d and iterative solver ***', p)
 mesh = Mesh.loadFromGeometry('unitsquare');
 mesh.refineUniform(1, 'RGB');
-fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1);
+fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 'all');
 u = FeFunction(fes);
 z = FeFunction(fes);
 u.setData(0);
@@ -37,6 +37,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 %% set up solver and lifting operator for nested iteration
 solver = CGSolver();
 solver.tol = 1e-8;
+solver.maxIter = 1000;
 P = GeneralFeProlongation(fes);
 
 %% adaptive loop
@@ -84,13 +85,18 @@ end
 %% plot convergence rates
 figure()
 idx = 1:ell;
-loglog(nDofs(idx), goalErrEst(idx), '-o', 'LineWidth', 2);
+x = cumsum(nDofs(idx).*max(nIterPrimal(idx), nIterDual(idx)));
+yyaxis left
+loglog(x, goalErrEst(idx), '-x', 'LineWidth', 2, 'MarkerSize', 8);
 hold on
-x = nDofs(idx) / nDofs(1);
-loglog(nDofs(1)*x, goalErrEst(1)*x.^(-p), '--', 'LineWidth', 2, 'Color', 'k')
-legend
-xlabel('number of dofs')
-ylabel('goal error estimator')
+loglog(x, goalErrEst(1)*(x/x(1)).^(-p), '--', 'LineWidth', 2, 'Color', 'k')
+ylabel('goal error estimator of final iterates')
+yyaxis right
+stem(x, nIterPrimal(idx), 's', 'filled')
+stem(x, nIterDual(idx), 'o', 'filled')
+ylabel('number of iterations')
+legend('\eta_l \zeta_l', ['\alpha=', num2str(p)], 'primal iterations', 'dual iteration')
+xlabel('total work')
 title(['GOAFEM p=', num2str(p)])
 
 %% local function for residual a posteriori error estimation
@@ -114,8 +120,8 @@ function indicators = estimate(blf, lf, u)
     % compute edge residual edge-wise
     qr = QuadratureRule.ofOrder(max(p-1, 1), '1D');
     edgeResidual = integrateNormalJump(Gradient(u), qr, ...
-        @(j) zeros(size(j)), {}, mesh.boundaries{1}, ...    % no jump on dirichlet edges
-        @(j) j.^2, {}, ':');                                % normal jump on inner edges
+        @(j) zeros(size(j)), {}, vertcat(mesh.boundaries{:}), ... % no jump on dirichlet edges
+        @(j) j.^2, {}, ':');                                      % normal jump on inner edges
     
     % combine the resdiuals suitably
     hT = sqrt(trafo.area);
