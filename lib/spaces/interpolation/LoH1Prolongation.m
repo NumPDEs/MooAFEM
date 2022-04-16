@@ -23,7 +23,7 @@ classdef LoH1Prolongation < Prolongation
             % coordinates and new coordinates reside on edges or on inner nodes
             dofs = getDofs(obj.fes);
             nEntries = mesh.nCoordinates + 2*nnz(data.bisectedEdges) + ...
-                3*sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
+                3*sum(data.nInnerNodes.*data.nRefinedElements);
             [I, J, V] = deal(zeros(nEntries, 1));
             
             % node dofs stay the same

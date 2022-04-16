@@ -43,12 +43,12 @@ classdef GeneralFeProlongation < Prolongation
             % get old-elements-to-new-dofs connectivity
             nChildElems = ones(mesh.nElements, 1);
             for k = 1:data.nBisecGroups
-                nChildElems(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
+                nChildElems(data.bisecGroups{k}.elementIdx) = data.nDescendants(k);
             end
             element2newDof = cumsum([1; nChildElems*nLocalDofs]);
             
             % pre-allocate
-            n = nnz(nChildElems == 1)*nLocalDofs + sum(nChildElems(nChildElems > 1))*nLocalDofs^2;
+            n = nnz(nChildElems == 1)*nLocalDofs + sum(data.nRefinedElements)*nLocalDofs^2;
             [I, J, V] = deal(zeros(n, 1));
             
             % for non-refined elements, just transfer the dofs
@@ -64,7 +64,7 @@ classdef GeneralFeProlongation < Prolongation
             
             % handle refined elements
             localMatrix = squeeze(evalShapeFunctions(fe, dofLocations));
-            for k = find(cellfun(@(x) x.nMembers~=0, data.bisecGroups))'
+            for k = find(data.nRefinedElements ~= 0)'
                 unitTriangle = getBisectedUnitTriangle(class(data.bisecGroups{k}));
                 newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
                 newDofWeights = divideElementwise(...
@@ -72,7 +72,7 @@ classdef GeneralFeProlongation < Prolongation
 
                 nNewLocs = newDofLocations.nNodes;
                 elems = data.bisecGroups{k}.elementIdx;
-                n = data.bisecGroups{k}.nMembers * numel(newDofWeights);
+                n = data.nRefinedElements(k) * numel(newDofWeights);
                 idx = ptr + (1:n)';
                 I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), nNewLocs), nLocalDofs);
                 J(idx) = reshape(repelem(oldDofs.element2Dofs(:,elems), 1, nNewLocs), [], 1);

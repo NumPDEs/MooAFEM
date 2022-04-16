@@ -9,17 +9,17 @@ function updateData(obj, bisecData)
 %% create indices of ...
 % new nodes
 edgeNodes = obj.nCoordinates + (1:nnz(bisecData.bisectedEdges))';
-innerNodes = cumsum([edgeNodes(end); cellfun(@(x) x.nMembers*x.nInnerNodes, bisecData.bisecGroups)]);
+innerNodes = cumsum([edgeNodes(end); bisecData.nRefinedElements.*bisecData.nInnerNodes]);
 
 % new edges
-innerEdges = cumsum([obj.nEdges + nnz(bisecData.bisectedEdges); cellfun(@(x) x.nMembers*x.nInnerEdges, bisecData.bisecGroups)]);
+innerEdges = cumsum([obj.nEdges + nnz(bisecData.bisectedEdges); bisecData.nRefinedElements.*bisecData.nInnerEdges]);
 nChildEdges = 1 + bisecData.bisectedEdges;
 oldEdge2parent = cumsum([1; nChildEdges]);
 
 % new elements
 nChildElems = ones(obj.nElements, 1);
 for k = 1:bisecData.nBisecGroups
-    nChildElems(bisecData.bisecGroups{k}.elementIdx) = bisecData.bisecGroups{k}.nDescendants;
+    nChildElems(bisecData.bisecGroups{k}.elementIdx) = bisecData.nDescendants(k);
 end
 oldElement2parent = cumsum([1; nChildElems]);
 
@@ -28,11 +28,9 @@ newCoordinates = [obj.coordinates, ...
     edgewiseCoordinates(obj, [1;1]/2, bisecData.bisectedEdges), ...
     zeros(2, innerNodes(end)-innerNodes(1))];
 
-for k = 1:bisecData.nBisecGroups
-    if bisecData.bisecGroups{k}.nInnerNodes ~= 0
-        newCoordinates(:,innerNodes(k)+1:innerNodes(k+1)) = ...
-            elementwiseCoordinates(obj, bisecData.bisecGroups{k}.innerNodes, bisecData.bisecGroups{k}.elementIdx);
-    end
+for k = find(bisecData.nInnerNodes ~= 0)'
+    newCoordinates(:,innerNodes(k)+1:innerNodes(k+1)) = ...
+        elementwiseCoordinates(obj, bisecData.bisecGroups{k}.innerNodes, bisecData.bisecGroups{k}.elementIdx);
 end
 
 %% refine existing edges
@@ -65,12 +63,12 @@ edgeMidPts = edgeMidPts(obj.element2edges);
 
 for k = 1:bisecData.nBisecGroups
     idx = (innerEdges(k)+1):innerEdges(k+1);
-    intEdges = reshape(idx, [], bisecData.bisecGroups{k}.nInnerEdges)';
-    intNodes = reshape((innerNodes(k)+1:innerNodes(k+1))', bisecData.bisecGroups{k}.nInnerNodes, []);
+    intEdges = reshape(idx, [], bisecData.nInnerEdges(k))';
+    intNodes = reshape((innerNodes(k)+1:innerNodes(k+1))', bisecData.nInnerNodes(k), []);
     
     parentEdges = oldEdgeNewIdx(:, bisecData.bisecGroups{k}.elementIdx);
     parentElements = oldElement2parent(bisecData.bisecGroups{k}.elementIdx);
-    children = getChildIndices(parentElements, bisecData.bisecGroups{k}.nDescendants);
+    children = getChildIndices(parentElements, bisecData.nDescendants(k));
     
     arg = restrictTo(bisecData.bisecGroups{k}.elementIdx, ...
         obj.elements, edgeMidPts, left, right, obj.flipEdges);
