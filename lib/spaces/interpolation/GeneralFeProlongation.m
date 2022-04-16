@@ -43,7 +43,7 @@ classdef GeneralFeProlongation < Prolongation
             % get old-elements-to-new-dofs connectivity
             nChildElems = ones(mesh.nElements, 1);
             for k = 1:data.nBisecGroups
-                nChildElems(data.bisecGroups{k}.elementIdx) = data.nDescendants(k);
+                nChildElems(data.refinedElements(k)) = data.nDescendants(k);
             end
             element2newDof = cumsum([1; nChildElems*nLocalDofs]);
             
@@ -71,7 +71,7 @@ classdef GeneralFeProlongation < Prolongation
                     reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
 
                 nNewLocs = newDofLocations.nNodes;
-                elems = data.bisecGroups{k}.elementIdx;
+                elems = data.refinedElements(k);
                 n = data.nRefinedElements(k) * numel(newDofWeights);
                 idx = ptr + (1:n)';
                 I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), nNewLocs), nLocalDofs);

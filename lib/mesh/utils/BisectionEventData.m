@@ -24,6 +24,10 @@ classdef (ConstructOnLoad) BisectionEventData < event.EventData
             obj.nInnerNodes = cellfun(@(x) x.nInnerNodes, bisecGroups);
             obj.nInnerEdges = cellfun(@(x) x.nInnerEdges, bisecGroups);
         end
+        
+        function idx = refinedElements(obj, k)
+            idx = obj.bisecGroups{k}.elementIdx;
+        end
     end
     
     methods    

@@ -23,7 +23,7 @@ classdef LoL2Prolongation < Prolongation
             % elements and indices of new elements is known
             nChildren = ones(mesh.nElements, 1);
             for k = 1:data.nBisecGroups
-                nChildren(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
+                nChildren(data.refinedElements(k)) = data.bisecGroups{k}.nDescendants;
             end
             nNewElements = sum(nChildren);
             
