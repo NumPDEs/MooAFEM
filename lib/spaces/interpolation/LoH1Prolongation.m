@@ -48,7 +48,7 @@ classdef LoH1Prolongation < Prolongation
                 idx = idxEnd + (1:3*n);
                 I(idx) = repelem(dofNr + (1:n)', 3);
                 J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
-                V(idx) = reshape(repmat(data.bisecMethods{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
+                V(idx) = reshape(repmat(data.bisection{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
                 dofNr = dofNr + n;
                 idxEnd = idxEnd + 3*n;
             end

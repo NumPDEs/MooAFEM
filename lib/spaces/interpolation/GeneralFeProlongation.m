@@ -35,10 +35,10 @@ classdef GeneralFeProlongation < Prolongation
             obj.matrix = [];
             
             % get dof information
+            oldDofs = getDofs(obj.fes);
             fe = obj.fes.finiteElement;
             dofLocations = getDofLocations(fe);
             nLocalDofs = dofLocations.nNodes;
-            oldDofs = getDofs(obj.fes);
             
             % pre-allocate
             element2newDof = cumsum([1; getNChildrenPerElement(data)*nLocalDofs]);
@@ -49,22 +49,23 @@ classdef GeneralFeProlongation < Prolongation
             n = data.nNonRefinedElements*nLocalDofs;
             if n ~= 0
                 idx = (1:n)';
-                I(idx) = getConsecutiveIndices(element2newDof(data.nonRefinedElements), nLocalDofs);
-                J(idx) = reshape(oldDofs.element2Dofs(:,data.nonRefinedElements), [], 1);
+                nonRefinedElems = getRefinedElementIdx(data, 0);
+                I(idx) = getConsecutiveIndices(element2newDof(nonRefinedElems), nLocalDofs);
+                J(idx) = reshape(oldDofs.element2Dofs(:,nonRefinedElems), [], 1);
                 V(idx) = 1;
             end
             ptr = n;
             
-            % handle refined elements
+            % handle refined elements (nodal interpolation on new elements)
             localMatrix = squeeze(evalShapeFunctions(fe, dofLocations));
             for k = find(data.nRefinedElements ~= 0)'
-                unitTriangle = getBisectedUnitTriangle(class(data.bisecMethods{k}));
+                unitTriangle = getBisectedUnitTriangle(class(data.bisection{k}));
                 newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
                 newDofWeights = divideElementwise(...
                     reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
 
                 nNewLocs = newDofLocations.nNodes;
-                elems = data.refinedElements{k};
+                elems = getRefinedElementIdx(data, k);
                 n = data.nRefinedElements(k) * numel(newDofWeights);
                 idx = ptr + (1:n)';
                 I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), nNewLocs), nLocalDofs);

@@ -26,7 +26,7 @@ newCoordinates = [obj.coordinates, ...
 
 for k = find(bisecData.nInnerNodes ~= 0)'
     newCoordinates(:,innerNodes(k)+1:innerNodes(k+1)) = ...
-        elementwiseCoordinates(obj, bisecData.bisecMethods{k}.innerNodes, bisecData.refinedElements{k});
+        elementwiseCoordinates(obj, bisecData.bisection{k}.innerNodes, getRefinedElementIdx(bisecData, k));
 end
 
 %% refine existing edges
@@ -59,20 +59,20 @@ edgeMidPts = edgeMidPts(obj.element2edges);
 
 for k = find(bisecData.nRefinedElements)'
     idx = (innerEdges(k)+1):innerEdges(k+1);
+    elems = getRefinedElementIdx(bisecData, k);
     intEdges = reshape(idx, [], bisecData.nInnerEdges(k))';
     intNodes = reshape((innerNodes(k)+1:innerNodes(k+1))', bisecData.nInnerNodes(k), []);
     
-    parentEdges = oldEdgeNewIdx(:, bisecData.refinedElements{k});
-    parentElements = oldElement2parent(bisecData.refinedElements{k});
+    parentEdges = oldEdgeNewIdx(:, elems);
+    parentElements = oldElement2parent(elems);
     children = getChildIndices(parentElements, bisecData.nDescendants(k));
     
-    arg = restrictTo(bisecData.refinedElements{k}, ...
-        obj.elements, edgeMidPts, left, right, obj.flipEdges);
+    arg = restrictTo(elems, obj.elements, edgeMidPts, left, right, obj.flipEdges);
     
-    newEdges(:,idx) = bisecData.bisecMethods{k}.createNewEdges(arg{1}, arg{2}, intNodes);
-    newElements(:,children) = bisecData.bisecMethods{k}.refineElement(arg{1}, arg{2}, intNodes);
-    newE2E(:,children) = bisecData.bisecMethods{k}.refineEdgeConnectivity(parentEdges, arg{3}, arg{4}, intEdges);
-    newFlip(:,children) = bisecData.bisecMethods{k}.refineEdgeOrientation(arg{5});
+    newEdges(:,idx) = bisecData.bisection{k}.createNewEdges(arg{1}, arg{2}, intNodes);
+    newElements(:,children) = bisecData.bisection{k}.refineElement(arg{1}, arg{2}, intNodes);
+    newE2E(:,children) = bisecData.bisection{k}.refineEdgeConnectivity(parentEdges, arg{3}, arg{4}, intEdges);
+    newFlip(:,children) = bisecData.bisection{k}.refineEdgeOrientation(arg{5});
 end
 
 %% assign new arrays
