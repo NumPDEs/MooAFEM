@@ -9,36 +9,11 @@ classdef AbstractBisection
         nDescendants (1,1) double
     end
     
-    properties (Dependent)
-        nInnerNodes
-        nMembers
-    end
-    
-    properties (GetAccess='public', SetAccess='protected')
-        elementIdx (:,1) double
-    end
-    
     %% methods
-    methods (Access='public')
-        function obj = AbstractBisection(elementIndices)
-            obj.elementIdx = elementIndices;
-        end
-    end
-    
-    methods
-        function n = get.nInnerNodes(obj)
-            n = size(obj.innerNodes, Dim.Elements);
-        end
-        
-        function n = get.nMembers(obj)
-            n = length(obj.elementIdx);
-        end
-    end
-    
     methods (Access='protected')
-        function [T, F] = getTrueFalseArrays(obj)
-            T = true(1, obj.nMembers);
-            F = false(1, obj.nMembers);
+        function [T, F] = getTrueFalseArrays(obj, n)
+            T = true(1, n);
+            F = false(1, n);
         end
     end
     

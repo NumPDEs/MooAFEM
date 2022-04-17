@@ -16,15 +16,18 @@ classdef NVB5 < NVB
             markedEdges = markedElementsToEdges@NVB(obj, markedElements);
         end
         
-        function bisecGroups = groupElements(obj, markedEdges, markedElements)
-            bisecGroups = groupElements@NVB(obj, markedEdges);
-            
+        function bisecData = groupElements(obj, markedEdges, markedElements)
             % split elements with 3 marked edges into 'has interior node' and 'doesnt'
-            noInteriorNode = false(1,obj.mesh.nElements);
-            noInteriorNode(bisecGroups{4}.elementIdx) = true;
-            noInteriorNode(markedElements) = false;
-            bisecGroups{4} = Bisec123(find(noInteriorNode));
-            bisecGroups{5} = Bisec5(markedElements);
+            hasInteriorNode = false(1,obj.mesh.nElements);
+            hasInteriorNode(markedElements) = true;
+            
+            edge = reshape(markedEdges(obj.mesh.element2edges), size(obj.mesh.element2edges));
+            bisecData = BisectionEventData(obj.mesh.nElements, markedEdges, ...
+                Bisec1,   find(edge(1,:) & ~edge(2,:) & ~edge(3,:)), ...
+            	Bisec12,  find(edge(1,:) &  edge(2,:) & ~edge(3,:)), ...
+            	Bisec13,  find(edge(1,:) & ~edge(2,:) &  edge(3,:)), ...
+            	Bisec123, find(edge(1,:) &  edge(2,:) &  edge(3,:) & ~hasInteriorNode), ...
+            	Bisec5,   find(edge(1,:) &  edge(2,:) &  edge(3,:) &  hasInteriorNode));
         end
     end
 end

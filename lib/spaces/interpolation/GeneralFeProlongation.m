@@ -40,24 +40,17 @@ classdef GeneralFeProlongation < Prolongation
             nLocalDofs = dofLocations.nNodes;
             oldDofs = getDofs(obj.fes);
             
-            % get old-elements-to-new-dofs connectivity
-            nChildElems = ones(mesh.nElements, 1);
-            for k = 1:data.nBisecGroups
-                nChildElems(data.refinedElements(k)) = data.nDescendants(k);
-            end
-            element2newDof = cumsum([1; nChildElems*nLocalDofs]);
-            
             % pre-allocate
-            n = nnz(nChildElems == 1)*nLocalDofs + sum(data.nRefinedElements)*nLocalDofs^2;
+            element2newDof = cumsum([1; getNChildrenPerElement(data)*nLocalDofs]);
+            n = data.nNonRefinedElements*nLocalDofs + sum(data.nRefinedElements)*nLocalDofs^2;
             [I, J, V] = deal(zeros(n, 1));
             
             % for non-refined elements, just transfer the dofs
-            elems = find(nChildElems == 1);
-            n = numel(elems)*nLocalDofs;
+            n = data.nNonRefinedElements*nLocalDofs;
             if n ~= 0
                 idx = (1:n)';
-                I(idx) = getConsecutiveIndices(element2newDof(elems), nLocalDofs);
-                J(idx) = reshape(oldDofs.element2Dofs(:,elems), [], 1);
+                I(idx) = getConsecutiveIndices(element2newDof(data.nonRefinedElements), nLocalDofs);
+                J(idx) = reshape(oldDofs.element2Dofs(:,data.nonRefinedElements), [], 1);
                 V(idx) = 1;
             end
             ptr = n;
@@ -65,18 +58,18 @@ classdef GeneralFeProlongation < Prolongation
             % handle refined elements
             localMatrix = squeeze(evalShapeFunctions(fe, dofLocations));
             for k = find(data.nRefinedElements ~= 0)'
-                unitTriangle = getBisectedUnitTriangle(class(data.bisecGroups{k}));
+                unitTriangle = getBisectedUnitTriangle(class(data.bisecMethods{k}));
                 newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
                 newDofWeights = divideElementwise(...
                     reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
 
                 nNewLocs = newDofLocations.nNodes;
-                elems = data.refinedElements(k);
+                elems = data.refinedElements{k};
                 n = data.nRefinedElements(k) * numel(newDofWeights);
                 idx = ptr + (1:n)';
                 I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), nNewLocs), nLocalDofs);
                 J(idx) = reshape(repelem(oldDofs.element2Dofs(:,elems), 1, nNewLocs), [], 1);
-                V(idx) = reshape(repmat(newDofWeights, 1, data.bisecGroups{k}.nMembers), [], 1);
+                V(idx) = reshape(repmat(newDofWeights, 1, data.nRefinedElements(k)), [], 1);
                 ptr = ptr + n;
             end
             

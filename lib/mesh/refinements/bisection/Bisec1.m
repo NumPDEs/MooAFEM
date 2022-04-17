@@ -28,7 +28,7 @@ classdef Bisec1 < AbstractBisection
         end
         
         function newOrientation = refineEdgeOrientation(obj, old)
-            [T, F] = getTrueFalseArrays(obj);
+            [T, F] = getTrueFalseArrays(obj, size(old,2));
             newOrientation = [old(3,:), old(2,:); ...
                 old(1,:),        T; ...
                 F, old(1,:)];

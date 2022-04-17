@@ -43,12 +43,12 @@ classdef LoH1Prolongation < Prolongation
             
             % inner dofs are weighted sum of element dofs
             idxEnd = idx(end);
-            for k = 1:data.nBisecGroups
+            for k = find(data.nRefinedElements)'
                 n = data.nRefinedElements(k)*data.nInnerNodes(k);
                 idx = idxEnd + (1:3*n);
                 I(idx) = repelem(dofNr + (1:n)', 3);
                 J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
-                V(idx) = reshape(repmat(data.bisecGroups{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
+                V(idx) = reshape(repmat(data.bisecMethods{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
                 dofNr = dofNr + n;
                 idxEnd = idxEnd + 3*n;
             end

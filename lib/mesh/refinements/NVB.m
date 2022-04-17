@@ -20,8 +20,7 @@ classdef NVB
         function bisecData = prepareRefinementData(obj, markedElements)
             markedEdges = obj.markedElementsToEdges(markedElements);
             markedEdges = obj.meshClosure(markedEdges);
-            bisecGroups = obj.groupElements(markedEdges, markedElements);
-            bisecData = BisectionEventData(markedEdges, bisecGroups);
+            bisecData = obj.groupElements(markedEdges, markedElements);
         end
     end
     
@@ -40,13 +39,14 @@ classdef NVB
             end
         end
         
-        function bisecGroups = groupElements(obj, markedEdges, ~)
+        function bisecData = groupElements(obj, markedEdges, ~)
             % group elements according to their refinement pattern
             edge = reshape(markedEdges(obj.mesh.element2edges), size(obj.mesh.element2edges));
-            bisecGroups{1} = Bisec1  ( find( edge(1,:) & ~edge(2,:) & ~edge(3,:) ) );
-            bisecGroups{2} = Bisec12 ( find( edge(1,:) &  edge(2,:) & ~edge(3,:) ) );
-            bisecGroups{3} = Bisec13 ( find( edge(1,:) & ~edge(2,:) &  edge(3,:) ) );
-            bisecGroups{4} = Bisec123( find( edge(1,:) &  edge(2,:) &  edge(3,:) ) );
+            bisecData = BisectionEventData(obj.mesh.nElements, markedEdges, ...
+                Bisec1,   find(edge(1,:) & ~edge(2,:) & ~edge(3,:)), ...
+            	Bisec12,  find(edge(1,:) &  edge(2,:) & ~edge(3,:)), ...
+            	Bisec13,  find(edge(1,:) & ~edge(2,:) &  edge(3,:)), ...
+            	Bisec123, find(edge(1,:) &  edge(2,:) &  edge(3,:)));
         end
     end
 end

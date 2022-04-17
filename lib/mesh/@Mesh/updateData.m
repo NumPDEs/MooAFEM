@@ -17,11 +17,7 @@ nChildEdges = 1 + bisecData.bisectedEdges;
 oldEdge2parent = cumsum([1; nChildEdges]);
 
 % new elements
-nChildElems = ones(obj.nElements, 1);
-for k = 1:bisecData.nBisecGroups
-    nChildElems(bisecData.refinedElements(k)) = bisecData.nDescendants(k);
-end
-oldElement2parent = cumsum([1; nChildElems]);
+oldElement2parent = cumsum([1; getNChildrenPerElement(bisecData)]);
 
 %% create new coordinates
 newCoordinates = [obj.coordinates, ...
@@ -30,7 +26,7 @@ newCoordinates = [obj.coordinates, ...
 
 for k = find(bisecData.nInnerNodes ~= 0)'
     newCoordinates(:,innerNodes(k)+1:innerNodes(k+1)) = ...
-        elementwiseCoordinates(obj, bisecData.bisecGroups{k}.innerNodes, bisecData.refinedElements(k));
+        elementwiseCoordinates(obj, bisecData.bisecMethods{k}.innerNodes, bisecData.refinedElements{k});
 end
 
 %% refine existing edges
@@ -61,22 +57,22 @@ edgeMidPts = zeros(obj.nEdges,1);
 edgeMidPts(bisecData.bisectedEdges) = edgeNodes;
 edgeMidPts = edgeMidPts(obj.element2edges);
 
-for k = 1:bisecData.nBisecGroups
+for k = find(bisecData.nRefinedElements)'
     idx = (innerEdges(k)+1):innerEdges(k+1);
     intEdges = reshape(idx, [], bisecData.nInnerEdges(k))';
     intNodes = reshape((innerNodes(k)+1:innerNodes(k+1))', bisecData.nInnerNodes(k), []);
     
-    parentEdges = oldEdgeNewIdx(:, bisecData.refinedElements(k));
-    parentElements = oldElement2parent(bisecData.refinedElements(k));
+    parentEdges = oldEdgeNewIdx(:, bisecData.refinedElements{k});
+    parentElements = oldElement2parent(bisecData.refinedElements{k});
     children = getChildIndices(parentElements, bisecData.nDescendants(k));
     
-    arg = restrictTo(bisecData.refinedElements(k), ...
+    arg = restrictTo(bisecData.refinedElements{k}, ...
         obj.elements, edgeMidPts, left, right, obj.flipEdges);
     
-    newEdges(:,idx) = bisecData.bisecGroups{k}.createNewEdges(arg{1}, arg{2}, intNodes);
-    newElements(:,children) = bisecData.bisecGroups{k}.refineElement(arg{1}, arg{2}, intNodes);
-    newE2E(:,children) = bisecData.bisecGroups{k}.refineEdgeConnectivity(parentEdges, arg{3}, arg{4}, intEdges);
-    newFlip(:,children) = bisecData.bisecGroups{k}.refineEdgeOrientation(arg{5});
+    newEdges(:,idx) = bisecData.bisecMethods{k}.createNewEdges(arg{1}, arg{2}, intNodes);
+    newElements(:,children) = bisecData.bisecMethods{k}.refineElement(arg{1}, arg{2}, intNodes);
+    newE2E(:,children) = bisecData.bisecMethods{k}.refineEdgeConnectivity(parentEdges, arg{3}, arg{4}, intEdges);
+    newFlip(:,children) = bisecData.bisecMethods{k}.refineEdgeOrientation(arg{5});
 end
 
 %% assign new arrays

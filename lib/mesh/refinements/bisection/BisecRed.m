@@ -29,7 +29,7 @@ classdef BisecRed < AbstractBisection
         end
         
         function newOrientation = refineEdgeOrientation(obj, old)
-            [T, F] = getTrueFalseArrays(obj);
+            [T, F] = getTrueFalseArrays(obj, size(old,2));
             newOrientation = [old(1,:), old(1,:),        F, T; ...
                 F, old(2,:), old(2,:), T; ...
                 old(3,:),        F, old(3,:), T];

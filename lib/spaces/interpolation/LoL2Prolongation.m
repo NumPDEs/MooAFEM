@@ -21,10 +21,7 @@ classdef LoL2Prolongation < Prolongation
         function setupMatrix(obj, mesh, data)
             % use that for lowest order L2 elements the dofs correspond to
             % elements and indices of new elements is known
-            nChildren = ones(mesh.nElements, 1);
-            for k = 1:data.nBisecGroups
-                nChildren(data.refinedElements(k)) = data.bisecGroups{k}.nDescendants;
-            end
+            nChildren = getNChildrenPerElement(data);
             nNewElements = sum(nChildren);
             
             obj.matrix = sparse(1:nNewElements, repelem(1:mesh.nElements, nChildren), ...

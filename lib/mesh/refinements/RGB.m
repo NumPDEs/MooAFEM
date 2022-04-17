@@ -23,9 +23,13 @@ classdef RGB < NVB
             markedEdges(mesh.element2edges(:,markedElements)) = true;
         end
         
-        function bisecGroups = groupElements(obj, markedEdges, markedElements)
-            bisecGroups = groupElements@NVB(obj, markedEdges, markedElements);
-            bisecGroups{4} = BisecRed(bisecGroups{4}.elementIdx) ;
+        function bisecData = groupElements(obj, markedEdges, ~)
+            edge = reshape(markedEdges(obj.mesh.element2edges), size(obj.mesh.element2edges));
+            bisecData = BisectionEventData(obj.mesh.nElements, markedEdges, ...
+                Bisec1,   find(edge(1,:) & ~edge(2,:) & ~edge(3,:)), ...
+            	Bisec12,  find(edge(1,:) &  edge(2,:) & ~edge(3,:)), ...
+            	Bisec13,  find(edge(1,:) & ~edge(2,:) &  edge(3,:)), ...
+            	BisecRed, find(edge(1,:) &  edge(2,:) &  edge(3,:)));
         end
     end
 end
