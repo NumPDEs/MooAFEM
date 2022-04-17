@@ -6,33 +6,33 @@
 %   See also Mesh
 
 function updateData(obj, bisecData)
-%% create indices of ...
-% new nodes
-edgeNodes = obj.nCoordinates + (1:nnz(bisecData.bisectedEdges))';
-innerNodes = cumsum([edgeNodes(end); bisecData.nRefinedElements.*bisecData.nInnerNodes]);
-
-% new edges
-innerEdges = cumsum([obj.nEdges + nnz(bisecData.bisectedEdges); bisecData.nRefinedElements.*bisecData.nInnerEdges]);
-nChildEdges = 1 + bisecData.bisectedEdges;
-oldEdge2parent = cumsum([1; nChildEdges]);
-
-% new elements
+%% create old-to-new connectivity
+oldEdge2parent = cumsum([1; 1+bisecData.bisectedEdges]);
 oldElement2parent = cumsum([1; getNChildrenPerElement(bisecData)]);
 
 %% create new coordinates
-newCoordinates = [obj.coordinates, ...
-    edgewiseCoordinates(obj, [1;1]/2, bisecData.bisectedEdges), ...
-    zeros(2, innerNodes(end)-innerNodes(1))];
+% new nodes = old nodes | nodes on edges | interior nodes
+idxN = cumsum([1; obj.nCoordinates; nnz(bisecData.bisectedEdges); ...
+    bisecData.nRefinedElements.*bisecData.nInnerNodes]);
+
+newCoordinates = zeros(2, idxN(end)-1);
+newCoordinates(:,idxN(1):idxN(2)-1) = obj.coordinates;
+newCoordinates(:,idxN(2):idxN(3)-1) = edgewiseCoordinates(obj, [1;1]/2, bisecData.bisectedEdges);
 
 for k = find(bisecData.nInnerNodes ~= 0)'
-    newCoordinates(:,innerNodes(k)+1:innerNodes(k+1)) = ...
+    newCoordinates(:,idxN(k+2):idxN(k+3)-1) = ...
         elementwiseCoordinates(obj, bisecData.bisection{k}.innerNodes, getRefinedElementIdx(bisecData, k));
 end
 
 %% refine existing edges
-newEdges = [moveParents(obj.edges, oldEdge2parent), ...
-    zeros(2, innerEdges(end) - innerEdges(1))];
+% new edges = old edges + children | interior edges
+idxS = cumsum([1; obj.nEdges + nnz(bisecData.bisectedEdges); ...
+    bisecData.nRefinedElements.*bisecData.nInnerEdges]);
 
+newEdges = zeros(2, idxS(end)-1);
+newEdges(:,oldEdge2parent(1:(end-1))) = obj.edges;
+
+edgeNodes = (idxN(2):idxN(3)-1)';
 children = getChildIndices(oldEdge2parent(bisecData.bisectedEdges), 2);
 newEdges(:,children) = [obj.edges(1,bisecData.bisectedEdges), edgeNodes'; ...
     edgeNodes', obj.edges(2,bisecData.bisectedEdges)];
@@ -45,23 +45,35 @@ for k = 1:obj.nBoundaries
     newBoundaries{k} = [newBoundaries{k}; bndChildren];
 end
 
-%% allocate new element-wise arrays
-oldEdgeNewIdx = oldEdge2parent(obj.element2edges);
-newElements = moveParents(obj.elements, oldElement2parent);
-newE2E = moveParents(oldEdgeNewIdx, oldElement2parent);
-newFlip = moveParents(obj.flipEdges, oldElement2parent);
+%% refine element data
+newElements = zeros(3, oldElement2parent(end)-1);
+newE2E = zeros(3, oldElement2parent(end)-1);
+newFlip = false(3, oldElement2parent(end)-1);
 
-%% generate bisection rule dependent data
-[left, right] = getLeftAndRightEdgePerElement(obj, bisecData.bisectedEdges, oldEdgeNewIdx);
+oldEdgeNewIdx = oldEdge2parent(obj.element2edges);
+elems = bisecData.getRefinedElementIdx(0);
+newElements(:,oldElement2parent(elems)) = obj.elements(:,elems);
+newE2E(:,oldElement2parent(elems)) = oldEdgeNewIdx(:,elems);
+newFlip(:,oldElement2parent(elems)) = obj.flipEdges(:,elems);
+
+%% get left and right edge per element
+% here, we use the fact that left and right edge index only differ by 1
+bisectedEdges = bisecData.bisectedEdges(obj.element2edges);
+left = oldEdgeNewIdx.*bisectedEdges;
+right = left + bisectedEdges;
+left = left + obj.flipEdges;
+right = right - obj.flipEdges;
+
+%% refine elements + add inner edges
 edgeMidPts = zeros(obj.nEdges,1);
 edgeMidPts(bisecData.bisectedEdges) = edgeNodes;
 edgeMidPts = edgeMidPts(obj.element2edges);
 
 for k = find(bisecData.nRefinedElements)'
-    idx = (innerEdges(k)+1):innerEdges(k+1);
+    idx = idxS(k+1):idxS(k+2)-1;
     elems = getRefinedElementIdx(bisecData, k);
     intEdges = reshape(idx, [], bisecData.nInnerEdges(k))';
-    intNodes = reshape((innerNodes(k)+1:innerNodes(k+1))', bisecData.nInnerNodes(k), []);
+    intNodes = reshape((idxN(k+2):idxN(k+3)-1)', bisecData.nInnerNodes(k), []);
     
     parentEdges = oldEdgeNewIdx(:, elems);
     parentElements = oldElement2parent(elems);
@@ -90,20 +102,6 @@ function children = getChildIndices(parents, nDescendants)
     children = reshape((0:(nDescendants-1)) + parents, [], 1);
 end
 
-function newArray = moveParents(oldArray, parentPositions)
-    newArray = zeros(size(oldArray, Dim.Vector), parentPositions(end)-1, class(oldArray));
-    newArray(:,parentPositions(1:(end-1))) = oldArray;
-end
-
 function restrictedArrays = restrictTo(idx, varargin)
     restrictedArrays = cellfun(@(x) x(:,idx), varargin, 'UniformOutput', false);
-end
-
-function [left, right] = getLeftAndRightEdgePerElement(mesh, markedEdges, oldEdgeNewIdx)
-    % here, we use the fact that left and right edge index only differ by 1
-    bisectedEdges = markedEdges(mesh.element2edges);
-    left = oldEdgeNewIdx.*bisectedEdges;
-    right = left + bisectedEdges;
-    left = left + mesh.flipEdges;
-    right = right - mesh.flipEdges;
 end
