@@ -24,7 +24,10 @@ for k = 1:length(linearizations)
     g = Constant(mesh, 1);
     [blf, lf] = setProblemData(mesh, fes, Du, g, linearizations(k));
     eDensity = CompositeFunction(@(p) muIntegral(vectorProduct(p, p)), Du);
-    u.setData(0);
+    u.setData(0);    
+
+    %% nested iteration
+    P = LoFeProlongation(fes);
 
     %% adaptive algorithm
     i = 1;
@@ -67,13 +70,10 @@ for k = 1:length(linearizations)
             break
         end
 
-        %% nested iteration
-        uold = LoH1Prolongation(u);
-
         %% refine mesh
         marked = markDoerflerSorting(eta2, theta);
         mesh.refineLocally(marked, 'NVB');
-        u.setData(uold.interpolatedData);
+        u.setData(prolongate(P, u));
         i = i+1;
     end
 end

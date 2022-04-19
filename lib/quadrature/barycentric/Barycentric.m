@@ -10,17 +10,17 @@
 
 classdef Barycentric
     %% properties
-    properties (GetAccess = 'public', SetAccess = 'protected')
+    properties (GetAccess=public, SetAccess=protected)
         coordinates
         nNodes
     end
     
-    properties (Abstract, GetAccess = 'public', SetAccess = 'protected')
+    properties (Abstract, GetAccess=public, SetAccess=protected)
         dim
     end
     
     %% methods
-    methods (Access = 'public')
+    methods (Access=public)
         function obj = Barycentric(coordinates)
             arguments
                 coordinates {Barycentric.verify}

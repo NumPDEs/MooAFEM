@@ -13,14 +13,14 @@
 
 classdef CompositeFunction < Evaluable
     %% properties
-    properties (SetAccess='protected', GetAccess='public')
+    properties (SetAccess=protected, GetAccess=public)
         mesh
         functionHandle
         functionArguments
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = CompositeFunction(functionHandle, functionArguments)
             arguments
                 functionHandle (1,1) function_handle
@@ -44,7 +44,7 @@ classdef CompositeFunction < Evaluable
         end
     end
     
-    methods (Access='private')
+    methods (Access=private)
         function val = compositeEval(obj, evalMethod, bary, idx)
             arguments
                 obj

@@ -19,19 +19,19 @@
 
 classdef FeFunction < Evaluable
     %% properties
-    properties (SetAccess='protected', GetAccess='public')
+    properties (SetAccess=protected, GetAccess=public)
         mesh
         fes
         data (1,:) double
         dataIsValid (1,1) logical
     end
     
-    properties (Access = 'private')
+    properties (Access = private)
         listenerHandle
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = FeFunction(fes)
             arguments
                 fes (1,1) FeSpace
@@ -43,7 +43,7 @@ classdef FeFunction < Evaluable
             obj.dataIsValid = true;
             
             % register FeFunction as an observer of mesh
-            obj.listenerHandle = fes.mesh.listener('HasChanged', @obj.handleChangedMesh);
+            obj.listenerHandle = fes.mesh.listener('JustRefined', @obj.handleChangedMesh);
         end
         
         function setData(obj, data)
@@ -91,7 +91,7 @@ classdef FeFunction < Evaluable
         end
     end
     
-    methods (Access = 'private')
+    methods (Access = private)
         function handleChangedMesh(obj, ~, ~)
             obj.dataIsValid = false;
         end

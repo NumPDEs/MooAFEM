@@ -5,17 +5,17 @@
 
 classdef LinearInterpolation < Evaluable
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         mesh
         u
     end
     
-    properties (Access='private')
+    properties (Access=private)
         interpolant
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = LinearInterpolation(u)
             arguments
                 u Evaluable

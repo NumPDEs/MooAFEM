@@ -8,16 +8,16 @@
 
 classdef Evaluable < handle
     %% properties
-    properties (Abstract, GetAccess='public', SetAccess='protected')
+    properties (Abstract, GetAccess=public, SetAccess=protected)
         mesh
     end
     
     %% methods
-    methods (Abstract, Access='public')
+    methods (Abstract, Access=public)
         eval(obj, bary, idx)
     end
     
-    methods (Access='public')
+    methods (Access=public)
         plot(obj, plotOptions)
         evalEdge(obj, bary, idx)
     end

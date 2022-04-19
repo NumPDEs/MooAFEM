@@ -3,7 +3,7 @@
 %   the dofs are connected.
 
 classdef FiniteElement
-    methods (Abstract, Access = 'public')
+    methods (Abstract, Access=public)
         % evalShapeFunctions Evaluate local shapefunctions at barycentric
         %   coordinates
         evalShapeFunctions(obj, bary)

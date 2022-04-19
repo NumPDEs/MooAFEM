@@ -4,14 +4,14 @@
 
 classdef NVBEdge < NVB
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = NVBEdge(mesh)
             obj = obj@NVB(mesh);
         end
     end
     
     %% internal methods
-    methods (Access='protected')
+    methods (Access=protected)
         function markedEdges = markedElementsToEdges(obj, markedElements)
             markedEdges = false(1,obj.mesh.nEdges);
             markedEdges(markedElements) = true;
