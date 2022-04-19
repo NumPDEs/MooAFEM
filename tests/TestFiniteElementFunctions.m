@@ -93,7 +93,7 @@ methods (Test)
     end
 end
 
-methods (Access='private')
+methods (Access=private)
     function refineAndInterpolate(~, mesh, fes, v, val)
         v.setData(val);
         if isa(fes.finiteElement, 'LowestOrderH1Fe')

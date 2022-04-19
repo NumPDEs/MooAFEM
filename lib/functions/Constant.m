@@ -6,13 +6,13 @@
 
 classdef Constant < Evaluable
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         mesh
         constantValue (:,1) double
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = Constant(mesh, value)
             obj.mesh = mesh;
             obj.constantValue = value;

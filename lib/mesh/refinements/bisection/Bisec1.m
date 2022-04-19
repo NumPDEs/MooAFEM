@@ -3,14 +3,14 @@
 
 classdef Bisec1 < AbstractBisection
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         innerNodes = []
         nInnerEdges = 1
         nDescendants = 2
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function newElements = refineElement(~, oldNodes, edgeMidPts, ~)
             newElements = [oldNodes(3,:),   oldNodes(2,:); ...
                 oldNodes(1,:),   oldNodes(3,:); ...

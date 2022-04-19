@@ -3,7 +3,7 @@
 
 classdef Bisec5 < AbstractBisection
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         innerNodes = [1;1;2]/4;
         nInnerEdges = 6
         nDescendants = 6
@@ -11,7 +11,7 @@ classdef Bisec5 < AbstractBisection
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function newElements = refineElement(~, oldNodes, edgeMidPts, innerNodes)
             newElements = [edgeMidPts(3,:),   oldNodes(3,:),   oldNodes(1,:), edgeMidPts(1,:), edgeMidPts(2,:), edgeMidPts(1,:); ...
                 edgeMidPts(1,:), edgeMidPts(3,:), edgeMidPts(1,:),   oldNodes(2,:),   oldNodes(3,:), edgeMidPts(2,:); ...

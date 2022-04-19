@@ -4,14 +4,14 @@
 
 classdef NVB5 < NVB
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = NVB5(mesh)
             obj = obj@NVB(mesh);
         end
     end
     
     %% methods
-    methods (Access='protected')
+    methods (Access=protected)
         function markedEdges = markedElementsToEdges(obj, markedElements)
             markedEdges = markedElementsToEdges@NVB(obj, markedElements);
         end

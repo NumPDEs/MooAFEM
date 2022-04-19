@@ -9,12 +9,12 @@
 
 classdef GeneralFeProlongation < Prolongation
     %% properties
-    properties (Access='private')
+    properties (Access=private)
         postRefineListener
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = GeneralFeProlongation(fes)
             obj = obj@Prolongation(fes);
             obj.postRefineListener = fes.mesh.listener('RefineCompleted', @obj.connectDofs);
@@ -24,7 +24,7 @@ classdef GeneralFeProlongation < Prolongation
         end
     end
     
-    methods (Access='protected')
+    methods (Access=protected)
         function setupMatrix(obj, mesh, data)
             % general idea: compute *all* dofs for each new element and store
             % them consecutively

@@ -7,12 +7,12 @@
 
 classdef NVB
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         mesh
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = NVB(mesh)
             obj.mesh = mesh;
         end
@@ -24,7 +24,7 @@ classdef NVB
         end
     end
     
-    methods (Access='protected')
+    methods (Access=protected)
         function markedEdges = markedElementsToEdges(obj, markedElements)
             markedEdges = false(obj.mesh.nEdges,1);
             markedEdges(obj.mesh.element2edges(:,markedElements)) = true;

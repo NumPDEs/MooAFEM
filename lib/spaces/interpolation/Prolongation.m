@@ -3,17 +3,17 @@
 
 classdef Prolongation < handle
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         matrix {mustBeSparse}
     end
     
-    properties (Access='protected')
+    properties (Access=protected)
         fes FeSpace
         listenerHandle
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = Prolongation(fes)
             obj.fes = fes;
             mesh = fes.mesh;
@@ -34,7 +34,7 @@ classdef Prolongation < handle
         end
     end
     
-    methods (Abstract, Access='protected')
+    methods (Abstract, Access=protected)
         setupMatrix(obj, src, event)
     end
 end

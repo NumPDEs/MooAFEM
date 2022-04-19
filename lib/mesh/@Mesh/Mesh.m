@@ -6,7 +6,7 @@
 
 classdef Mesh < handle
     %% properties
-    properties (GetAccess = 'public', SetAccess = 'private')
+    properties (GetAccess = public, SetAccess = private)
         coordinates (2,:) double
         elements (3,:) double
         edges (2,:) double
@@ -24,7 +24,7 @@ classdef Mesh < handle
     end
     
     %% private properties for caching purposes
-    properties (Access = 'private')
+    properties (Access = private)
         trafo
     end
     
@@ -36,7 +36,7 @@ classdef Mesh < handle
     end
     
     %% public methods
-    methods (Access = 'public')
+    methods (Access = public)
         function obj = Mesh(coordinates, elements, boundaries)
             % Construct Mesh object from given coordinate, element, and boundary
             % arrays.
@@ -71,7 +71,7 @@ classdef Mesh < handle
     end
     
     %% protected methods
-    methods (Access='protected')
+    methods (Access=protected)
         updateData(obj, bisecData)
     end
     

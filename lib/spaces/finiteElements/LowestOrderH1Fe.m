@@ -4,7 +4,7 @@
 
 classdef LowestOrderH1Fe < NodalFiniteElement
     %% implementation of abstract superclass properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         order
         nodeDofLocations
         edgeDofLocations
@@ -12,7 +12,7 @@ classdef LowestOrderH1Fe < NodalFiniteElement
     end
     
     %% implementation of abstract superclass methods
-    methods (Access = 'public')
+    methods (Access=public)
         function obj = LowestOrderH1Fe()
             obj.order = 1;
             obj.nodeDofLocations = 1;

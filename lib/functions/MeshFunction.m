@@ -8,13 +8,13 @@
 
 classdef MeshFunction < Evaluable
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         mesh
         functionHandle
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = MeshFunction(mesh, functionHandle)
             arguments
                 mesh (1,1) Mesh

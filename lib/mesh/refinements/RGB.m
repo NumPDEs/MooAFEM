@@ -4,14 +4,14 @@
 
 classdef RGB < NVB
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = RGB(mesh)
             obj = obj@NVB(mesh);
         end
     end
     
     %% methods
-    methods (Access='protected')
+    methods (Access=protected)
         function markedEdges = markedElementsToEdges(obj, markedElements)
             % sort edges by length (while still retaining the orientation of the element)
             mesh = obj.mesh;

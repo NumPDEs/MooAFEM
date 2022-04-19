@@ -9,7 +9,7 @@
 
 classdef LoH1Prolongation < Prolongation
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = LoH1Prolongation(fes)
             assert(isa(fes.finiteElement, 'LowestOrderH1Fe'), ...
                 'LoH1Prolongation needs a lowest order H1 finite element space.')
@@ -17,7 +17,7 @@ classdef LoH1Prolongation < Prolongation
         end
     end
     
-    methods (Access='protected')
+    methods (Access=protected)
         function setupMatrix(obj, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
