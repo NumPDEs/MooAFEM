@@ -9,7 +9,7 @@
 
 classdef AffineTransformation < handle
     %% properties
-    properties (GetAccess = 'public', SetAccess = 'private')
+    properties (GetAccess=public, SetAccess=private)
         DFinv (4,:) double
         area (1,:) double
         ds (1,:) double

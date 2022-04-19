@@ -9,12 +9,12 @@
 
 classdef GeneralFeProlongation < Prolongation
     %% properties
-    properties (Access='private')
+    properties (Access=private)
         postRefineListener
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = GeneralFeProlongation(fes)
             obj = obj@Prolongation(fes);
             obj.postRefineListener = fes.mesh.listener('RefineCompleted', @obj.connectDofs);
@@ -24,7 +24,7 @@ classdef GeneralFeProlongation < Prolongation
         end
     end
     
-    methods (Access='protected')
+    methods (Access=protected)
         function setupMatrix(obj, mesh, data)
             % general idea: compute *all* dofs for each new element and store
             % them consecutively
@@ -35,48 +35,42 @@ classdef GeneralFeProlongation < Prolongation
             obj.matrix = [];
             
             % get dof information
+            oldDofs = getDofs(obj.fes);
             fe = obj.fes.finiteElement;
             dofLocations = getDofLocations(fe);
             nLocalDofs = dofLocations.nNodes;
-            oldDofs = getDofs(obj.fes);
-            
-            % get old-elements-to-new-dofs connectivity
-            nChildElems = ones(mesh.nElements, 1);
-            for k = 1:data.nBisecGroups
-                nChildElems(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
-            end
-            element2newDof = cumsum([1; nChildElems*nLocalDofs]);
             
             % pre-allocate
-            n = nnz(nChildElems == 1)*nLocalDofs + sum(nChildElems(nChildElems > 1))*nLocalDofs^2;
+            element2newDof = cumsum([1; getNChildrenPerElement(data)*nLocalDofs]);
+            n = data.nNonRefinedElements*nLocalDofs + sum(data.nRefinedElements)*nLocalDofs^2;
             [I, J, V] = deal(zeros(n, 1));
             
             % for non-refined elements, just transfer the dofs
-            elems = find(nChildElems == 1);
-            n = numel(elems)*nLocalDofs;
+            n = data.nNonRefinedElements*nLocalDofs;
             if n ~= 0
                 idx = (1:n)';
-                I(idx) = getConsecutiveIndices(element2newDof(elems), nLocalDofs);
-                J(idx) = reshape(oldDofs.element2Dofs(:,elems), [], 1);
+                nonRefinedElems = getRefinedElementIdx(data, 0);
+                I(idx) = getConsecutiveIndices(element2newDof(nonRefinedElems), nLocalDofs);
+                J(idx) = reshape(oldDofs.element2Dofs(:,nonRefinedElems), [], 1);
                 V(idx) = 1;
             end
             ptr = n;
             
-            % handle refined elements
+            % handle refined elements (nodal interpolation on new elements)
             localMatrix = squeeze(evalShapeFunctions(fe, dofLocations));
-            for k = find(cellfun(@(x) x.nMembers~=0, data.bisecGroups))'
-                unitTriangle = getBisectedUnitTriangle(class(data.bisecGroups{k}));
+            for k = find(data.nRefinedElements ~= 0)'
+                unitTriangle = getBisectedUnitTriangle(class(data.bisection{k}));
                 newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
                 newDofWeights = divideElementwise(...
                     reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
 
                 nNewLocs = newDofLocations.nNodes;
-                elems = data.bisecGroups{k}.elementIdx;
-                n = data.bisecGroups{k}.nMembers * numel(newDofWeights);
+                elems = getRefinedElementIdx(data, k);
+                n = data.nRefinedElements(k) * numel(newDofWeights);
                 idx = ptr + (1:n)';
                 I(idx) = repelem(getConsecutiveIndices(element2newDof(elems), nNewLocs), nLocalDofs);
                 J(idx) = reshape(repelem(oldDofs.element2Dofs(:,elems), 1, nNewLocs), [], 1);
-                V(idx) = reshape(repmat(newDofWeights, 1, data.bisecGroups{k}.nMembers), [], 1);
+                V(idx) = reshape(repmat(newDofWeights, 1, data.nRefinedElements(k)), [], 1);
                 ptr = ptr + n;
             end
             

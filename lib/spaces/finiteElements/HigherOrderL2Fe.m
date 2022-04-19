@@ -4,7 +4,7 @@
 
 classdef HigherOrderL2Fe < NodalFiniteElement & BernsteinBezierPoly
     %% implementation of abstract superclass properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         order
         nodeDofLocations
         edgeDofLocations
@@ -12,7 +12,7 @@ classdef HigherOrderL2Fe < NodalFiniteElement & BernsteinBezierPoly
     end
     
     %% implementation of abstract superclass methods
-    methods (Access = 'public')
+    methods (Access=public)
         %% constructor
         function obj = HigherOrderL2Fe(order)
             arguments

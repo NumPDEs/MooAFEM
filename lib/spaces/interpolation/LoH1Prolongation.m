@@ -9,7 +9,7 @@
 
 classdef LoH1Prolongation < Prolongation
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = LoH1Prolongation(fes)
             assert(isa(fes.finiteElement, 'LowestOrderH1Fe'), ...
                 'LoH1Prolongation needs a lowest order H1 finite element space.')
@@ -17,13 +17,13 @@ classdef LoH1Prolongation < Prolongation
         end
     end
     
-    methods (Access='protected')
+    methods (Access=protected)
         function setupMatrix(obj, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
             dofs = getDofs(obj.fes);
             nEntries = mesh.nCoordinates + 2*nnz(data.bisectedEdges) + ...
-                3*sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
+                3*sum(data.nInnerNodes.*data.nRefinedElements);
             [I, J, V] = deal(zeros(nEntries, 1));
             
             % node dofs stay the same
@@ -43,19 +43,18 @@ classdef LoH1Prolongation < Prolongation
             
             % inner dofs are weighted sum of element dofs
             idxEnd = idx(end);
-            for k = 1:data.nBisecGroups
-                nInnerDofs = data.bisecGroups{k}.nInnerNodes;
-                n = data.bisecGroups{k}.nMembers*nInnerDofs;
+            for k = find(data.nRefinedElements)'
+                n = data.nRefinedElements(k)*data.nInnerNodes(k);
                 idx = idxEnd + (1:3*n);
                 I(idx) = repelem(dofNr + (1:n)', 3);
-                J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], nInnerDofs), [], 1);
-                V(idx) = reshape(repmat(data.bisecGroups{k}.innerNodes, 1, nInnerDofs), [], 1);
+                J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
+                V(idx) = reshape(repmat(data.bisection{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
                 dofNr = dofNr + n;
                 idxEnd = idxEnd + 3*n;
             end
             
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
-                sum(cellfun(@(x) x.nInnerNodes*x.nMembers, data.bisecGroups));
+                sum(data.nInnerNodes.*data.nRefinedElements);
             obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
         end
     end

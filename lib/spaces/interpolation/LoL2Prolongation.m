@@ -9,7 +9,7 @@
 
 classdef LoL2Prolongation < Prolongation
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = LoL2Prolongation(fes)
             assert(isa(fes.finiteElement, 'LowestOrderL2Fe'), ...
                 'LoL2Prolongation needs a lowest order L2 finite element space.')
@@ -17,14 +17,11 @@ classdef LoL2Prolongation < Prolongation
         end
     end
     
-    methods (Access='protected')
+    methods (Access=protected)
         function setupMatrix(obj, mesh, data)
             % use that for lowest order L2 elements the dofs correspond to
             % elements and indices of new elements is known
-            nChildren = ones(mesh.nElements, 1);
-            for k = 1:data.nBisecGroups
-                nChildren(data.bisecGroups{k}.elementIdx) = data.bisecGroups{k}.nDescendants;
-            end
+            nChildren = getNChildrenPerElement(data);
             nNewElements = sum(nChildren);
             
             obj.matrix = sparse(1:nNewElements, repelem(1:mesh.nElements, nChildren), ...
