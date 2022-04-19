@@ -39,7 +39,7 @@ for p = 1:pmax
     lfG.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     %% set up lifting operators for rhs FEM-data
-    P = LoL2Prolongation(ncFes);
+    P = LoFeProlongation(ncFes);
 
     %% adaptive loop
     i = 1;

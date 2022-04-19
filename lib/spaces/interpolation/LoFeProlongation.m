@@ -1,24 +1,54 @@
-% LoH1Prolongation (subclass of Prolongation) Prolongate lowest order H^1
+% LoFeProlongation (subclass of Prolongation) Prolongate lowest order L^2/H^1
 %   conforming finite element function to refined mesh.
 %
-%   P = LoH1Prolongation(fes) returns a handle to the prolongation object
+%   P = LoFeProlongation(fes) returns a handle to the prolongation object
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
 %   prolongate(P, u) returns the prolongated data of FeFunction u.
 
-classdef LoH1Prolongation < Prolongation
+classdef LoFeProlongation < Prolongation
+    %% properties
+    properties (Access=protected)
+        feType
+    end
     %% methods
     methods (Access=public)
-        function obj = LoH1Prolongation(fes)
-            assert(isa(fes.finiteElement, 'LowestOrderH1Fe'), ...
-                'LoH1Prolongation needs a lowest order H1 finite element space.')
+        function obj = LoFeProlongation(fes)
             obj = obj@Prolongation(fes);
+            switch class(fes.finiteElement)
+                case 'LowestOrderL2Fe'
+                    obj.feType = 'L2';
+                case 'LowestOrderH1Fe'
+                    obj.feType = 'H1';
+                otherwise
+                    eid = 'LoFeProlongation:wrongFeType';
+                    msg = 'LoFeProlongation needs a lowest order L2 or H1 finite element space.';
+                    throwAsCaller(MException(eid, msg));
+            end
         end
     end
     
     methods (Access=protected)
         function setupMatrix(obj, mesh, data)
+            if isequal(obj.feType, 'L2')
+                setupMatrixL2(obj, mesh, data);
+            elseif isequal(obj.feType, 'H1')
+                setupMatrixH1(obj, mesh, data);
+            end
+        end
+        
+        function setupMatrixL2(obj, mesh, data)
+            % use that for lowest order L2 elements the dofs correspond to
+            % elements and indices of new elements is known
+            nChildren = getNChildrenPerElement(data);
+            nNewElements = sum(nChildren);
+            
+            obj.matrix = sparse(1:nNewElements, repelem(1:mesh.nElements, nChildren), ...
+                ones(nNewElements,1), nNewElements, mesh.nElements);
+        end
+        
+        function setupMatrixH1(obj, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
             dofs = getDofs(obj.fes);

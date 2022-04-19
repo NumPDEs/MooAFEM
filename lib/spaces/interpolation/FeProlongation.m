@@ -1,13 +1,13 @@
-% GeneralFeProlongation (subclass of Prolongation) Provides prolongation
-%   operator for general FeFunction to a refined mesh.
+% FeProlongation (subclass of Prolongation) Provides prolongation operator for
+%   general FeFunction to a refined mesh.
 %
-%   P = GeneralFeProlongation(fes) returns a handle to the prolongation object
+%   P = FeProlongation(fes) returns a handle to the prolongation object
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
 %   prolongate(P, u) returns the prolongated data of FeFunction u.
 
-classdef GeneralFeProlongation < Prolongation
+classdef FeProlongation < Prolongation
     %% properties
     properties (Access=private)
         postRefineListener
@@ -15,7 +15,7 @@ classdef GeneralFeProlongation < Prolongation
     
     %% methods
     methods (Access=public)
-        function obj = GeneralFeProlongation(fes)
+        function obj = FeProlongation(fes)
             obj = obj@Prolongation(fes);
             obj.postRefineListener = fes.mesh.listener('RefineCompleted', @obj.connectDofs);
             
@@ -25,7 +25,7 @@ classdef GeneralFeProlongation < Prolongation
     end
     
     methods (Access=protected)
-        function setupMatrix(obj, mesh, data)
+        function setupMatrix(obj, ~, data)
             % general idea: compute *all* dofs for each new element and store
             % them consecutively
             % those are connected to the actual new dofs when their numbering
