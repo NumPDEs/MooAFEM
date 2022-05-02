@@ -43,7 +43,7 @@ methods (Test, ParameterCombination='exhaustive')
     end
 end
 
-methods (Access='protected')
+methods (Access=protected)
     function [Aext, dimA] = extendAlongDim(~, A, dim, n)
         dimA = size(A);
         repetitions = ones(1, dim);

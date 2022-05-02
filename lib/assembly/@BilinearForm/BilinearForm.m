@@ -4,11 +4,11 @@
 
 classdef BilinearForm < handle    
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         fes
     end
     
-    properties (Access='public')
+    properties (Access=public)
         a {mustBeEvaluableOrEmpty} = []     % Diffusion matrix (or scalar)
         b {mustBeEvaluableOrEmpty} = []     % Convection vector field
         c {mustBeEvaluableOrEmpty} = []     % Reaction coefficient
@@ -33,11 +33,11 @@ classdef BilinearForm < handle
         end
     end
     
-    methods (Access='public')
+    methods (Access=public)
         mat = assemble(obj);
     end
     
-    methods (Static, Access='protected')
+    methods (Static, Access=protected)
         val = diffusionPart(a, Dphi);
         val = convectionPart(b, Dphi, phi);
         val = reactionPart(c, phi);

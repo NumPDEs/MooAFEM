@@ -4,24 +4,24 @@
 
 classdef FeSpace < handle
     %% properties
-    properties (GetAccess = 'public', SetAccess = 'protected')
+    properties (GetAccess=public, SetAccess=protected)
         mesh
         finiteElement
         dirichlet
     end
     
-    properties (Access = 'private')
+    properties (Access=private)
         dofs
         freeDofs
     end
     
     %% events
-    properties (Access = 'private')
+    properties (Access=private)
         listenerHandle
     end
     
     %% methods
-    methods (Access = 'public')
+    methods (Access=public)
         function obj = FeSpace(mesh, fe, opt)
             % Construct FeSpace from given mesh and finite element.
             %
@@ -39,7 +39,7 @@ classdef FeSpace < handle
             end
             
             % register fespace as an observer of mesh
-            obj.listenerHandle = mesh.listener('HasChanged', @obj.handleChangedMesh);
+            obj.listenerHandle = mesh.listener('JustRefined', @obj.handleChangedMesh);
             
             % initialize lazily evaluated properties
             obj.dofs = [];
@@ -79,12 +79,12 @@ classdef FeSpace < handle
         end
     end
     
-    methods (Access = 'protected')
+    methods (Access=protected)
         dofs = assembleDofs(obj)
         freeDofs = assembleFreeDofs(obj)
     end
     
-    methods (Access = 'private')
+    methods (Access=private)
         handleChangedMesh(obj, src, event)
     end
 end

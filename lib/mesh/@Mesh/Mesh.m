@@ -6,18 +6,13 @@
 
 classdef Mesh < handle
     %% properties
-    properties (GetAccess = 'public', SetAccess = 'private')
+    properties (GetAccess = public, SetAccess = private)
         coordinates (2,:) double
         elements (3,:) double
         edges (2,:) double
         element2edges (3,:) double
         flipEdges (3,:) logical
         boundaries (:,1) cell
-    end
-    
-    properties (GetAccess = 'public', SetAccess = 'private', Hidden = true)
-        markedEdges (:,1) logical
-        bisecGroups (:,1) cell
     end
     
     %% dependent properties (computed from data)
@@ -29,18 +24,19 @@ classdef Mesh < handle
     end
     
     %% private properties for caching purposes
-    properties (Access = 'private')
+    properties (Access = private)
         trafo
     end
     
     %% events
     events
         IsAboutToRefine
-        HasChanged
+        JustRefined
+        RefineCompleted
     end
     
     %% public methods
-    methods (Access = 'public')
+    methods (Access = public)
         function obj = Mesh(coordinates, elements, boundaries)
             % Construct Mesh object from given coordinate, element, and boundary
             % arrays.
@@ -70,12 +66,13 @@ classdef Mesh < handle
         saveTikzConforming(obj, varargin)
         refineLocally(obj, marked, method)
         refineUniform(obj, n, method)
+        changeRefinementEdge(obj, newRefinementEdge)
         edges = getCombinedBndEdges(obj, idx)
     end
     
     %% protected methods
-    methods (Access='protected')
-        updateData(obj)
+    methods (Access=protected)
+        updateData(obj, bisecData)
     end
     
     %% get methods for dependent data

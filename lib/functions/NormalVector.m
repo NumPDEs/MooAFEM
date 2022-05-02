@@ -8,12 +8,12 @@
 
 classdef NormalVector < Evaluable
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         mesh
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = NormalVector(mesh)
             obj.mesh = mesh;
         end

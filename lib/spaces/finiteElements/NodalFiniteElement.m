@@ -5,7 +5,7 @@
 
 classdef NodalFiniteElement < FiniteElement
     %% properties
-    properties (Abstract, GetAccess='public', SetAccess='protected')
+    properties (Abstract, GetAccess=public, SetAccess=protected)
         nodeDofLocations
         edgeDofLocations
         innerDofLocations

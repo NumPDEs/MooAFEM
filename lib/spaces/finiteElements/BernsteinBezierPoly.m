@@ -7,14 +7,14 @@
 
 classdef BernsteinBezierPoly
     %% properties
-    properties (Access='protected')
+    properties (Access=protected)
         constants
         exponents
         nFun
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = setExponents(obj, exponents)
             arguments
                 obj
