@@ -8,13 +8,13 @@
 
 classdef Gradient < Evaluable
     %% properties
-    properties (SetAccess='protected', GetAccess='public')
+    properties (SetAccess=protected, GetAccess=public)
         u
         mesh
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = Gradient(u)
             arguments
                 u (1,1) FeFunction

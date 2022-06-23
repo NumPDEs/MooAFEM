@@ -4,11 +4,11 @@
 
 classdef LinearForm < handle
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         fes
     end
     
-    properties (Access='public')
+    properties (Access=public)
         f {mustBeEvaluableOrEmpty} = []         % Volume load
         fvec {mustBeEvaluableOrEmpty} = []      % Generalized volume load
         robin {mustBeEvaluableOrEmpty} = []     % Robin boundary load
@@ -33,11 +33,11 @@ classdef LinearForm < handle
         end
     end
     
-    methods (Access='public')
+    methods (Access=public)
         vec = assemble(obj);
     end
     
-    methods (Static, Access='protected')
+    methods (Static, Access=protected)
         val = scalarPart(f, phi);
         val = vectorPart(fvec, Dphi);
         val = neumannPart(neumann, phi);

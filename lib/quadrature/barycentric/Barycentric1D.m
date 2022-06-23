@@ -2,7 +2,7 @@
 %   coordinates on edges.
 
 classdef Barycentric1D < Barycentric
-    properties (GetAccess = 'public', SetAccess = 'protected')
+    properties (GetAccess=public, SetAccess=protected)
         dim = 1;
     end
 end

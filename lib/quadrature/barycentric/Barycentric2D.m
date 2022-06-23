@@ -5,7 +5,7 @@
 %       Barycentric1D on edge given by edgeInd.
 
 classdef Barycentric2D < Barycentric
-    properties (GetAccess = 'public', SetAccess = 'protected')
+    properties (GetAccess=public, SetAccess=protected)
         dim = 2;
     end
     

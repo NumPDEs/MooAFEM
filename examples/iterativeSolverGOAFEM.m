@@ -38,7 +38,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 solver = CgSolver();
 solver.tol = 1e-8;
 solver.maxIter = 1000;
-P = GeneralFeProlongation(fes);
+P = FeProlongation(fes);
 
 %% adaptive loop
 ell = 0;

@@ -3,14 +3,14 @@
 
 classdef Bisec12 < AbstractBisection
     %% properties
-    properties (GetAccess='public', SetAccess='protected')
+    properties (GetAccess=public, SetAccess=protected)
         innerNodes = []
         nInnerEdges = 2
         nDescendants = 3
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function newElements = refineElement(~, oldNodes, edgeMidPts, ~)
             newElements = [oldNodes(3,:), edgeMidPts(1,:),   oldNodes(3,:); ...
                 oldNodes(1,:),   oldNodes(2,:), edgeMidPts(1,:); ...
@@ -30,7 +30,7 @@ classdef Bisec12 < AbstractBisection
         end
         
         function newOrientation = refineEdgeOrientation(obj, old)
-            [T, F] = getTrueFalseArrays(obj);
+            [T, F] = getTrueFalseArrays(obj, size(old,2));
             newOrientation = [old(3,:), old(1,:),       T; ...
                 old(1,:), old(2,:),       T; ...
                 F,        F, old(2,:)];
