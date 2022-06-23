@@ -5,15 +5,15 @@
 %% paramters
 nDofsMax = 1e4;
 theta = 0.5;
-p = 3;
 
 %% setup geometry & spaces
 [nElem, nDofs, nIterPrimal, nIterDual, goalErrEst] = deal(zeros(1, 1000));
+p = 1;
 
 printLogMessage('*** GOAFEM with p = %d and iterative solver ***', p)
 mesh = Mesh.loadFromGeometry('unitsquare');
 mesh.refineUniform(1, 'RGB');
-fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 'all');
+fes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', 'all');
 u = FeFunction(fes);
 z = FeFunction(fes);
 u.setData(0);
@@ -35,10 +35,10 @@ lfG.f = MeshFunction(mesh, @(x) lorentzian(x, [0.2;0.3], 1e-2));
 lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
-solver = CgSolver();
+solver = AdditiveSchwartzPcg();
 solver.tol = 1e-8;
 solver.maxIter = 1000;
-P = FeProlongation(fes);
+P = LoFeProlongation(fes);
 
 %% adaptive loop
 ell = 0;
@@ -51,7 +51,7 @@ while ~meshSufficientlyFine
     A = assemble(blf);
     rhs = [assemble(lfF), assemble(lfG)];
     uz0 = [u.data', z.data'];
-    solver.setup(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:), 1);
+    solver.setup(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:), P);
     
     while ~all(isConverged(solver))
         solver.step();
