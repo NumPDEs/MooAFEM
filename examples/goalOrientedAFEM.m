@@ -42,9 +42,11 @@ for p = 1:pmax
     P = LoFeProlongation(ncFes);
 
     %% adaptive loop
-    i = 1;
-    while 1
+    ell = 1;
+    meshSufficientlyFine = false;
+    while ~meshSufficientlyFine
         %% assemble & solve FEM system
+        ell = ell + 1;
         A = assemble(blf);
         rhs = [assemble(lfF), assemble(lfG)];
         freeDofs = getFreeDofs(fes);
@@ -55,22 +57,21 @@ for p = 1:pmax
         %% estimate error and store data
         eta2 = estimate(blf, lfF, u);
         zeta2 = estimate(blf, lfG, z);
-        nDofs(p,i) = getDofs(fes).nDofs;
-        nElem(p,i) = mesh.nElements;
-        goalErrEst(p,i) = sqrt(sum(eta2)*sum(zeta2));
-        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,i), goalErrEst(p,i));
+        nDofs(p,ell) = getDofs(fes).nDofs;
+        nElem(p,ell) = mesh.nElements;
+        goalErrEst(p,ell) = sqrt(sum(eta2)*sum(zeta2));
+        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,ell), goalErrEst(p,ell));
 
         %% stoping criterion
-        if nDofs(p,i) > nDofsMax
-            break
-        end
+        meshSufficientlyFine = (nDofs(p,ell) > nDofsMax);
 
         %% refine mesh
-        marked = markGoafemMS(eta2, zeta2, theta);
-        mesh.refineLocally(marked, 'NVB');
-        i = i+1;
-        v.setData(prolongate(P, v));
-        w.setData(prolongate(P, w));
+        if ~meshSufficientlyFine
+            marked = markGoafemMS(eta2, zeta2, theta);
+            mesh.refineLocally(marked, 'NVB');
+            v.setData(prolongate(P, v));
+            w.setData(prolongate(P, w));
+        end
     end
 end
 

@@ -30,9 +30,11 @@ for p = 1:pmax
     lf.bndNeumann = 2;
 
     %% adaptive loop
-    i = 1;
-    while 1
+    ell = 1;
+    meshSufficientlyFine = false;
+    while ~meshSufficientlyFine
         %% assemble & solve FEM system
+        ell = ell + 1;
         A = assemble(blf);
         F = assemble(lf);
         free = getFreeDofs(fes);
@@ -41,22 +43,21 @@ for p = 1:pmax
 
         %% estimate error and store data
         eta2 = estimate(blf, lf, u);
-        nDofs(p,i) = getDofs(fes).nDofs;
-        errEst(p,i) = sqrt(sum(eta2));
+        nDofs(p,ell) = getDofs(fes).nDofs;
+        errEst(p,ell) = sqrt(sum(eta2));
         deltaU = u.data - uex.data;
-        h1Err(p,i) = sqrt(deltaU * A * deltaU');
-        nElem(p,i) = mesh.nElements;
-        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,i), errEst(p,i));
+        h1Err(p,ell) = sqrt(deltaU * A * deltaU');
+        nElem(p,ell) = mesh.nElements;
+        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,ell), errEst(p,ell));
 
         %% stoping criterion
-        if nDofs(p,i) > nDofsMax
-            break
-        end
+        meshSufficientlyFine = (nDofs(p,ell) > nDofsMax);
 
         %% refine mesh
-        marked = markDoerflerSorting(eta2, theta);
-        mesh.refineLocally(marked, 'NVB');
-        i = i+1;
+        if ~meshSufficientlyFine
+            marked = markDoerflerSorting(eta2, theta);
+            mesh.refineLocally(marked, 'NVB');
+        end
     end
 end
 
