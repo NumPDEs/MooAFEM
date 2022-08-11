@@ -5,8 +5,7 @@ properties
 end
 
 properties (TestParameter)
-    dirichlet = {1, 2, [1,2], [1,2,1,2,1,1], 'all'};
-    expectedDirichlet = {1, 2, [1,2], [1,2], [1,2]};
+    dirichlet = {[1,2], [2,1], ':'};
     fe = struct('H1p1', LowestOrderH1Fe(), 'L2p1', LowestOrderL2Fe(), ...
         'H1p3', HigherOrderH1Fe(4), 'L2p7', HigherOrderL2Fe(7));
     nDof = {3, 1, 15, 36};
@@ -23,23 +22,37 @@ methods (Test, ParameterCombination='sequential')
     function implicitDirichletTakesAllBoundaries(testCase)
         dummyFe = LowestOrderH1Fe();
         fes = FeSpace(testCase.dummyMesh, dummyFe);
-        testCase.verifyEqual(fes.dirichlet, [1,2])
+        boundaries = 1:fes.mesh.nBoundaries;
+        testCase.verifyEqual(boundaries(fes.bnd.dirichlet)', [1,2])
     end
     
-    function allOptionsForDirichletGiveCorrectBoundaries(testCase, dirichlet, expectedDirichlet)
+    function allOptionsForDirichletGiveCorrectBoundaries(testCase, dirichlet)
         dummyFe = LowestOrderH1Fe();
         fes = FeSpace(testCase.dummyMesh, dummyFe, 'dirichlet', dirichlet);
-        testCase.verifyEqual(fes.dirichlet, expectedDirichlet);
+        testCase.verifyEqual(fes.bnd.dirichlet, dirichlet);
     end
     
-    function wrongDirichletDataThrowsError(testCase)
+    function invalidBoundaryDataThrowsError(testCase)
         dummyFe = LowestOrderH1Fe();
         testCase.verifyError( ...
-            @() FeSpace(testCase.dummyMesh, dummyFe, 'dirichlet', [1,3,1,2,1,1]), ...
-            'FeSpace:invalidDirichletBoundary')
+            @() FeSpace(testCase.dummyMesh, dummyFe, 'dirichlet', [1,2,3]), ...
+            'MATLAB:validators:mustBeInRange')
         testCase.verifyError( ...
-            @() FeSpace(testCase.dummyMesh, dummyFe, 'dirichlet', 'whole'), ...
-            'FeSpace:invalidDirichletBoundary')
+            @() FeSpace(testCase.dummyMesh, dummyFe, 'neumann', 'whole'), ...
+            'mustBeIndexVector:notAnIndexVector')
+    end
+          
+    function boundaryPartsMakeUpWholeBoundary(testCase)
+        dummyFe = LowestOrderH1Fe();
+        testCase.verifyError( ...
+            @() FeSpace(testCase.dummyMesh, dummyFe, 'robin', 1), ...
+            'FeSpace:invalidBoundary')
+        testCase.verifyError( ...
+            @() FeSpace(testCase.dummyMesh, dummyFe, 'neumann', 1, 'robin', 1), ...
+            'FeSpace:invalidBoundary')
+        testCase.verifyWarningFree(...
+            @() FeSpace(testCase.dummyMesh, dummyFe, ...
+            'dirichlet', [], 'neumann', 1, 'robin', 2))
     end
     
     function dofDataIsComputedCorrectly(testCase, fe, nDof, nFreeDof)

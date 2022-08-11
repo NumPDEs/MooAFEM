@@ -84,7 +84,7 @@ function indicators = estimate(blf, lf, u)
         blf.a, lf.fvec, Gradient(u));
     qrEdge = QuadratureRule.ofOrder(1, '1D');
     edgeRes = integrateNormalJump(f, qrEdge, @(j) j.^2, {}, ':');
-    dirichlet = mesh.getCombinedBndEdges(blf.fes.dirichlet);
+    dirichlet = mesh.getCombinedBndEdges(blf.fes.bnd.dirichlet);
     edgeRes(dirichlet) = 0;
     
     %% combine the resdiuals suitably

@@ -7,7 +7,7 @@ classdef FeSpace < handle
     properties (GetAccess=public, SetAccess=protected)
         mesh
         finiteElement
-        dirichlet
+        bnd
     end
     
     properties (Access=private)
@@ -22,20 +22,22 @@ classdef FeSpace < handle
     
     %% methods
     methods (Access=public)
-        function obj = FeSpace(mesh, fe, opt)
+        function obj = FeSpace(mesh, fe, bnd)
             % Construct FeSpace from given mesh and finite element.
             %
             %   fes = FeSpace(mesh, fe) constructs FeSpace from FiniteElement fe
             %       on mesh, whole boundary is dirichlet boundary.
             %
-            %   fes = FeSpace(mesh, fe, 'dirichlet', dir) Dirichlet boundary is
-            %       given by dir, which is either an array of boundary indices,
-            %       or 'all'.
+            %   fes = FeSpace(mesh, fe, bndName, bndIdx, ...) Boundaries can be
+            %       given by tuples consisting of the name ('dirichlet',
+            %       'neumann', 'robin') and an index vector.
             
             arguments
                 mesh (1,1) Mesh
                 fe (1,1) FiniteElement
-                opt.dirichlet = 'all'
+                bnd.dirichlet {mustBeIndexVector} = ':'
+                bnd.neumann {mustBeIndexVector} = []
+                bnd.robin {mustBeIndexVector} = []
             end
             
             % register fespace as an observer of mesh
@@ -48,19 +50,20 @@ classdef FeSpace < handle
             obj.mesh = mesh;
             obj.finiteElement = fe;
             
-            % store indices of dirichlet boundary
-            if isa(opt.dirichlet, 'char')
-                if strcmp(opt.dirichlet, 'all')
-                    obj.dirichlet = 1:mesh.nBoundaries;
-                else
-                    error('FeSpace:invalidDirichletBoundary', 'Choice of dirichlet boundary not valid!')
+            % store indices of boundaries and do sanity checks
+            obj.bnd = bnd;
+            bndNames = {'dirichlet', 'neumann', 'robin'};
+            referenceCount = zeros(1, mesh.nBoundaries);
+            for k=1:numel(bndNames)
+                idx = bnd.(bndNames{k});
+                if ~ischar(idx)
+                    mustBeInRange(idx, 1, mesh.nBoundaries)
                 end
-            elseif isa(opt.dirichlet, 'double')
-                if any(opt.dirichlet < 1 | opt.dirichlet > mesh.nBoundaries, 'all')
-                    error('FeSpace:invalidDirichletBoundary', 'Choice of dirichlet boundary not valid!')
-                else
-                    obj.dirichlet = unique(opt.dirichlet);
-                end
+                referenceCount(idx) = referenceCount(idx) + 1;
+            end
+            if any(referenceCount ~= 1)
+                error('FeSpace:invalidBoundary', ...
+                    'Every boundary part must be connected to exactly one boundary.')
             end
         end
         

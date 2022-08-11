@@ -14,7 +14,7 @@ for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
-    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1);
+    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1, 'neumann', 2);
     u = FeFunction(fes);
     uex = FeFunction(fes);
     
