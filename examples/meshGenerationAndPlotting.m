@@ -8,10 +8,8 @@
 % constructed easily, given the name of the subfolder.
 mesh = Mesh.loadFromGeometry('Lshape');
 
-% A mesh can also be generated from the data by hand (not recommended, except
-% for copying).
-boundaries = cellfun(@(bnd) mesh.edges(:,bnd), mesh.boundaries, 'UniformOutput', false);
-referenceMesh = Mesh(mesh.coordinates, mesh.elements, boundaries);
+% A mesh can also be cloned.
+referenceMesh = clone(mesh);
 
 %% modification
 % The data of a mesh can be transformed (translate, scale, rotate, skew) easily.
