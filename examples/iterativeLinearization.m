@@ -145,7 +145,7 @@ end
    
 function edge = estimateEdge(u, mesh)
     qr = QuadratureRule.ofOrder(1, '1D');
-    dirichlet = mesh.getCombinedBndEdges(u.fes.bnd.dirichlet);
+    dirichlet = getCombinedBndEdges(mesh, u.fes.bnd.dirichlet);
     
     f = CompositeFunction(@(p) mu(vectorProduct(p,p)).*p, Gradient(u));
     edge = integrateNormalJump(f, qr, ...

@@ -35,7 +35,7 @@ classdef FeSpace < handle
             arguments
                 mesh (1,1) Mesh
                 fe (1,1) FiniteElement
-                bnd.dirichlet {mustBeIndexVector} = ':'
+                bnd.dirichlet {mustBeIndexVector} = []
                 bnd.neumann {mustBeIndexVector} = []
                 bnd.robin {mustBeIndexVector} = []
             end
@@ -52,10 +52,14 @@ classdef FeSpace < handle
             
             % store indices of boundaries and do sanity checks
             obj.bnd = bnd;
+            if all(structfun(@isempty, bnd))
+                obj.bnd.dirichlet = ':';
+            end
+            
             bndNames = {'dirichlet', 'neumann', 'robin'};
             referenceCount = zeros(1, mesh.nBoundaries);
             for k=1:numel(bndNames)
-                idx = bnd.(bndNames{k});
+                idx = obj.bnd.(bndNames{k});
                 if ~ischar(idx)
                     mustBeInRange(idx, 1, mesh.nBoundaries)
                 end

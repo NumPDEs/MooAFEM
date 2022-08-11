@@ -17,8 +17,6 @@ classdef LinearForm < handle
         qrfvec (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
         qrRobin (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
         qrNeumann (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
-        bndRobin {mustBeIndexVector} = []
-        bndNeumann {mustBeIndexVector} = []
     end
     
     %% methods

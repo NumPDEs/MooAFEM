@@ -27,7 +27,6 @@ for p = 1:pmax
     
     lf.neumann = MeshFunction(mesh, @exactSolutionNeumannData);
     lf.qrNeumann = QuadratureRule.ofOrder(2*p, '1D');
-    lf.bndNeumann = 2;
 
     %% adaptive loop
     ell = 1;
