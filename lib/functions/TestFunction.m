@@ -9,13 +9,13 @@
 
 classdef TestFunction < Evaluable
     %% properties
-    properties (SetAccess='protected', GetAccess='public')
+    properties (SetAccess=protected, GetAccess=public)
         fes
         mesh
     end
     
     %% methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = TestFunction(fes)
             arguments
                 fes (1,1) FeSpace

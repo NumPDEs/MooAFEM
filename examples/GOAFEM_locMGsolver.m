@@ -5,7 +5,7 @@
 %% paramters
 nDofsMax = 1e4;
 theta = 0.5;
-p = 10;
+p = 4;
 
 %% setup geometry & spaces
 [nElem, nDofs, nIterPrimal, nIterDual, goalErrEst] = deal(zeros(1, 1000));
@@ -38,7 +38,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 solver = pLoc_MG();
 solver.tol = 1e-4;
 solver.maxIter = 1000;
-P = GeneralFeProlongation(fes);
+P = FeProlongation(fes);
 
 %% adaptive loop
 ell = 0; mesh.level = 0;

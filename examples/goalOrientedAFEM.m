@@ -38,8 +38,8 @@ for p = 1:pmax
     lfG.fvec = CompositeFunction(@(w) [-w;zeros(size(w))], w);
     lfG.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
-    %% set up lifting operator for rhs FEM-data
-    P = LoL2Prolongation(ncFes);
+    %% set up lifting operators for rhs FEM-data
+    P = LoFeProlongation(ncFes);
 
     %% adaptive loop
     i = 1;

@@ -12,6 +12,8 @@ classdef AdditiveSchwartzPcg < PcgSolver
         Acoarse
         fine2coarse
         transferMatrix
+        oldFreeDofs
+        oldPatchAreas
         D
     end
     
@@ -28,70 +30,53 @@ classdef AdditiveSchwartzPcg < PcgSolver
         
         function setup(obj, A, b, x0, P)
             assert(isa(P, 'Prolongation'), 'P must be an instance of Prolongation')
-            setup@PcgSolver(obj, A, b, x0);
+            assert(isa(P.fes.finiteElement, 'LowestOrderH1Fe'), 'Only lowest-order H1 finite elements are supported')
             
             mesh = P.fes.mesh;
+            freeDofs = getFreeDofs(P.fes);
+            patchAreas = computePatchAreas(mesh);
             
-            
-            
-            if isempty(obj.nLevels)
+            if obj.nLevels == 0
                 % on coarsest level store whole matrix
-                obj.nLevels = 0;
-                obj.Acoarse = obj.A;
-            else
-                % on every other level only store diagonal
-                obj.nLevels = obj.nLevels + 1;
+                obj.Acoarse = A;
+            else    
+                % find nodes where patch has changed to ensure that no node gets
+                % considered twice (new nodes are just appended)
+                obj.oldPatchAreas(mesh.nCoordinates) = 0;
+                stableNodes = abs(obj.oldPatchAreas - patchAreas) < 2*eps;
+                obj.transferMatrix{obj.nLevels} = P.matrix(freeDofs, obj.oldFreeDofs);
                 
-                % Find nodes of newly created nodes + neigbours where patch has changed
-                % this is to ensure that no node gets considered twice, since fine2coarse
-                % also contains node-relations in areas where no refinement happens
-                % TODO: is there a better way to get this information?
-                [~,oldNodes] = find(obj.fine2coarse == 1);
-                patchAreaOldProlongated = zeros(mesh.nCoords(),1);
-                patchAreaOldProlongated(oldNodes) = obj.patchAreaOld;
-                nonRefinedArea = abs(patchAreaOldProlongated-obj.patchArea) < 2*eps;
-                obj.transferMatrix{obj.nLevels} = obj.fine2coarse(obj.freeDofsOld, obj.freeDofs);
-                
-                % invert diagonal (only on free dofs and dofs where refinement happened)
+                % on every other level only store inverse of diagonal
+                % (only on free dofs and dofs where refinement happened;
+                % we heavily use that dofs and nodes coincide, here)
                 obj.D{obj.nLevels} = 1./full(diag(A));
-                obj.D{obj.nLevels}(nonRefinedArea) = 0;
-                obj.D{obj.nLevels} = obj.D{obj.nLevels}(obj.freeDofs);
+                obj.D{obj.nLevels}(stableNodes(freeDofs)) = 0;
             end
-        end
-        
-        % add transfer between old and new coordinates based on marked elements
-        function registerRefinedElements(obj, marked)
-            % TODO: get rid of refineMeshFB, there is a lot of unnecessary stuff going on
-            % obtain full mapping coarse mesh to fine mesh
-            mesh = obj.fes.mesh;
             
-            % refineMeshFB cannot deal with empty neumann boundary
-            if isempty(mesh.neumann)
-                [~,~,~,~,~,obj.fine2coarse] = refineMeshFB(mesh.coordinates, mesh.elements, mesh.dirichlet, marked, [], 1);
-            elseif isempty(mesh.dirichlet)
-                [~,~,~,~,~,obj.fine2coarse] = refineMeshFB(mesh.coordinates, mesh.elements, mesh.neumann, marked, [], 1);
-            else
-                [~,~,~,~,~,~,obj.fine2coarse] = refineMeshFB(mesh.coordinates, mesh.elements, mesh.dirichlet, mesh.neumann, marked, [], [], 1);
-            end
+            obj.oldFreeDofs = freeDofs;
+            obj.oldPatchAreas = patchAreas;
+            obj.nLevels = obj.nLevels + 1;
+            
+            setup@PcgSolver(obj, A, b, x0);
         end
         
         % preconditioner: inverse of diagonal on each level
         function Cx = preconditionAction(obj, x)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
-            y = cell(obj.nLevels+1, 1);
+            y = cell(obj.nLevels, 1);
             
             % descending cascade
-            for k = obj.nLevels:-1:1
+            for k = obj.nLevels-1:-1:1
                 y{k+1} = obj.D{k} .* x;
-                x = obj.transferMatrix{k}*x;
+                x = obj.transferMatrix{k}'*x;
             end
             
             % exact solve on coarsest level
             y{1} = obj.Acoarse \ x;
             
             % ascending cascade
-            for k = 1:obj.nLevels
-                y{k+1} = y{k+1} + obj.transferMatrix{k}'*y{k};
+            for k = 1:obj.nLevels-1
+                y{k+1} = y{k+1} + obj.transferMatrix{k}*y{k};
             end
             
             Cx = y{end};

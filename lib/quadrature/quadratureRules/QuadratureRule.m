@@ -14,7 +14,7 @@
 
 classdef QuadratureRule
     %% properties
-    properties (GetAccess = 'public', SetAccess = 'protected')
+    properties (GetAccess=public, SetAccess=protected)
         bary
         weights
         nNodes
@@ -22,7 +22,7 @@ classdef QuadratureRule
     end
     
     %% methods
-    methods (Access = 'public')
+    methods (Access=public)
         function obj = QuadratureRule(bary, weights)            
             arguments
                 bary (1,1) Barycentric

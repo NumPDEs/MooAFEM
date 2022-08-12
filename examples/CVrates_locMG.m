@@ -4,7 +4,7 @@
 % ******************************************************************************
 
 %% parameters
-nDofsMax = 1e5;
+nDofsMax = 1e4;
 theta = 0.5;
 pmax = 5;
 mu = 0.1;
@@ -49,7 +49,7 @@ for p = 1:pmax
     solver = pLoc_MG();
     solver.tol = 1e-8;
     solver.maxIter = 100;
-    P = GeneralFeProlongation(fes);
+    P = FeProlongation(fes);
     
     %% adaptive loop
     i = 0;

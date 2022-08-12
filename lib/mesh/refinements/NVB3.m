@@ -3,7 +3,7 @@
 
 classdef NVB3 < NVB   
     %% public methods
-    methods (Access='public')
+    methods (Access=public)
         function obj = NVB3(mesh)
             obj = obj@NVB(mesh);
         end

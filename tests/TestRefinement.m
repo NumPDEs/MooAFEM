@@ -30,7 +30,7 @@ methods (Test)
     end
 end
 
-methods (Access='protected')
+methods (Access=protected)
     function verifyEdgeConnectivityIntegrity(testCase, mesh)
         [edgesRef, e2eRef, ~, bndRef] = Mesh.computeEdgeInformation( ...
             mesh.elements, cellfun(@(bnd) mesh.edges(:,bnd), mesh.boundaries, 'UniformOutput', false));
