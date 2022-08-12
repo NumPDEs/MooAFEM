@@ -36,6 +36,8 @@ for i = 1:numel(bndFiles)
     boundaries{i} = load(file)';
 end
 
-obj = Mesh(coordinates, elements, boundaries);
+level = 1;
+
+obj = Mesh(coordinates, elements, boundaries, level);
 
 end

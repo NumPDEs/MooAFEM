@@ -13,6 +13,15 @@ classdef Mesh < handle
         element2edges (3,:) double
         flipEdges (3,:) logical
         boundaries (:,1) cell
+        %level (1,1) double
+        %intergrid (:,1) cell %(:,:) double
+    end
+
+    properties (Access = 'public')
+        level (1,1) double
+        intergrid (:,1) cell 
+        locVert (:,1) cell 
+        freeVert (:,1) cell 
     end
     
     %% dependent properties (computed from data)
@@ -37,7 +46,7 @@ classdef Mesh < handle
     
     %% public methods
     methods (Access = 'public')
-        function obj = Mesh(coordinates, elements, boundaries)
+        function obj = Mesh(coordinates, elements, boundaries, level)
             % Construct Mesh object from given coordinate, element, and boundary
             % arrays.
             %
@@ -48,6 +57,7 @@ classdef Mesh < handle
             [obj.edges, obj.element2edges, obj.flipEdges, obj.boundaries] ...
                 = obj.computeEdgeInformation(obj.elements, boundaries);
             obj.trafo = [];
+            obj.level = level;
         end
         
         % get methods for cached data
@@ -66,6 +76,7 @@ classdef Mesh < handle
         saveTikzConforming(obj, varargin)
         refineLocally(obj, marked, method)
         refineUniform(obj, n, method)
+        intergridMatrix(obj, marked, method)
         changeRefinementEdge(obj, newRefinementEdge)
         edges = getCombinedBndEdges(obj, idx)
     end
