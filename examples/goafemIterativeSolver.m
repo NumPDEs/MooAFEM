@@ -35,10 +35,10 @@ lfG.f = MeshFunction(mesh, @(x) lorentzian(x, [0.2;0.3], 1e-2));
 lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
-solver = AdditiveSchwartzPcg();
+P = LoFeProlongation(fes);
+solver = AdditiveSchwartzPcg(P);
 solver.tol = 1e-8;
 solver.maxIter = 1000;
-P = LoFeProlongation(fes);
 
 %% adaptive loop
 ell = 0;
@@ -51,9 +51,9 @@ while ~meshSufficientlyFine
     A = assemble(blf);
     rhs = [assemble(lfF), assemble(lfG)];
     uz0 = [u.data', z.data'];
-    solver.setup(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:), P);
+    solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
     
-    while ~all(isConverged(solver))
+    while ~all(solver.applyStoppingCriterion())
         solver.step();
     end
     u.setFreeData(solver.x(:,1));

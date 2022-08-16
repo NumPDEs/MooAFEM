@@ -15,25 +15,27 @@ classdef AdditiveSchwartzPcg < PcgSolver
         oldFreeDofs
         oldPatchAreas
         D
+        P
     end
     
     %% methods
     methods (Access=public)
-        function obj = AdditiveSchwartzPcg()
+        function obj = AdditiveSchwartzPcg(P)
+            assert(isa(P, 'Prolongation'), 'P must be an instance of Prolongation')
+            assert(isa(P.fes.finiteElement, 'LowestOrderH1Fe'), 'Only lowest-order H1 finite elements are supported')
+            
             obj = obj@PcgSolver();
             obj.nLevels = 0;
             obj.fine2coarse = [];
             obj.D = {};
             obj.Acoarse = [];
             obj.transferMatrix = [];
+            obj.P = P;
         end
         
-        function setup(obj, A, b, x0, P)
-            assert(isa(P, 'Prolongation'), 'P must be an instance of Prolongation')
-            assert(isa(P.fes.finiteElement, 'LowestOrderH1Fe'), 'Only lowest-order H1 finite elements are supported')
-            
-            mesh = P.fes.mesh;
-            freeDofs = getFreeDofs(P.fes);
+        function setupLinearSystem(obj, A, b, x0)
+            mesh = obj.P.fes.mesh;
+            freeDofs = getFreeDofs(obj.P.fes);
             patchAreas = computePatchAreas(mesh);
             
             if obj.nLevels == 0
@@ -44,7 +46,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 % considered twice (new nodes are just appended)
                 obj.oldPatchAreas(mesh.nCoordinates) = 0;
                 stableNodes = abs(obj.oldPatchAreas - patchAreas) < 2*eps;
-                obj.transferMatrix{obj.nLevels} = P.matrix(freeDofs, obj.oldFreeDofs);
+                obj.transferMatrix{obj.nLevels} = obj.P.matrix(freeDofs, obj.oldFreeDofs);
                 
                 % on every other level only store inverse of diagonal
                 % (only on free dofs and dofs where refinement happened;
@@ -57,7 +59,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.oldPatchAreas = patchAreas;
             obj.nLevels = obj.nLevels + 1;
             
-            setup@PcgSolver(obj, A, b, x0);
+            setupLinearSystem@PcgSolver(obj, A, b, x0);
         end
         
         % preconditioner: inverse of diagonal on each level

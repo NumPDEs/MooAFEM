@@ -10,9 +10,9 @@ classdef JacobiPcgSolver < PcgSolver
     %% methods
     methods (Access=public)
         % preconditioner action: inverse of diagonal
-        function setup(obj, A, b, x0)
+        function setupLinearSystem(obj, A, b, x0)
             obj.C = 1./full(diag(A));
-            setup@PcgSolver(obj, A, b, x0)
+            setupLinearSystem@PcgSolver(obj, A, b, x0)
         end
         
         function Cx = preconditionAction(obj, x)

@@ -1,31 +1,12 @@
-% PcgSolver (abstract subclass of Solver) Solves linear equations
-%   iteratively, using a preconditioner.
+% PcgSolver (abstract subclass of IterativeSolver) Solves linear equations
+%   iteratively by a preconditioned conjugate gradient (PCG) method.
 %
-% solver.setup(A, b, [x0]) sets up solver for the linear system A*x=b with
-%   initial guess x0 (0 per default). The right-hand side b can have
-%   multiple columns.
-%
-% solver.step() performs one PCG step.
-%
-% isConverged(solver) returns state of convergence of the solver for each
-%   column of the right-hand side.
-%
-% solver.solve(A, b, [x0]) performs an automatic loop of solver.step()
-%   until convergence in each column of the right-hand side is reached.
+% See also: IterativeSolver
 
-classdef PcgSolver < Solver
+classdef PcgSolver < IterativeSolver
     %% properties
-    properties (Access=public)
-        maxIter (1,:) double {mustBePositive}
-        tol (1,:) double {mustBePositive}
-    end
-    
     properties (SetAccess=protected, GetAccess=public)
-        A
-        b
-        x
         residualCNorm
-        iterationCount
     end
     
     properties (Access=protected)
@@ -33,85 +14,24 @@ classdef PcgSolver < Solver
         Cresidual
         searchDirection
         normb
-        activeComponents
     end
     
-    %% methods
+    %% extend superclass methods
     methods (Access=public)
-        function obj = PcgSolver(varargin)
-            obj.maxIter = 100;
-            obj.tol = 1e-8;
-        end
-        
-        % complete iteration
-        function x = solve(obj, A, b, varargin)
-            % adaptive loop
-            obj.setup(A, b, varargin{:});
-            while ~all(isConverged(obj))
-                obj.step()
-            end
+        function setupLinearSystem(obj, A, b, x0)
+            setupLinearSystem@IterativeSolver(obj, A, b, x0);
             
-            if any(obj.iterationCount >= obj.maxIter)
-                warning('(P)CG iterations exhausted! maxIter = %d', obj.maxIter)
-            end
-            
-            x = obj.x;
-        end
-        
-        % initialize iteration
-        function setup(obj, A, b, x0, c)
-            arguments
-                obj
-                A (:,:) double {Solver.mustBeQuadratic}
-                b (:,:) double {Solver.mustBeCompatible(A, b)}
-                x0 (:,:) double {Solver.mustBeCompatible(A, x0)} = zeros(size(b));
-            end
-            
-            arguments (Repeating)
-                c % catching possible additional arguments
-            end
-            
-            assert(isequal(size(b,2), size(x0,2)), 'Right-hand size and initial guess must be of compatible size.')
-            
-            obj.A = A;
-            obj.b = b;
-            obj.x = x0;
+            % initialize residual & search direction
             obj.residual = b - obj.A*obj.x;
             obj.Cresidual = obj.preconditionAction(obj.residual);
             obj.searchDirection = obj.Cresidual;
             obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
-            obj.iterationCount = zeros(1, size(b,2));
             obj.normb = sqrt(sum(b.^2, 1));
-            obj.activeComponents = true(1, size(b,2));
         end
-        
-        
-        % one step
-        function step(obj)
-            % only iterate on active components
-            idx = ~isConverged(obj);
-            stillActive = idx(obj.activeComponents);
-            obj.activeComponents = obj.activeComponents & idx;
-            
-            % update solution
-            obj.searchDirection = obj.searchDirection(:,stillActive);
-            AsearchDirection = obj.A * obj.searchDirection;
-            alpha = obj.residualCNorm(:,idx) ./ sum(obj.searchDirection.*AsearchDirection, 1);
-            obj.x(:,idx) = obj.x(:,idx) + alpha .* obj.searchDirection;
-            
-            % update residual
-            obj.residual = obj.residual(:,stillActive) - alpha .* AsearchDirection;
-            obj.Cresidual = obj.preconditionAction(obj.residual);
-            residualCNormOld = obj.residualCNorm(:,idx);
-            obj.residualCNorm(:,idx) = sum(obj.residual.*obj.Cresidual, 1);
-            
-            % update search direction
-            beta = obj.residualCNorm(:,idx) ./ residualCNormOld;
-            obj.searchDirection = obj.Cresidual + beta .* obj.searchDirection;
-            obj.iterationCount(:,idx) = obj.iterationCount(:,idx)+1;
-        end
-        
-        % stopping criterion
+    end
+    
+    %% implement abstract superclass methods
+    methods (Access=public)
         function tf = isConverged(obj)
             tf = ((obj.iterationCount >= obj.maxIter) ...
                         | (sqrt(obj.residualCNorm) < obj.tol) ...
@@ -119,7 +39,30 @@ classdef PcgSolver < Solver
         end
     end
     
-    methods (Abstract,Access=public)
+    methods (Access=protected)
+        function computeUpdate(obj)
+            % only iterate on active components
+            idx = find(obj.activeComponents);
+            
+            % update solution
+            AsearchDirection = obj.A * obj.searchDirection(:,idx);
+            alpha = obj.residualCNorm(:,idx) ./ sum(obj.searchDirection(:,idx).*AsearchDirection, 1);
+            obj.x(:,idx) = obj.x(:,idx) + alpha .* obj.searchDirection(:,idx);
+            
+            % update residual
+            obj.residual(:,idx) = obj.residual(:,idx) - alpha .* AsearchDirection;
+            obj.Cresidual(:,idx) = obj.preconditionAction(obj.residual(:,idx));
+            residualCNormOld = obj.residualCNorm(:,idx);
+            obj.residualCNorm(:,idx) = sum(obj.residual(:,idx).*obj.Cresidual(:,idx), 1);
+            
+            % update search direction
+            beta = obj.residualCNorm(:,idx) ./ residualCNormOld;
+            obj.searchDirection(:,idx) = obj.Cresidual(:,idx) + beta .* obj.searchDirection(:,idx);
+        end
+    end
+    
+    %% abstract preconditioning
+    methods (Abstract, Access=public)
         preconditionAction(obj, x)
     end
 end
