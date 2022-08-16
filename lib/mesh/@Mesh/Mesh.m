@@ -14,6 +14,12 @@ classdef Mesh < handle
         flipEdges (3,:) logical
         boundaries (:,1) cell
     end
+
+    properties (Access = 'public')
+        intergrid (:,1) cell 
+        locVert (:,1) cell 
+        freeVert (:,1) cell 
+    end
     
     %% dependent properties (computed from data)
     properties (Dependent)
@@ -48,6 +54,9 @@ classdef Mesh < handle
             [obj.edges, obj.element2edges, obj.flipEdges, obj.boundaries] ...
                 = obj.computeEdgeInformation(obj.elements, boundaries);
             obj.trafo = [];
+            obj.intergrid = cell(1);
+            obj.locVert = cell(1);
+            obj.freeVert = cell(0);
         end
         
         % get methods for cached data
@@ -66,6 +75,7 @@ classdef Mesh < handle
         saveTikzConforming(obj, varargin)
         refineLocally(obj, marked, method)
         refineUniform(obj, n, method)
+        intergridMatrix(obj, marked, method)
         changeRefinementEdge(obj, newRefinementEdge)
         edges = getCombinedBndEdges(obj, idx)
     end
