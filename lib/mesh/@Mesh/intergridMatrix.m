@@ -38,7 +38,7 @@ obj.updateData(bisecData);
 nupdatedNodes = length(obj.coordinates);
 newnodestwice = repmat(nNodes+1:nupdatedNodes,2,1);
 
-obj.locVert{obj.level+1} = [unique(nodesBisecEdges);[nNodes+1:nupdatedNodes]'];
+obj.locVert{end+1} = [unique(nodesBisecEdges);[nNodes+1:nupdatedNodes]'];
 oldneigh = nodesBisecEdges; 
 oldneigh = reshape(oldneigh', 2*length(oldneigh),1);
 
@@ -46,7 +46,7 @@ Int_I = [[1:nNodes]'; newnodestwice(:)];
 Int_J = [[1:nNodes]'; nodesBisecEdges(:)];
 Int_val = [ones(nNodes,1); 1/2*ones(length(nodesBisecEdges(:)),1)];
 Int = sparse(Int_I, Int_J, Int_val);
-obj.intergrid{obj.level+1} = Int;
+obj.intergrid{end+1} = Int;
 
 
 obj.trafo = [];

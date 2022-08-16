@@ -13,12 +13,9 @@ classdef Mesh < handle
         element2edges (3,:) double
         flipEdges (3,:) logical
         boundaries (:,1) cell
-        %level (1,1) double
-        %intergrid (:,1) cell %(:,:) double
     end
 
     properties (Access = 'public')
-        level (1,1) double
         intergrid (:,1) cell 
         locVert (:,1) cell 
         freeVert (:,1) cell 
@@ -46,7 +43,7 @@ classdef Mesh < handle
     
     %% public methods
     methods (Access = public)
-        function obj = Mesh(coordinates, elements, boundaries, level)
+        function obj = Mesh(coordinates, elements, boundaries)
             % Construct Mesh object from given coordinate, element, and boundary
             % arrays.
             %
@@ -57,7 +54,9 @@ classdef Mesh < handle
             [obj.edges, obj.element2edges, obj.flipEdges, obj.boundaries] ...
                 = obj.computeEdgeInformation(obj.elements, boundaries);
             obj.trafo = [];
-            obj.level = level;
+            obj.intergrid = cell(1);
+            obj.locVert = cell(1);
+            obj.freeVert = cell(0);
         end
         
         % get methods for cached data

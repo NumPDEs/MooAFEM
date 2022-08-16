@@ -53,13 +53,13 @@ for p = 1:pmax
     
     %% adaptive loop
     i = 0;
-    ell = 0; mesh.level = 0;
+    ell = 0;
     meshSufficientlyFine = false;
     
     
     while 1
         
-        ell = ell + 1; mesh.level = ell; i = i+1;
+        ell = ell + 1; i = i+1;
         
         freeDofs = getFreeDofs(fes);
         A = assemble(blf);
@@ -73,7 +73,7 @@ for p = 1:pmax
             
             %freeDofs = getFreeDofs(fes);
             p1freedofs = freeDofs(freeDofs<=mesh.nCoordinates);
-            mesh.freeVert{mesh.level} = p1freedofs;
+            mesh.freeVert{end+1} = p1freedofs;
             %A = assemble(blf);
             %rhs = assemble(lfF);
             u0 = u.data';

@@ -45,9 +45,6 @@ obj.notify('IsAboutToRefine', bisecData);
 %%  do actual refinement and clear data of old mesh
 obj.updateData(bisecData);
 
-% %%level
-% obj.level = obj.level+1;
-% 
 % %% compute intergrid matrix
 % nupdatedNodes = length(obj.coordinates);
 % newnodestwice = repmat(nNodes+1:nupdatedNodes,2,1);

@@ -41,15 +41,15 @@ solver.maxIter = 1000;
 P = FeProlongation(fes);
 
 %% adaptive loop
-ell = 0; mesh.level = 0;
+ell = 0;
 meshSufficientlyFine = false;
 while ~meshSufficientlyFine
-    ell = ell + 1; mesh.level = ell;
+    ell = ell + 1;
 
     %% assemble & solve FEM system iteratively
     freeDofs = getFreeDofs(fes);
     p1freedofs = freeDofs(freeDofs<=mesh.nCoordinates);
-    mesh.freeVert{mesh.level} = p1freedofs;
+    mesh.freeVert{end+1} = p1freedofs;
     A = assemble(blf);
     rhs = [assemble(lfF), assemble(lfG)];
     uz0 = [u.data', z.data'];

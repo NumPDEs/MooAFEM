@@ -73,7 +73,7 @@ classdef pLoc_MG < MGSolver
 
             Ahigh = obj.A; %matrix on finest level, potentially high-order
            % res = obj.b - Ahigh*obj.x;
-            lev = obj.P.fes.mesh.level; %here numbering starts 1 for coarsest level
+            lev = numel(obj.P.fes.mesh.intergrid); %here numbering starts 1 for coarsest level
             poldeg = obj.P.fes.finiteElement.order;
             intergrid = obj.P.fes.mesh.intergrid;
 
