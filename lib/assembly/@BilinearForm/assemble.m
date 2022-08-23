@@ -50,7 +50,7 @@ end
 % Robin data
 if ~isempty(obj.robin)
     f = CompositeFunction(@BilinearForm.robinPart, obj.robin, phi);
-    idx = getCombinedBndEdges(fes.mesh, obj.bndRobin);
+    idx = getCombinedBndEdges(fes.mesh, fes.bnd.robin);
     [I, J] = getLocalDofs(size(dofs.edge2Dofs, Dim.Vector));
     mat = mat + sparse(dofs.edge2Dofs(I,idx), dofs.edge2Dofs(J,idx), ...
         integrateEdge(f, obj.qrRobin, idx), dofs.nDofs, dofs.nDofs);

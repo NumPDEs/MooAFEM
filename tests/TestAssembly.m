@@ -70,22 +70,21 @@ methods (Test)
     end
     
     function validateNeumann(testCase)
-        testCase.lf.neumann = Constant(testCase.mesh, pi);
-        testCase.lf.bndNeumann = [1,2];
+        neumannFes = FeSpace(testCase.mesh, LowestOrderH1Fe(), 'neumann', ':');
+        nlf = LinearForm(neumannFes);
+        nlf.neumann = Constant(testCase.mesh, pi);
         expected = [2;1+sqrt(2);1+sqrt(2)]*(pi/2);
-        testCase.verifyEqual(assemble(testCase.lf), expected, 'RelTol', eps*10);
+        testCase.verifyEqual(assemble(nlf), expected, 'RelTol', eps*10);
     end
     
     function validateRobin(testCase)
-        testCase.lf.neumann = Constant(testCase.mesh, pi);
-        testCase.lf.bndNeumann = ':';
-        expected = [2;1+sqrt(2);1+sqrt(2)]*(pi/2);
-        testCase.verifyEqual(assemble(testCase.lf), expected, 'RelTol', eps*10);
-        testCase.blf.robin = Constant(testCase.mesh, pi);
-        testCase.blf.bndRobin = 1;
-        testCase.blf.qrRobin = QuadratureRule.ofOrder(2, '1D');
+        robinFes = FeSpace(testCase.mesh, LowestOrderH1Fe(), 'dirichlet', 2, 'robin', 1);
+        rlf = LinearForm(robinFes);
+        rblf = BilinearForm(robinFes);
+        rblf.robin = Constant(testCase.mesh, pi);
+        rblf.qrRobin = QuadratureRule.ofOrder(2, '1D');
         expected = [4,1,1;1,2,0;1,0,2]*(pi/6);
-        testCase.verifyEqual(full(assemble(testCase.blf)), expected, 'RelTol', eps*10);
+        testCase.verifyEqual(full(assemble(rblf)), expected, 'RelTol', eps*10);
     end
 end
     

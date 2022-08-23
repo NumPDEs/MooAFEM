@@ -38,7 +38,7 @@ classdef pLoc_MG < MGSolver
             polDeg = obj.P.fes.finiteElement.order;
 
             %TO BE IMPROVED : later 1->p on the finest level in matrix form
-            obj.feslow = FeSpace(obj.P.fes.mesh, HigherOrderH1Fe(1), 'dirichlet', 'all');
+            obj.feslow = FeSpace(obj.P.fes.mesh, HigherOrderH1Fe(1), 'dirichlet', ':');
             blflow = BilinearForm(obj.feslow);
             blflow.a = Constant(mesh, 1);
             blflow.qra = QuadratureRule.ofOrder(max(2*1-2, 1));

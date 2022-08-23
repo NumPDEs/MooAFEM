@@ -11,6 +11,17 @@ methods (Test)
             testCase.verifyClass(Mesh.loadFromGeometry(folders{i}), 'Mesh')
         end
     end
+    
+    function cloneMethodMakesClone(testCase)
+        mesh = Mesh.loadFromGeometry('Lshape');
+        clonedMesh = clone(mesh);
+        testCase.verifyEqual(mesh.coordinates, clonedMesh.coordinates);
+        testCase.verifyEqual(mesh.elements, clonedMesh.elements);
+        testCase.verifyEqual(mesh.edges, clonedMesh.edges);
+        testCase.verifyEqual(mesh.element2edges, clonedMesh.element2edges);
+        testCase.verifyEqual(mesh.flipEdges, clonedMesh.flipEdges);
+        testCase.verifyEqual(mesh.boundaries, clonedMesh.boundaries);
+    end
 
     function LShapeDetailsAreCorrect(testCase)
         % this is tailored to the Lshape to ensure correctness of arrays

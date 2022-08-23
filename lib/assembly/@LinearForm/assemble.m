@@ -37,7 +37,7 @@ vec = accumarray(dofs.element2Dofs(:), vec(:), [dofs.nDofs, 1]);
 % Robin data
 if ~isempty(obj.robin)
     f = CompositeFunction(@LinearForm.robinPart, obj.robin, phi);
-    idx = getCombinedBndEdges(fes.mesh, obj.bndRobin);
+    idx = getCombinedBndEdges(fes.mesh, fes.bnd.robin);
     edgeData = integrateEdge(f, obj.qrRobin, idx);
     edge2Dofs = dofs.edge2Dofs(:,idx);
     vec = vec + accumarray(edge2Dofs(:), edgeData(:), [dofs.nDofs, 1]);
@@ -46,7 +46,7 @@ end
 % Neumann data
 if ~isempty(obj.neumann)
     f = CompositeFunction(@LinearForm.neumannPart, obj.neumann, phi);
-    idx = getCombinedBndEdges(fes.mesh, obj.bndNeumann);
+    idx = getCombinedBndEdges(fes.mesh, fes.bnd.neumann);
     edgeData = integrateEdge(f, obj.qrNeumann, idx);
     edge2Dofs = dofs.edge2Dofs(:,idx);
     vec = vec + accumarray(edge2Dofs(:), edgeData(:), [dofs.nDofs, 1]);

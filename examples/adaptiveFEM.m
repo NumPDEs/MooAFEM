@@ -25,7 +25,8 @@ w = FeFunction(ncFes);
 lf.fvec = CompositeFunction(@(w) [w;-w], w);
 
 %% adaptive loop
-while 1
+meshSufficientlyFine = false;
+while ~meshSufficientlyFine
     %% compute data for rhs coefficient and assemble forms
     w.setData(eval(cutoff, midpoint));
     A = assemble(blf);
@@ -40,13 +41,13 @@ while 1
     printLogMessage('number of elements: %d, estimator: %.2e', mesh.nElements, sqrt(sum(eta2)));
     
     %% stoping criterion
-    if mesh.nElements > nEmax
-        break
-    end
+    meshSufficientlyFine = (mesh.nElements > nEmax);
     
     %% refine mesh
-    marked = markDoerflerBinning(eta2, theta);
-    mesh.refineLocally(marked, 'NVB');
+    if ~meshSufficientlyFine
+        marked = markDoerflerBinning(eta2, theta);
+        mesh.refineLocally(marked, 'NVB');
+    end
 end
 
 %% plot solution and estimator
@@ -83,7 +84,7 @@ function indicators = estimate(blf, lf, u)
         blf.a, lf.fvec, Gradient(u));
     qrEdge = QuadratureRule.ofOrder(1, '1D');
     edgeRes = integrateNormalJump(f, qrEdge, @(j) j.^2, {}, ':');
-    dirichlet = unique(vertcat(mesh.boundaries{:}));
+    dirichlet = getCombinedBndEdges(mesh, blf.fes.bnd.dirichlet);
     edgeRes(dirichlet) = 0;
     
     %% combine the resdiuals suitably

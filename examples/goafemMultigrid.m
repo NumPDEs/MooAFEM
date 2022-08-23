@@ -13,7 +13,7 @@ p = 4;
 printLogMessage('*** GOAFEM with p = %d and iterative solver ***', p)
 mesh = Mesh.loadFromGeometry('Lshape');
 mesh.refineUniform(1, 'RGB');
-fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 'all');
+fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
 u = FeFunction(fes);
 z = FeFunction(fes);
 u.setData(0);

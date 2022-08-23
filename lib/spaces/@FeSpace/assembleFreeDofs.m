@@ -8,7 +8,7 @@ dofs = getDofs(obj);
 mesh = obj.mesh;
 
 allDofs = true(dofs.nDofs, 1);
-dirichletEdges = getCombinedBndEdges(mesh, obj.dirichlet);
+dirichletEdges = getCombinedBndEdges(mesh, obj.bnd.dirichlet);
 allDofs(dofs.edge2Dofs(:,dirichletEdges)) = false;
 freeDofs = find(allDofs);
 

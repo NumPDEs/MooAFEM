@@ -23,7 +23,7 @@ for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
-    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 'all');
+    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
     u = FeFunction(fes);
     u.setData(0);
     uex = FeFunction(fes);
