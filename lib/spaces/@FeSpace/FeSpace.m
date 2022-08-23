@@ -77,6 +77,10 @@ classdef FeSpace < handle
             end
             freeDofs = obj.freeDofs;
         end
+        
+        dofs = createVertexDofs(obj, idx)
+        dofs = createInnerEdgeDofs(obj, idx)
+        dofs = createInnerElementDofs(obj, idx)
     end
     
     methods (Access=protected)
