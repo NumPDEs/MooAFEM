@@ -22,7 +22,7 @@ if nLocalDofs(2) == 0
 end
 
 % dof numbers are simply given by vertex numbers
-if isequal(idx, ':')
+if ischar(idx) && isequal(idx, ':')
     dofs = 1:N;
 elseif islogical(idx)
     assert(isequal(size(idx), [1, N]))

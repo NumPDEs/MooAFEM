@@ -1,34 +1,45 @@
-function dofs = assemblePatchDofs(obj,p)
+function dofs = assemblePatchDofs(obj, ~)
 
 %% preallocate arrays
 mesh = obj.mesh;
 dofs = getDofs(obj);
-freedofs = getFreeDofs(obj);
-patchDofs = {};
+patchDofs = cell(mesh.nCoordinates, 1);
 
+free = true(mesh.nEdges,1);
+free(getCombinedBndEdges(mesh, obj.bnd.dirichlet)) = false;
+free = find(free)';
+[patchEdges, pEdges] = computePatchMembership(mesh.edges(:,free));
+patchEdges = free(patchEdges);
 
+[patchElements, pElements] = computePatchMembership(mesh.elements);
 
-for ver = 1:mesh.nCoordinates
-    elemPatch = ceil(find(mesh.elements(:)==ver)./3); 
-    patchDofs_temp = unique(dofs.element2Dofs(:, elemPatch)); %all dofs: need to exlude boundary
+vertexLiesOnDirichletBnd = ...
+    ismember(1:mesh.nCoordinates, mesh.edges(:,getCombinedBndEdges(mesh, obj.bnd.dirichlet)));
 
-    patchDofs_temp = intersect(patchDofs_temp, freedofs); %only keeping freenodes
-
-    verPatch = unique(mesh.elements(:,elemPatch));
-    otherverPatch = setdiff(verPatch, ver);
-    patchDofs_temp = setdiff(patchDofs_temp, otherverPatch); %only one vertex contribution -> from ver
-
-    %only edge contributions from edges containing vertex ver
-    id = [];
-    for neigh = otherverPatch'
-        id = [id;  ceil(find(dofs.edge2Dofs(:)==neigh)./(p+1))];
+% TODO: get rid of this loop by means of mat2cell or similar
+for k = 1:mesh.nCoordinates
+    if vertexLiesOnDirichletBnd(k)
+        vertexDof = [];
+    else
+        vertexDof = asVector(createVertexDofs(obj, k));
     end
-    id = setdiff(unique(id),ceil(find(dofs.edge2Dofs(:)==ver)./(p+1)));
-    patchDofs{ver} = setdiff(patchDofs_temp,unique(dofs.edge2Dofs(:,id)));
+    
+    edges = patchEdges(pEdges(k):(pEdges(k+1)-1));
+    elements = patchElements(pElements(k):(pElements(k+1)-1));
+    patchDofs{k} = [vertexDof; ...
+        asVector(createInnerEdgeDofs(obj, edges));...
+        asVector(createInnerElementDofs(obj, elements))];
+end
+
+dofs.patch2Dofs = patchDofs;
 
 end
 
-
-dofs.patch2Dofs = patchDofs; %DOFs on patches
-
+function [patches, pointer] = computePatchMembership(objects)
+    n = size(objects, 1);
+    N = size(objects, 2);
+    [sortedNodes, idx] = sort(objects(:));
+    patches = repmat(1:N, [n 1]);
+    patches = patches(idx);
+    pointer = [0; find(diff(sortedNodes)); n*N] + 1;
 end
