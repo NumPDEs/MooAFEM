@@ -16,7 +16,7 @@ for k = 1:length(linearizations)
     printLogMessage('*** starting %s iteration', linearizations(k))
     mesh = Mesh.loadFromGeometry('Lshape');
     mesh.refineUniform(2);
-    fes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', 'all');
+    fes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
     u = FeFunction(fes);
 
     %% set problem data given in [Heid, Praetorius, Wihler; 2021]
@@ -145,7 +145,7 @@ end
    
 function edge = estimateEdge(u, mesh)
     qr = QuadratureRule.ofOrder(1, '1D');
-    dirichlet = vertcat(mesh.boundaries{:});
+    dirichlet = getCombinedBndEdges(mesh, u.fes.bnd.dirichlet);
     
     f = CompositeFunction(@(p) mu(vectorProduct(p,p)).*p, Gradient(u));
     edge = integrateNormalJump(f, qr, ...

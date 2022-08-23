@@ -33,6 +33,7 @@ classdef Mesh < handle
         IsAboutToRefine
         JustRefined
         RefineCompleted
+        CompletelyChanged
     end
     
     %% public methods
@@ -68,6 +69,8 @@ classdef Mesh < handle
         refineUniform(obj, n, method)
         changeRefinementEdge(obj, newRefinementEdge)
         edges = getCombinedBndEdges(obj, idx)
+        clonedMesh = clone(obj);
+        copyData(obj, otherMesh);
     end
     
     %% protected methods

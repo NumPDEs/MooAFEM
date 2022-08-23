@@ -14,7 +14,7 @@ for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
-    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1);
+    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1, 'neumann', 2);
     u = FeFunction(fes);
     uex = FeFunction(fes);
     
@@ -27,7 +27,6 @@ for p = 1:pmax
     
     lf.neumann = MeshFunction(mesh, @exactSolutionNeumannData);
     lf.qrNeumann = QuadratureRule.ofOrder(2*p, '1D');
-    lf.bndNeumann = 2;
 
     %% adaptive loop
     ell = 1;
