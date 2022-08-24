@@ -1,40 +1,48 @@
-function dofs = assemblePatchDofs(obj, ~)
+% assemblePatchDofs Assembles lists of unique inner dofs for each patch in
+%   underlying mesh.
+%
+%   assemblePatchDofs(obj)
 
+function dofs = assemblePatchDofs(obj, ~)
 %% preallocate arrays
 mesh = obj.mesh;
 dofs = getDofs(obj);
-patchDofs = cell(mesh.nCoordinates, 1);
 
-free = true(mesh.nEdges,1);
-free(getCombinedBndEdges(mesh, obj.bnd.dirichlet)) = false;
-free = find(free)';
+%% compute patch membership of (free) vertices/edges/elements
+dirichletEdges = getCombinedBndEdges(mesh, obj.bnd.dirichlet);
+vertexNotOnDirichletBnd = ~ismember(1:mesh.nCoordinates, mesh.edges(:,dirichletEdges));
+
+free = computeFreeEdges(mesh, dirichletEdges);
 [patchEdges, pEdges] = computePatchMembership(mesh.edges(:,free));
 patchEdges = free(patchEdges);
 
 [patchElements, pElements] = computePatchMembership(mesh.elements);
 
-vertexLiesOnDirichletBnd = ...
-    ismember(1:mesh.nCoordinates, mesh.edges(:,getCombinedBndEdges(mesh, obj.bnd.dirichlet)));
+%% combine vertex/edge/element dofs for each patch
+vertexDofs = asVector(createVertexDofs(obj, vertexNotOnDirichletBnd));
+edgeDofs = asVector(createInnerEdgeDofs(obj, patchEdges));
+elementDofs = asVector(createInnerElementDofs(obj, patchElements));
 
-% TODO: get rid of this loop by means of mat2cell or similar
-for k = 1:mesh.nCoordinates
-    if vertexLiesOnDirichletBnd(k)
-        vertexDof = [];
-    else
-        vertexDof = asVector(createVertexDofs(obj, k));
-    end
-    
-    edges = patchEdges(pEdges(k):(pEdges(k+1)-1));
-    elements = patchElements(pElements(k):(pElements(k+1)-1));
-    patchDofs{k} = [vertexDof; ...
-        asVector(createInnerEdgeDofs(obj, edges));...
-        asVector(createInnerElementDofs(obj, elements))];
-end
+nLocalDofs = getDofConnectivity(obj.finiteElement);
+[patchDofs, nDofsPerPatch] = interleaveGroupedArrays(...
+    vertexDofs, nLocalDofs(1)*double(vertexNotOnDirichletBnd), ...
+    edgeDofs, nLocalDofs(2)*diff(pEdges)', ...
+    elementDofs, nLocalDofs(3)*diff(pElements)');
 
-dofs.patch2Dofs = patchDofs;
+dofs.patch2Dofs = mat2cell(patchDofs', nDofsPerPatch);
 
 end
 
+%% auxiliary functions
+
+% compute free edges without setdiff -> linear complexity
+function freeEdges = computeFreeEdges(mesh, dirichlet)
+    freeEdges = true(mesh.nEdges,1);
+    freeEdges(dirichlet) = false;
+    freeEdges = find(freeEdges)';
+end
+
+% requires one global sort of connectivity arrays -> log-linear complexity
 function [patches, pointer] = computePatchMembership(objects)
     n = size(objects, 1);
     N = size(objects, 2);
@@ -42,4 +50,25 @@ function [patches, pointer] = computePatchMembership(objects)
     patches = repmat(1:N, [n 1]);
     patches = patches(idx);
     pointer = [0; find(diff(sortedNodes)); n*N] + 1;
+end
+
+function [totalArray, totalGroupSize] = interleaveGroupedArrays(array, groupSize)
+arguments (Repeating)
+    array
+    groupSize
+end
+
+totalGroupPointer = cumsum([1; reshape(vertcat(groupSize{:}), [], 1)])';
+totalArray = zeros(1, totalGroupPointer(end)-1);
+totalGroupSize = sum(vertcat(groupSize{:}), 1);
+
+N = numel(groupSize);
+for n = 1:N
+    % add vector [0 1 2 0 1 0 1 2 3 ...] to group starting locations to
+    % make space for all group members
+    offset = totalGroupPointer(n:N:(end-1)) - cumsum([0, groupSize{n}(1:(end-1))]);
+    idx = (1:numel(array{n})) + repelem(offset, groupSize{n}) - 1;
+    totalArray(idx) = array{n};
+end
+
 end
