@@ -91,7 +91,7 @@ end
 
 %% local functions
 function mesh = getBisectedUnitTriangle(bisecMethod)
-    mesh = Mesh.loadFromGeometry('unittriangle');
+    mesh = Mesh([0,0;1,0;0,1]', [2,3,1]', {[]});
 
     % bisect unit triangle according to given bisection rule
     % TODO: this should be handled by bisection method itself?
