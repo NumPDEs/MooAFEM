@@ -37,7 +37,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 %% set up solver and lifting operator for nested iteration
 P = FeProlongation(fes);
 solver = pLoc_MG(P);
-solver.tol = 1e-4;
+solver.tol = 1e-6;
 solver.maxIter = 1000;
 
 %% adaptive loop
@@ -116,7 +116,7 @@ delete meshtemp.mat
 %% plot convergence rates
 figure()
 idx = 1:ell;
-x = cumsum(nDofs(idx).*max(nIterPrimal(idx), nIterDual(idx)));
+x = cumsum(nDofs(idx).*(max(nIterPrimal(idx), nIterDual(idx)) + 1));
 yyaxis left
 loglog(x, goalErrEst(idx), '-x', 'LineWidth', 2, 'MarkerSize', 8);
 hold on

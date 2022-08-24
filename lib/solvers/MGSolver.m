@@ -23,7 +23,6 @@ classdef MGSolver < IterativeSolver
     properties (Access=protected)
         residual
         Cresidual
-        searchDirection
         normb
     end
     
@@ -36,15 +35,14 @@ classdef MGSolver < IterativeSolver
             % initialize residual & hierarchy
             obj.residual = b - obj.A*obj.x;
             [obj.Cresidual, obj.algEst2] = obj.Vcycle(obj.residual);
-            obj.searchDirection = obj.Cresidual;
             obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
-            obj.iterationCount = zeros(1, size(b,2));
             obj.normb = sqrt(sum(b.^2, 1));
         end
         
         % stopping criterion
         function tf = isConverged(obj)
-            tf = ( (sqrt(obj.residualCNorm)./obj.normb < obj.tol));        
+            tf = ((obj.iterationCount >= obj.maxIter) ...
+                        | (sqrt(obj.residualCNorm)./obj.normb < obj.tol));  
         end
     end
         
@@ -59,13 +57,10 @@ classdef MGSolver < IterativeSolver
             obj.residualCNorm(:,idx) = sum(obj.residual(:,idx).*obj.Cresidual(:,idx), 1);
             
             % update search direction & solution
-            obj.searchDirection(:,idx) = obj.Cresidual(:,idx);
-            obj.searchDirection(:,idx) = obj.searchDirection(:,idx);
-            obj.x(:,idx) = obj.x(:,idx) + obj.searchDirection(:,idx);
+            obj.x(:,idx) = obj.x(:,idx) + obj.Cresidual(:,idx);
 
             % update residual
-            AsearchDirection = obj.A * obj.searchDirection(:,idx);
-            obj.residual(:,idx) = obj.residual(:,idx) -  AsearchDirection;
+            obj.residual(:,idx) = obj.residual(:,idx) - obj.A * obj.Cresidual(:,idx);
         end
     end
     
