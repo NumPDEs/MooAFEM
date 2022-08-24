@@ -77,10 +77,10 @@ classdef pLoc_MG < MGSolver
             poldeg = obj.P.fes.finiteElement.order;
             intergrid = obj.P.fes.mesh.intergrid;
 
-            dual = (size(res(1,:)) == 2);
+            dual = (size(res, 2) == 2);
             
             %built-in estimator of the algebraic error
-            algEta2 = zeros(size(res(1,:)));
+            algEta2 = zeros(1, size(res, 2));
 
             %Vcycle only when more than one level;
             %otherwise coarse solve
@@ -90,7 +90,7 @@ classdef pLoc_MG < MGSolver
                 %p to 1 interpolation on the finest level of the residual
                 if poldeg > 1
                     p1SmoothLev = lev-1; %until which level should the local smoothing be done
-                    if length(res(1,:))==2 %only primal or prima/dual solve
+                    if dual %only primal or prima/dual solve
     
                         rup = FeFunction(obj.P.fes);
                         rup.setFreeData(res(:,1));
