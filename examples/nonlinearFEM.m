@@ -24,10 +24,10 @@ uexact = MeshFunction(mesh, @(x) prod(sin([pi;2*pi].*x), Dim.Vector));
 % which change and those which don't.
 % The following iteration is based on the approximation
 % 	(u^{n+1})^3 ~ 3*(u^{n})^2 * u^{n+1} - 2*(u^{n})^3.
-blfFixed = BilinearForm(fes);
-blfVariable = BilinearForm(fes);
-lfFixed = LinearForm(fes);
-lfVariable = LinearForm(fes);
+blfFixed = BilinearForm();
+blfVariable = BilinearForm();
+lfFixed = LinearForm();
+lfVariable = LinearForm();
 
 blfFixed.a = Constant(mesh, 1e-1);
 lfFixed.f = CompositeFunction(@(uex) 1e-1*5*pi^2*uex + uex.^3, uexact);
@@ -38,8 +38,8 @@ blfVariable.qrc = QuadratureRule.ofOrder(4);
 lfVariable.f = CompositeFunction(@(u) 2*u.^3, u);
 lfVariable.qrf = QuadratureRule.ofOrder(4);
 
-B = assemble(blfFixed);
-G = assemble(lfFixed);
+B = assemble(blfFixed, fes);
+G = assemble(lfFixed, fes);
 
 %% iterative solution of non-linear equation
 n = 1;
@@ -47,8 +47,8 @@ while n <= nMax
     % The variable part of the (bi-)linear form needs to be assembled in every
     % iteration, since the underlying data change. Since FeFunctions are
     % handles, the current state of u is taken into account in the assembly.
-    A = B + assemble(blfVariable);
-    F = G + assemble(lfVariable);  
+    A = B + assemble(blfVariable, fes);
+    F = G + assemble(lfVariable, fes);  
     
     % If we update the data of u, also coefficients which depend on u are updated.
     freeDofs = getFreeDofs(fes);

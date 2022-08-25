@@ -22,7 +22,7 @@ for k = 1:length(linearizations)
     %% set problem data given in [Heid, Praetorius, Wihler; 2021]
     Du = Gradient(u);
     g = Constant(mesh, 1);
-    [blf, lf] = setProblemData(mesh, fes, Du, g, linearizations(k));
+    [blf, lf] = setProblemData(mesh, Du, g, linearizations(k));
     eDensity = CompositeFunction(@(p) 1/2*muIntegral(vectorProduct(p, p)), Du);
     u.setData(0);    
 
@@ -47,8 +47,8 @@ for k = 1:length(linearizations)
             ell = ell + 1;
             nIterations = nIterations + 1;
             
-            A = assemble(blf);
-            F = assemble(lf);
+            A = assemble(blf, fes);
+            F = assemble(lf, fes);
             updateDataU(u, deltaZ, A, F, linearizations(k));
             
             %% compute remainder of error estimator and energy
@@ -97,9 +97,9 @@ function plotData(xdata, xlab, ydata, ylab, names)
 end
 
 %% local function for problem data
-function [blf, lf] = setProblemData(mesh, fes, Du, g, linearization)
-    blf = BilinearForm(fes);
-    lf = LinearForm(fes);
+function [blf, lf] = setProblemData(mesh, Du, g, linearization)
+    blf = BilinearForm();
+    lf = LinearForm();
 
     switch linearization
         case "zarantonello"

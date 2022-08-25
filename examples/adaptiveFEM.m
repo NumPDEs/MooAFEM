@@ -14,8 +14,8 @@ midpoint = [1;1;1]/3;
 u = FeFunction(fes);
 
 %% problem data
-blf = BilinearForm(fes);
-lf = LinearForm(fes);
+blf = BilinearForm();
+lf = LinearForm();
 blf.a = Constant(mesh, [1;0;0;2]);
 blf.b = Constant(mesh, [1;1]);
 blf.c = MeshFunction(mesh, @(x) sum(x.^2, Dim.Vector));
@@ -29,8 +29,8 @@ meshSufficientlyFine = false;
 while ~meshSufficientlyFine
     %% compute data for rhs coefficient and assemble forms
     w.setData(eval(cutoff, midpoint));
-    A = assemble(blf);
-    F = assemble(lf);
+    A = assemble(blf, fes);
+    F = assemble(lf, fes);
     
     %% solve FEM system
     freeDofs = getFreeDofs(fes);
@@ -64,7 +64,8 @@ end
 % \eta(T)^2 = h_T^2 * || -div(a*Du) + b*Du + c*u - f + div(fvec) ||_{L^2(T)}^2
 %               + h_T * || [ a*Du - fvec ] ||_{L^2(E)}^2
 function indicators = estimate(blf, lf, u)
-    mesh =  blf.fes.mesh;
+    fes = u.fes;
+    mesh =  fes.mesh;
     
     %% compute volume residual element-wise
     % Here, one can optimize the estimator for the given situation. In the case
@@ -84,7 +85,7 @@ function indicators = estimate(blf, lf, u)
         blf.a, lf.fvec, Gradient(u));
     qrEdge = QuadratureRule.ofOrder(1, '1D');
     edgeRes = integrateNormalJump(f, qrEdge, @(j) j.^2, {}, ':');
-    dirichlet = getCombinedBndEdges(mesh, blf.fes.bnd.dirichlet);
+    dirichlet = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
     edgeRes(dirichlet) = 0;
     
     %% combine the resdiuals suitably

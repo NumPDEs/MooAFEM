@@ -1,16 +1,19 @@
 % assemble Assembles vector of linear form.
 %
-%   F = assemble(obj) assembles the data of the given LinearForm and
-%   returns a vector F.
+%   F = assemble(obj, fes) assembles the data of the given LinearForm for a
+%       FeSpace fes and returns a vector F.
 %
 %   See also: LinearForm
 
-function vec = assemble(obj)
+function vec = assemble(obj, fes)
+arguments
+    obj
+    fes FeSpace
+end
 %% setup
 if all([isempty(obj.f), isempty(obj.fvec), isempty(obj.neumann), isempty(obj.robin)])
     error('LinearForm:NoCoefficients', 'No coefficients are given.')
 end
-fes = obj.fes;
 
 %% integrate element data
 vec = 0;

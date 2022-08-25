@@ -19,8 +19,8 @@ for p = 1:pmax
     uex = FeFunction(fes);
     
     %% set problem data for -\Delta u = 1 on L-shape
-    blf = BilinearForm(fes);
-    lf = LinearForm(fes);
+    blf = BilinearForm();
+    lf = LinearForm();
     
     blf.a = Constant(mesh, 1);
     blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
@@ -34,8 +34,8 @@ for p = 1:pmax
     while ~meshSufficientlyFine
         %% assemble & solve FEM system
         ell = ell + 1;
-        A = assemble(blf);
-        F = assemble(lf);
+        A = assemble(blf, fes);
+        F = assemble(lf, fes);
         free = getFreeDofs(fes);
         u.setFreeData(A(free,free) \ F(free));
         uex.setData(nodalInterpolation(MeshFunction(mesh, @exactSolution), fes));
@@ -88,8 +88,8 @@ end
 %               + h_T * || [[Du * n]] ||_{L^2(E) \cap \Omega}^2
 %               + h_T * || Du * n - phi ||_{L^2(E) \cap \Gamma_N}^2
 function indicators = estimate(blf, lf, u)
-    p = blf.fes.finiteElement.order;
-    mesh =  blf.fes.mesh;
+    p = u.fes.finiteElement.order;
+    mesh =  u.fes.mesh;
     
     % compute volume residual element-wise
     % For p=1, the diffusion term vanishes in the residual.
