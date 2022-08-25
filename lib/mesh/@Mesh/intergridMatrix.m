@@ -36,18 +36,8 @@ obj.updateData(bisecData);
 
 %% compute intergrid matrix
 nupdatedNodes = length(obj.coordinates);
-newnodestwice = repmat(nNodes+1:nupdatedNodes,2,1);
 
-obj.locVert{end+1} = [unique(nodesBisecEdges);[nNodes+1:nupdatedNodes]'];
-oldneigh = nodesBisecEdges; 
-oldneigh = reshape(oldneigh', 2*length(oldneigh),1);
-
-Int_I = [[1:nNodes]'; newnodestwice(:)];
-Int_J = [[1:nNodes]'; nodesBisecEdges(:)];
-Int_val = [ones(nNodes,1); 1/2*ones(length(nodesBisecEdges(:)),1)];
-Int = sparse(Int_I, Int_J, Int_val);
-obj.intergrid{end+1} = Int;
-
+obj.locVert{end+1} = [unique(nodesBisecEdges);(nNodes+1:nupdatedNodes)'];
 
 obj.trafo = [];
 obj.notify('JustRefined');

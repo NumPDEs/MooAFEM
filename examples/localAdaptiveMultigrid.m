@@ -41,7 +41,7 @@ for p = 1:pmax
     
     %% set up solver and operator for nested iteration
     P = FeProlongation(fes);
-    solver = pLoc_MG(P);
+    solver = pLoc_MG(fes, blf);
     solver.tol = 1e-8;
     solver.maxIter = 100;
     
@@ -144,10 +144,8 @@ for p = 1:pmax
         meshtemp = load('meshtemp.mat');
         meshtemp = meshtemp.mesh;
         meshtemp.intergridMatrix(marked, 'NVB');
-        interMat = meshtemp.intergrid;
         vertices = meshtemp.locVert;
         mesh.refineLocally(marked, 'NVB');
-        mesh.intergrid = interMat;
         mesh.locVert = vertices;
         
         

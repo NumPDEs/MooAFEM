@@ -15,8 +15,7 @@ classdef Mesh < handle
         boundaries (:,1) cell
     end
 
-    properties (Access = 'public')
-        intergrid (:,1) cell 
+    properties (Access = 'public') 
         locVert (:,1) cell 
         freeVert (:,1) cell 
     end
@@ -55,7 +54,6 @@ classdef Mesh < handle
             [obj.edges, obj.element2edges, obj.flipEdges, obj.boundaries] ...
                 = obj.computeEdgeInformation(obj.elements, boundaries);
             obj.trafo = [];
-            obj.intergrid = cell(1);
             obj.locVert = cell(1);
             obj.freeVert = cell(0);
         end

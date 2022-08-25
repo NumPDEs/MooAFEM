@@ -11,9 +11,11 @@ classdef pLoc_MG < MGSolver
 
     properties (Access=protected)
         Acoarse
-        feslow
-        blflow
+        blf
+        hoFes
+        loFes
         lowfinest
+        intergridMatrix
         D
         locAhigh
         patch
@@ -22,32 +24,42 @@ classdef pLoc_MG < MGSolver
 
     %% methods
     methods (Access=public)
-        function obj = pLoc_MG(P)
+        function obj = pLoc_MG(fes, blf)
+            arguments
+                fes FeSpace
+                blf BilinearForm
+            end
             obj = obj@MGSolver();
             
-            assert(isa(P, 'Prolongation'), 'P must be an instance of Prolongation')
-            obj.P = P;
+            obj.hoFes = fes;
             obj.nLevels = 0;
             obj.D = {};
             obj.Acoarse = [];
             obj.locAhigh = {};
             obj.lowfinest = [];
+            obj.intergridMatrix = cell(0);
             
-            mesh = obj.P.fes.mesh;
-            obj.feslow = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
-            obj.blflow = BilinearForm();
-            obj.blflow.a = Constant(obj.feslow.mesh, 1);
-            obj.blflow.qra = QuadratureRule.ofOrder(max(2*1-2, 1));
+            mesh = obj.hoFes.mesh;
+            obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
+            obj.P = LoFeProlongation(obj.loFes);
+            obj.blf = blf;
+            % TODO: check coefficients of blf for compatibility with theoretical results!
         end
 
         function setupLinearSystem(obj, A, b, x0)
-            polDeg = obj.P.fes.finiteElement.order;
-            obj.lowfinest = assemble(obj.blflow, obj.feslow);
+            polDeg = obj.hoFes.finiteElement.order;
+            obj.lowfinest = assemble(obj.blf, obj.loFes);
+            obj.nLevels = obj.nLevels + 1;
+            if obj.nLevels >= 2
+                newfree = obj.hoFes.mesh.freeVert{obj.nLevels};
+                oldfree = obj.hoFes.mesh.freeVert{obj.nLevels-1};
+                obj.intergridMatrix{obj.nLevels} = obj.P.matrix(newfree,oldfree);
+            end
 
             %if high order, assemble patch Dofs
             if (polDeg>1)
                 %adding the patch dof indices
-                obj.patch = assemblePatchDofs(obj.P.fes);
+                obj.patch = assemblePatchDofs(obj.hoFes);
 
                 %storing cholesky decomposition of local matrices associated to patches
                 for ver = 1:numel(obj.patch)
@@ -56,7 +68,7 @@ classdef pLoc_MG < MGSolver
                 end
             end
 
-            freeDofs = getFreeDofs(obj.P.fes);
+            freeDofs = getFreeDofs(obj.hoFes);
             setupLinearSystem@MGSolver(obj, A(freeDofs,freeDofs), b, x0);
         end
 
@@ -64,13 +76,13 @@ classdef pLoc_MG < MGSolver
 
         % Geometric MultiGrid
         function [Cx, algEta2] = Vcycle(obj, res)
-            assert(isequal(getDofs(obj.feslow).nDofs, size(obj.lowfinest, 1)), ...
+            assert(isequal(getDofs(obj.loFes).nDofs, size(obj.lowfinest, 1)), ...
                 'Data for multilevel iteration not given!')
 
             Ahigh = obj.A; %matrix on finest level, potentially high-order
-            lev = numel(obj.P.fes.mesh.intergrid); %here numbering starts 1 for coarsest level
-            poldeg = obj.P.fes.finiteElement.order;
-            intergrid = obj.P.fes.mesh.intergrid;
+            lev = obj.nLevels; %here numbering starts 1 for coarsest level
+            poldeg = obj.hoFes.finiteElement.order;
+            newfree = obj.hoFes.mesh.freeVert{obj.nLevels};
             
             %built-in estimator of the algebraic error
             algEta2 = zeros(1, size(res, 2));
@@ -78,14 +90,14 @@ classdef pLoc_MG < MGSolver
             %Vcycle only when more than one level;
             %otherwise coarse solve
             if lev > 1
-                freeDofslow = getFreeDofs(obj.feslow);
+                freeDofslow = getFreeDofs(obj.loFes);
                 %p to 1 interpolation on the finest level of the residual
                 if poldeg > 1
                     p1SmoothLev = lev-1; %until which level should the local smoothing be done
                     
-                    rup = FeFunction(obj.P.fes);
+                    rup = FeFunction(obj.hoFes);
                     rup.setFreeData(res(:,1));
-                    res1temp = nodalInterpolation(rup, obj.feslow);
+                    res1temp = nodalInterpolation(rup, obj.loFes);
                     resid{lev} = res1temp(freeDofslow);
                     
                     A{lev} = obj.lowfinest(freeDofslow,freeDofslow);
@@ -97,12 +109,8 @@ classdef pLoc_MG < MGSolver
 
                 % descending cascade in P1: no smoothing
                 for k = lev:-1:2
-                    I = intergrid{k};
-                    newfree = obj.P.fes.mesh.freeVert{k};
-                    oldfree = obj.P.fes.mesh.freeVert{k-1};
-                    Ifree = I(newfree,oldfree);
-                    A{k-1} = Ifree'*A{k}*Ifree;
-                    resid{k-1}  = Ifree'*resid{k};
+                    A{k-1} = obj.intergridMatrix{k}'*A{k}*obj.intergridMatrix{k};
+                    resid{k-1}  = obj.intergridMatrix{k}'*resid{k};
                 end
 
                 % exact solve on coarsest level
@@ -112,15 +120,10 @@ classdef pLoc_MG < MGSolver
 
                 % ascending cascade in P1 AND local smoothing
                 for k = 2:p1SmoothLev
-                    I = intergrid{k};
-                    newfree = obj.P.fes.mesh.freeVert{k};
-                    oldfree = obj.P.fes.mesh.freeVert{k-1};
-                    Ifree = I(newfree,oldfree);
-
-                    sigma = Ifree*sigma;
+                    sigma = obj.intergridMatrix{k}*sigma;
                     uptres = resid{k} - A{k}*sigma; %updated residual 
 
-                    localVer = obj.P.fes.mesh.locVert{k}; %numbering on all vertices
+                    localVer = obj.hoFes.mesh.locVert{k}; %numbering on all vertices
                     [~,vershift] = ismember(localVer,newfree);
                     vershift = vershift(vershift>0); %numbering on all inner vertices
 
@@ -142,24 +145,20 @@ classdef pLoc_MG < MGSolver
                 %finest level high-order patch-problems ONLY for p > 1
                 if poldeg > 1
                     %back to finest level: still P1 at this point
-                    I = intergrid{lev};
-                    newfree = obj.P.fes.mesh.freeVert{lev};
-                    oldfree = obj.P.fes.mesh.freeVert{lev-1};
-                    Ifree = I(newfree,oldfree);
-                    sigma = Ifree*sigma;
+                    sigma = obj.intergridMatrix{lev}*sigma;
 
                     %interpolation of the error correction from 1 to p
-                    freeDofshigh = getFreeDofs(obj.P.fes);
+                    freeDofshigh = getFreeDofs(obj.hoFes);
                     
-                    sigma1func = FeFunction(obj.feslow);
+                    sigma1func = FeFunction(obj.loFes);
                     sigma1func.setFreeData(sigma(:,1));
-                    sigma1p = nodalInterpolation(sigma1func, obj.P.fes);
+                    sigma1p = nodalInterpolation(sigma1func, obj.hoFes);
                     sigma = sigma1p(freeDofshigh);
 
                     %updating the high-order residual
                     rho = zeros(size(sigma)); 
                     uptres = res - Ahigh*sigma;
-                    for ver = 1: obj.P.fes.mesh.nCoordinates
+                    for ver = 1: obj.hoFes.mesh.nCoordinates
                             
                         cholA = obj.locAhigh{ver};
                         dofspatch = obj.patch{ver};
