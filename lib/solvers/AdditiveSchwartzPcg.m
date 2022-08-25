@@ -11,9 +11,10 @@ classdef AdditiveSchwartzPcg < PcgSolver
     properties (Access=protected)
         Acoarse
         fine2coarse
-        transferMatrix
+        intergridMatrix
         oldFreeDofs
         oldPatchAreas
+        fes
         D
         P
     end
@@ -25,17 +26,18 @@ classdef AdditiveSchwartzPcg < PcgSolver
             assert(isa(P.fes.finiteElement, 'LowestOrderH1Fe'), 'Only lowest-order H1 finite elements are supported')
             
             obj = obj@PcgSolver();
+            obj.fes = P.fes;
+            obj.P = P;
             obj.nLevels = 0;
             obj.fine2coarse = [];
             obj.D = {};
             obj.Acoarse = [];
-            obj.transferMatrix = [];
-            obj.P = P;
+            obj.intergridMatrix = [];
         end
         
         function setupLinearSystem(obj, A, b, x0)
-            mesh = obj.P.fes.mesh;
-            freeDofs = getFreeDofs(obj.P.fes);
+            mesh = obj.fes.mesh;
+            freeDofs = getFreeDofs(obj.fes);
             patchAreas = computePatchAreas(mesh);
             
             if obj.nLevels == 0
@@ -46,7 +48,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 % considered twice (new nodes are just appended)
                 obj.oldPatchAreas(mesh.nCoordinates) = 0;
                 stableNodes = abs(obj.oldPatchAreas - patchAreas) < 2*eps;
-                obj.transferMatrix{obj.nLevels} = obj.P.matrix(freeDofs, obj.oldFreeDofs);
+                obj.intergridMatrix{obj.nLevels} = obj.P.matrix(freeDofs, obj.oldFreeDofs);
                 
                 % on every other level only store inverse of diagonal
                 % (only on free dofs and dofs where refinement happened;
@@ -70,7 +72,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             % descending cascade
             for k = obj.nLevels-1:-1:1
                 y{k+1} = obj.D{k} .* x;
-                x = obj.transferMatrix{k}'*x;
+                x = obj.intergridMatrix{k}'*x;
             end
             
             % exact solve on coarsest level
@@ -78,7 +80,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             
             % ascending cascade
             for k = 1:obj.nLevels-1
-                y{k+1} = y{k+1} + obj.transferMatrix{k}*y{k};
+                y{k+1} = y{k+1} + obj.intergridMatrix{k}*y{k};
             end
             
             Cx = y{end};

@@ -22,15 +22,15 @@ z.setData(0);
 %% set problem data
 % primal: -\Delta u = "lorentzian peak 1"
 % dual:   -\Delta z = "lorentzian peak 2"
-blf = BilinearForm(fes);
+blf = BilinearForm();
 blf.a = Constant(mesh, 1);
 blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
 
-lfF = LinearForm(fes);
+lfF = LinearForm();
 lfF.f = MeshFunction(mesh, @(x) lorentzian(x, [0.7;0.7], 1e-1));
 lfF.qrf = QuadratureRule.ofOrder(2*p);
 
-lfG = LinearForm(fes);
+lfG = LinearForm();
 lfG.f = MeshFunction(mesh, @(x) lorentzian(x, [0.2;0.3], 1e-2));
 lfG.qrf = QuadratureRule.ofOrder(2*p);
 
@@ -48,8 +48,8 @@ while ~meshSufficientlyFine
     
     %% assemble & solve FEM system iteratively
     freeDofs = getFreeDofs(fes);
-    A = assemble(blf);
-    rhs = [assemble(lfF), assemble(lfG)];
+    A = assemble(blf, fes);
+    rhs = [assemble(lfF, fes), assemble(lfG, fes)];
     uz0 = [u.data', z.data'];
     solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
     
@@ -103,8 +103,8 @@ title(['GOAFEM p=', num2str(p)])
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
 function indicators = estimate(blf, lf, u)
-    p = blf.fes.finiteElement.order;
-    mesh =  blf.fes.mesh;
+    p = u.fes.finiteElement.order;
+    mesh =  u.fes.mesh;
     trafo = getAffineTransformation(mesh);
     
     % compute volume residual element-wise
