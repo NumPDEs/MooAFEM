@@ -51,8 +51,8 @@ classdef pLoc_MG < MGSolver
             obj.lowfinest = assemble(obj.blf, obj.loFes);
             obj.nLevels = obj.nLevels + 1;
             if obj.nLevels >= 2
-                newfree = obj.hoFes.mesh.freeVert{obj.nLevels};
-                oldfree = obj.hoFes.mesh.freeVert{obj.nLevels-1};
+                newfree = obj.loFes.mesh.freeVert{obj.nLevels};
+                oldfree = obj.loFes.mesh.freeVert{obj.nLevels-1};
                 obj.intergridMatrix{obj.nLevels} = obj.P.matrix(newfree,oldfree);
             end
 
@@ -95,10 +95,7 @@ classdef pLoc_MG < MGSolver
                 if poldeg > 1
                     p1SmoothLev = lev-1; %until which level should the local smoothing be done
                     
-                    rup = FeFunction(obj.hoFes);
-                    rup.setFreeData(res(:,1));
-                    res1temp = nodalInterpolation(rup, obj.loFes);
-                    resid{lev} = res1temp(freeDofslow);
+                    resid{lev} = interpolateFreeData(res, obj.hoFes, obj.loFes);
                     
                     A{lev} = obj.lowfinest(freeDofslow,freeDofslow);
                 else
@@ -150,10 +147,7 @@ classdef pLoc_MG < MGSolver
                     %interpolation of the error correction from 1 to p
                     freeDofshigh = getFreeDofs(obj.hoFes);
                     
-                    sigma1func = FeFunction(obj.loFes);
-                    sigma1func.setFreeData(sigma(:,1));
-                    sigma1p = nodalInterpolation(sigma1func, obj.hoFes);
-                    sigma = sigma1p(freeDofshigh);
+                    sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
 
                     %updating the high-order residual
                     rho = zeros(size(sigma)); 
@@ -191,5 +185,18 @@ classdef pLoc_MG < MGSolver
                 algEta2 = sigma'*Ahigh*sigma;
             end
         end
+    end
+end
+
+%% auxiliary functions
+function interpolatedData = interpolateFreeData(data, fromFes, toFes)
+    freeDofs = getFreeDofs(toFes);
+    nComponents = size(data, 2);
+    interpolatedData = zeros(numel(freeDofs), nComponents);
+    feFunctionWrapper = FeFunction(fromFes);
+    for k = 1:nComponents
+        feFunctionWrapper.setFreeData(data(:,k));
+        wholeData = nodalInterpolation(feFunctionWrapper, toFes);
+        interpolatedData(:,k) = wholeData(freeDofs);
     end
 end

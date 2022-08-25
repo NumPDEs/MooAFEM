@@ -36,7 +36,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
 P = FeProlongation(fes);
-solver = pLoc_MG(P, blf);
+solver = pLoc_MG(fes, blf);
 solver.tol = 1e-6;
 solver.maxIter = 1000;
 
@@ -93,23 +93,15 @@ while ~meshSufficientlyFine
     %% refine mesh and transfer solutions to finer mesh for nested iteration
     if ~meshSufficientlyFine
         marked = markGoafemMS(eta2, zeta2, theta);
-        clear meshtemp;
-        save('meshtemp','mesh');
-        meshtemp = load('meshtemp.mat');
-        meshtemp = meshtemp.mesh;
+        meshtemp = clone(mesh);
         meshtemp.intergridMatrix(marked, 'NVB');
-        vertices = meshtemp.locVert;
         mesh.refineLocally(marked, 'NVB');
-        mesh.locVert = vertices;
+        mesh.locVert{end+1} = meshtemp.locVert{end};
         u.setData(prolongate(P, u));
         z.setData(prolongate(P, z));
-
-
-
     end
 end
 
-delete meshtemp.mat
 
 %% plot convergence rates
 figure()

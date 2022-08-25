@@ -139,20 +139,14 @@ for p = 1:pmax
         %marked = markDoerflerSorting(eta2, theta);
         marked = markDoerflerBinning(eta2, theta);
         
-        clear meshtemp;
-        save('meshtemp','mesh');
-        meshtemp = load('meshtemp.mat');
-        meshtemp = meshtemp.mesh;
+        meshtemp = clone(mesh);
         meshtemp.intergridMatrix(marked, 'NVB');
-        vertices = meshtemp.locVert;
         mesh.refineLocally(marked, 'NVB');
-        mesh.locVert = vertices;
-        
+        mesh.locVert{end+1} = meshtemp.locVert{end};
         
         u.setData(prolongate(P, u));
     end
 end
-delete meshtemp.mat
 
 %% plot convergence rates
 plotData(nDofs, 'number of dofs', errEst, 'error estimator')
