@@ -1,16 +1,19 @@
 % assemble Assembles matrix of bilinear form.
 %
-%   A = assemble(obj) assembles the data of the given BilinearForm and
-%   returns a sparse matrix A.
+%   A = assemble(obj, fes) assembles the data of the given BilinearForm for a
+%       FeSpace fes and returns a sparse matrix A.
 %
 %   See also: BilinearForm
 
-function mat = assemble(obj)
+function mat = assemble(obj, fes)
+arguments
+    obj
+    fes FeSpace
+end
 %% setup
 if all([isempty(obj.a), isempty(obj.b), isempty(obj.c), isempty(obj.robin)])
     error('BilinearForm:NoCoefficients', 'No coefficients are given.')
 end
-fes = obj.fes;
 
 %% integrate element data
 mat = 0;

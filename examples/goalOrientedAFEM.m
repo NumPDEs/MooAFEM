@@ -22,19 +22,19 @@ for p = 1:pmax
     z = FeFunction(fes);
     
     %% set problem data given in [Mommer, Stevenson; 2009]
-    blf = BilinearForm(fes);
+    blf = BilinearForm();
     blf.a = Constant(mesh, 1);
     blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
     
     chiT1 = MeshFunction(mesh, @(x) sum(x, Dim.Vector) < 1/2);
     v.setData(nodalInterpolation(chiT1, ncFes));
-    lfF = LinearForm(fes);
+    lfF = LinearForm();
     lfF.fvec = CompositeFunction(@(v) [v;zeros(size(v))], v);
     lfF.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     chiT2 = MeshFunction(mesh, @(x) sum(x, Dim.Vector) > 3/2);
     w.setData(nodalInterpolation(chiT2, ncFes));
-    lfG = LinearForm(fes);
+    lfG = LinearForm();
     lfG.fvec = CompositeFunction(@(w) [-w;zeros(size(w))], w);
     lfG.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
@@ -47,8 +47,8 @@ for p = 1:pmax
     while ~meshSufficientlyFine
         %% assemble & solve FEM system
         ell = ell + 1;
-        A = assemble(blf);
-        rhs = [assemble(lfF), assemble(lfG)];
+        A = assemble(blf, fes);
+        rhs = [assemble(lfF, fes), assemble(lfG, fes)];
         freeDofs = getFreeDofs(fes);
         uz = A(freeDofs,freeDofs) \ rhs(freeDofs,:);
         u.setFreeData(uz(:,1));
@@ -96,8 +96,8 @@ title(['goal error estimator over number of dofs'])
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
 function indicators = estimate(blf, lf, u)
-    p = blf.fes.finiteElement.order;
-    mesh =  blf.fes.mesh;
+    p = u.fes.finiteElement.order;
+    mesh =  u.fes.mesh;
     trafo = getAffineTransformation(mesh);
     
     % compute volume residual element-wise

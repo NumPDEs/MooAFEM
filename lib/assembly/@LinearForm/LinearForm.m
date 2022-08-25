@@ -4,10 +4,6 @@
 
 classdef LinearForm < handle
     %% properties
-    properties (GetAccess=public, SetAccess=protected)
-        fes
-    end
-    
     properties (Access=public)
         f {mustBeEvaluableOrEmpty} = []         % Volume load
         fvec {mustBeEvaluableOrEmpty} = []      % Generalized volume load
@@ -20,19 +16,8 @@ classdef LinearForm < handle
     end
     
     %% methods
-    methods
-        function obj = LinearForm(fes)
-        % LinearForm Construct bilinear form from FeSpace.
-            arguments
-                fes (1,1) FeSpace
-            end
-            
-            obj.fes = fes;
-        end
-    end
-    
     methods (Access=public)
-        vec = assemble(obj);
+        vec = assemble(obj, fes);
     end
     
     methods (Static, Access=protected)

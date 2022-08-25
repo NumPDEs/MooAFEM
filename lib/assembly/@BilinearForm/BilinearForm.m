@@ -4,10 +4,6 @@
 
 classdef BilinearForm < handle    
     %% properties
-    properties (GetAccess=public, SetAccess=protected)
-        fes
-    end
-    
     properties (Access=public)
         a {mustBeEvaluableOrEmpty} = []     % Diffusion matrix (or scalar)
         b {mustBeEvaluableOrEmpty} = []     % Convection vector field
@@ -20,19 +16,8 @@ classdef BilinearForm < handle
     end
     
     %% methods
-    methods
-        function obj = BilinearForm(fes)
-        % BilinearForm Construct bilinear form from FeSpace.
-            arguments
-                fes (1,1) FeSpace
-            end
-            
-            obj.fes = fes;
-        end
-    end
-    
     methods (Access=public)
-        mat = assemble(obj);
+        mat = assemble(obj, fes);
     end
     
     methods (Static, Access=protected)

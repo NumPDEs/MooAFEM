@@ -35,14 +35,14 @@ classdef pLoc_MG < MGSolver
             
             mesh = obj.P.fes.mesh;
             obj.feslow = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
-            obj.blflow = BilinearForm(obj.feslow);
+            obj.blflow = BilinearForm();
             obj.blflow.a = Constant(obj.feslow.mesh, 1);
             obj.blflow.qra = QuadratureRule.ofOrder(max(2*1-2, 1));
         end
 
         function setupLinearSystem(obj, A, b, x0)
             polDeg = obj.P.fes.finiteElement.order;
-            obj.lowfinest = assemble(obj.blflow);
+            obj.lowfinest = assemble(obj.blflow, obj.feslow);
 
             %if high order, assemble patch Dofs
             if (polDeg>1)

@@ -11,8 +11,8 @@ fes = FeSpace(mesh, LowestOrderH1Fe());
 % One can define a bilinear form 'A' and a linear form 'F', such that
 %   A(u,v) = \int a*Du*Dv + b*Du*v + c*u*v dx,
 %   F(v) = \int f*v + fvec*Dv dx.
-A = BilinearForm(fes);
-F = LinearForm(fes);
+A = BilinearForm();
+F = LinearForm();
 
 %% coefficients
 % The coefficients a, b, c and f, fvec can be arbitrary Evaluables.
@@ -22,8 +22,8 @@ F.f = Constant(mesh, 1);
 %% assembly and solution
 % Once the coefficients are fixed, the bilinear form and linear form can be
 % assembled to yield a (sparse) matrix and a vector, respectively.
-Amat = assemble(A);
-Fvec = assemble(F);
+Amat = assemble(A, fes);
+Fvec = assemble(F, fes);
 
 % This allows for easy solution of the corresponding linear system.
 freeDofs = getFreeDofs(fes);
@@ -39,8 +39,8 @@ A.c = CompositeFunction(@(x) x.^2, u);
 F.f = [];
 F.fvec = MeshFunction(mesh, @(x) -(0.5-x).^2);
 
-Amat = assemble(A);
-Fvec = assemble(F);
+Amat = assemble(A, fes);
+Fvec = assemble(F, fes);
 
 w = FeFunction(fes);
 w.setFreeData( Amat(freeDofs, freeDofs) \ Fvec(freeDofs) );
@@ -49,8 +49,8 @@ plot(w)
 %% other FeSpaces
 % Of course, also other FeSpaces can be used to assemble the forms.
 fes2 = FeSpace(mesh, LowestOrderL2Fe());
-M = BilinearForm(fes2);
-G = LinearForm(fes2);
+M = BilinearForm();
+G = LinearForm();
 
 % This realizes mass matrix and integration for piecewise constant functions.
 % NOTE: All assembly operations are implemented in terms of local shape
@@ -59,8 +59,8 @@ G = LinearForm(fes2);
 M.c = Constant(mesh, 1);
 G.f = Constant(mesh, 1);
 
-Mmat = assemble(M);
-Gvec = assemble(G);
+Mmat = assemble(M, fes2);
+Gvec = assemble(G, fes2);
 
 v = FeFunction(fes2);
 v.setData(ones(mesh.nElements,1));

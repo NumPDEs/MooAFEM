@@ -29,8 +29,8 @@ for p = 1:pmax
     uex = FeFunction(fes);
     
     %% set problem data for -\Delta u = 1 on L-shape
-    blf = BilinearForm(fes);
-    lf = LinearForm(fes);
+    blf = BilinearForm();
+    lf = LinearForm();
     
     blf.a = Constant(mesh, 1);
     blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
@@ -56,8 +56,8 @@ for p = 1:pmax
         ell = ell + 1; i = i+1;
         
         freeDofs = getFreeDofs(fes);
-        A = assemble(blf);
-        rhs = assemble(lf);
+        A = assemble(blf, fes);
+        rhs = assemble(lf, fes);
         
         
         
@@ -184,8 +184,8 @@ end
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
 function indicators = estimate(blf, lf, u)
-p = blf.fes.finiteElement.order;
-mesh =  blf.fes.mesh;
+p = u.fes.finiteElement.order;
+mesh =  u.fes.mesh;
 trafo = getAffineTransformation(mesh);
 
 % compute volume residual element-wise
