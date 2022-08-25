@@ -3,10 +3,9 @@
 %
 %   assemblePatchDofs(obj)
 
-function dofs = assemblePatchDofs(obj, ~)
+function patchDofs = assemblePatchDofs(obj)
 %% preallocate arrays
 mesh = obj.mesh;
-dofs = getDofs(obj);
 
 %% compute patch membership of (free) vertices/edges/elements
 dirichletEdges = getCombinedBndEdges(mesh, obj.bnd.dirichlet);
@@ -29,7 +28,7 @@ nLocalDofs = getDofConnectivity(obj.finiteElement);
     edgeDofs, nLocalDofs(2)*diff(pEdges)', ...
     elementDofs, nLocalDofs(3)*diff(pElements)');
 
-dofs.patch2Dofs = mat2cell(patchDofs', nDofsPerPatch);
+patchDofs = mat2cell(patchDofs', nDofsPerPatch);
 
 end
 
