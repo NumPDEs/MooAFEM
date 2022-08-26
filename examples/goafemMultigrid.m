@@ -48,8 +48,6 @@ while ~meshSufficientlyFine
 
     %% assemble & solve FEM system iteratively
     freeDofs = getFreeDofs(fes);
-    p1freedofs = freeDofs(freeDofs<=mesh.nCoordinates);
-    mesh.freeVert{end+1} = p1freedofs;
     A = assemble(blf, fes);
     rhs = [assemble(lfF, fes), assemble(lfG, fes)];
     uz0 = [u.data', z.data'];
@@ -63,11 +61,8 @@ while ~meshSufficientlyFine
             solver.step();
         end
 
-%         exsol = A(freeDofs,freeDofs)\rhs(freeDofs,:);
-%         u.setFreeData(exsol(:,1));
-%         z.setFreeData(exsol(:,2));
-         u.setFreeData(solver.x(:,1));
-         z.setFreeData(solver.x(:,2));
+        u.setFreeData(solver.x(:,1));
+        z.setFreeData(solver.x(:,2));
 
     end
 
@@ -93,10 +88,7 @@ while ~meshSufficientlyFine
     %% refine mesh and transfer solutions to finer mesh for nested iteration
     if ~meshSufficientlyFine
         marked = markGoafemMS(eta2, zeta2, theta);
-        meshtemp = clone(mesh);
-        meshtemp.intergridMatrix(marked, 'NVB');
         mesh.refineLocally(marked, 'NVB');
-        mesh.locVert{end+1} = meshtemp.locVert{end};
         u.setData(prolongate(P, u));
         z.setData(prolongate(P, z));
     end

@@ -60,16 +60,8 @@ for p = 1:pmax
         rhs = assemble(lf, fes);
         
         
-        
-        
-        
         if ~directSol
             
-            %freeDofs = getFreeDofs(fes);
-            p1freedofs = freeDofs(freeDofs<=mesh.nCoordinates);
-            mesh.freeVert{end+1} = p1freedofs;
-            %A = assemble(blf);
-            %rhs = assemble(lfF);
             u0 = u.data';
             iter = 0; algEta2 = 10;
             %setup : interpolation matrices; patches for high-order
@@ -116,13 +108,6 @@ for p = 1:pmax
         end
         
         
-        
-        
-        
-        
-        
-        
-        
         %% estimate error and store data
         eta2 = estimate(blf, lf, u);
         nDofs(p,i) = getDofs(fes).nDofs;
@@ -136,14 +121,8 @@ for p = 1:pmax
         end
         
         %% refine mesh
-        %marked = markDoerflerSorting(eta2, theta);
-        marked = markDoerflerBinning(eta2, theta);
-        
-        meshtemp = clone(mesh);
-        meshtemp.intergridMatrix(marked, 'NVB');
+        marked = markDoerflerSorting(eta2, theta);
         mesh.refineLocally(marked, 'NVB');
-        mesh.locVert{end+1} = meshtemp.locVert{end};
-        
         u.setData(prolongate(P, u));
     end
 end

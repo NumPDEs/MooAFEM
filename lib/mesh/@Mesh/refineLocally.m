@@ -12,53 +12,24 @@
 %
 %   See also Mesh
 
-function refineLocally(obj, marked, method, bool)
-
-
+function refineLocally(obj, marked, method)
 
 arguments
     obj (1,1) Mesh
     marked (:,1) double
     method (1,1) string = 'NVB'
-    bool (1,1) = 1
 end
-
-
 
 %% prepare data for refinement and make it available to listeners
 refinementAlgorithm = feval(method, obj);
 bisecData = refinementAlgorithm.prepareRefinementData(marked);
-
-% if bool == 1
-%     bisecEdgescopy = bisecData.bisectedEdges;
-%     bisecEdges = bisecEdgescopy;
-%     bool = 0;
-% end
-
-
-obj.notify('IsAboutToRefine', bisecData);
-
-
-% nNodes = length(obj.coordinates);
-% nodesBisecEdges = obj.edges(:,bisecEdges);%which edges were refined
+obj.notify('IsAboutToRefine', bisecData)
 
 %%  do actual refinement and clear data of old mesh
 obj.updateData(bisecData);
-
-% %% compute intergrid matrix
-% nupdatedNodes = length(obj.coordinates);
-% newnodestwice = repmat(nNodes+1:nupdatedNodes,2,1);
-% oldneigh = nodesBisecEdges; %edge2nodes(edge2newNode~=0,:);
-% oldneigh = reshape(oldneigh', 2*length(oldneigh),1);
-% Int_I = [[1:nNodes]'; newnodestwice(:)];
-% Int_J = [[1:nNodes]'; nodesBisecEdges(:)];
-% Int_val = [ones(nNodes,1); 1/2*ones(length(nodesBisecEdges(:)),1)];
-% Int = sparse(Int_I, Int_J, Int_val);
-% obj.intergrid{obj.level} = Int;
-
-
 obj.trafo = [];
 obj.notify('JustRefined');
+
 obj.notify('RefineCompleted')
 
 end

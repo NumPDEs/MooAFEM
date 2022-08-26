@@ -19,7 +19,14 @@ classdef pLoc_MG < MGSolver
         D
         locAhigh
         patch
+        changedPatches
+        freeVertices
         P
+    end
+    
+    %% event data
+    properties (Access=private)
+        listenerHandle
     end
 
     %% methods
@@ -38,22 +45,25 @@ classdef pLoc_MG < MGSolver
             obj.locAhigh = {};
             obj.lowfinest = [];
             obj.intergridMatrix = cell(0);
+            obj.changedPatches = cell(1);
             
             mesh = obj.hoFes.mesh;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
             obj.P = LoFeProlongation(obj.loFes);
             obj.blf = blf;
             % TODO: check coefficients of blf for compatibility with theoretical results!
+            
+            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
         function setupLinearSystem(obj, A, b, x0)
             polDeg = obj.hoFes.finiteElement.order;
             obj.lowfinest = assemble(obj.blf, obj.loFes);
             obj.nLevels = obj.nLevels + 1;
+            obj.freeVertices{obj.nLevels} = getFreeDofs(obj.loFes);
             if obj.nLevels >= 2
-                newfree = obj.loFes.mesh.freeVert{obj.nLevels};
-                oldfree = obj.loFes.mesh.freeVert{obj.nLevels-1};
-                obj.intergridMatrix{obj.nLevels} = obj.P.matrix(newfree,oldfree);
+                obj.intergridMatrix{obj.nLevels} = ...
+                    obj.P.matrix(obj.freeVertices{obj.nLevels}, obj.freeVertices{obj.nLevels-1});
             end
 
             %if high order, assemble patch Dofs
@@ -82,7 +92,7 @@ classdef pLoc_MG < MGSolver
             Ahigh = obj.A; %matrix on finest level, potentially high-order
             lev = obj.nLevels; %here numbering starts 1 for coarsest level
             poldeg = obj.hoFes.finiteElement.order;
-            newfree = obj.hoFes.mesh.freeVert{obj.nLevels};
+            newfree = obj.freeVertices{obj.nLevels};
             
             %built-in estimator of the algebraic error
             algEta2 = zeros(1, size(res, 2));
@@ -120,9 +130,11 @@ classdef pLoc_MG < MGSolver
                     sigma = obj.intergridMatrix{k}*sigma;
                     uptres = resid{k} - A{k}*sigma; %updated residual 
 
-                    localVer = obj.hoFes.mesh.locVert{k}; %numbering on all vertices
+                    localVer = obj.changedPatches{k}; %numbering on all vertices
                     [~,vershift] = ismember(localVer,newfree);
                     vershift = vershift(vershift>0); %numbering on all inner vertices
+                    
+                    
 
                     obj.D = diag(A{k});
                     rho = zeros(size(sigma)); 
@@ -184,6 +196,17 @@ classdef pLoc_MG < MGSolver
                 Cx = sigma;
                 algEta2 = sigma'*Ahigh*sigma;
             end
+        end
+    end
+    
+    methods (Access=protected)
+        function getChangedPatches(obj, mesh, bisecData)
+            nCOld = mesh.nCoordinates;
+            nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
+                bisecData.nRefinedElements'*bisecData.nInnerNodes;
+            bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
+            obj.changedPatches{obj.nLevels+1} = ...
+                [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
         end
     end
 end
