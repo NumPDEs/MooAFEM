@@ -79,15 +79,11 @@ classdef pLoc_MG < MGSolver
             global2freeDofs(freeDofs) = 1:numel(freeDofs);
             
             if ~obj.highestOrderIsOne
-                obj.patch = assemblePatchDofs(obj.hoFes);
-
                 % store cholesky decomposition of local matrices associated
                 % to patches (only upper triangle)
-                for ver = 1:numel(obj.patch)
-                    idx = global2freeDofs(obj.patch{ver});
-                    obj.patch{ver} = idx;
-                    obj.patchwiseChol{ver} = chol(A(idx,idx));
-                end
+                obj.patch = assemblePatchDofs(obj.hoFes);
+                obj.patch = cellfun(@(p) global2freeDofs(p), obj.patch, 'UniformOutput', false);
+                obj.patchwiseChol = cellfun(@(p) full(chol(A(p,p))), obj.patch, 'UniformOutput', false);
             end
 
             setupLinearSystem@MGSolver(obj, A, b, x0);
@@ -166,15 +162,16 @@ classdef pLoc_MG < MGSolver
         end
         
         function rho = hoGlobalSmoothing(obj, res)
-            rho = zeros(size(res)); 
+            rho = zeros(size(res));
+            lower = struct('UT', true, 'TRANSA', true); 
+            upper = struct('UT', true);
             for ver = 1:obj.hoFes.mesh.nCoordinates
-                cholA = obj.patchwiseChol{ver};
+                U = obj.patchwiseChol{ver};
                 dofshift = obj.patch{ver};
 
-                %solve local patch problems
-                temp = (cholA')\(res(dofshift,:));
-                rhoa = cholA\temp;
-                rho(dofshift,:) = rho(dofshift,:) + rhoa;%additive
+                % solve local patch problems (update is additive)
+                rhoa = linsolve(U, linsolve(U, res(dofshift,:), lower), upper);
+                rho(dofshift,:) = rho(dofshift,:) + rhoa;
             end
         end
         
