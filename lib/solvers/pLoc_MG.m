@@ -10,19 +10,19 @@ classdef pLoc_MG < MGSolver
     end
 
     properties (Access=protected)
-        p1Matrix
-        p1Smoother
-        highestOrderIsOne
         blf
         hoFes
         loFes
+        p1Matrix
+        p1Smoother
+        P
         intergridMatrix
-        patchwiseChol
-        patch
-        changedPatches
         freeVertices
         freeVerticesOld
-        P
+        patch
+        changedPatches
+        patchwiseChol
+        highestOrderIsOne
     end
     
     %% event data
@@ -39,46 +39,42 @@ classdef pLoc_MG < MGSolver
             end
             obj = obj@MGSolver();
             
-            obj.hoFes = fes;
+            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
             obj.nLevels = 0;
-            obj.patchwiseChol = {};
-            obj.intergridMatrix = cell(0);
-            obj.changedPatches = cell(1);
-            obj.p1Matrix = {};
-            obj.p1Smoother = {};
-            obj.highestOrderIsOne = (obj.hoFes.finiteElement.order == 1);
             
-            mesh = obj.hoFes.mesh;
+            mesh = fes.mesh;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
+            obj.hoFes = fes;
             obj.P = LoFeProlongation(obj.loFes);
-            obj.blf = blf;
-            % TODO: check coefficients of blf for compatibility with theoretical results!
+            obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
         function setupLinearSystem(obj, A, b, x0)
             obj.nLevels = obj.nLevels + 1;
+            
+            L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
-            obj.p1Matrix{obj.nLevels} = assemble(obj.blf, obj.loFes);
-            obj.p1Matrix{obj.nLevels} = obj.p1Matrix{obj.nLevels}(obj.freeVertices, obj.freeVertices);
-            obj.p1Smoother{obj.nLevels} = diag(obj.p1Matrix{obj.nLevels}).^(-1);
             
-            if obj.nLevels >= 2
-                obj.intergridMatrix{obj.nLevels} = ...
-                    obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
-                
-                localVer = obj.changedPatches{obj.nLevels}; %numbering on all vertices
-                [~,localVer] = ismember(localVer,obj.freeVertices);
-                obj.changedPatches{obj.nLevels} = localVer(localVer>0); %numbering on all inner vertices
+            if obj.highestOrderIsOne
+                obj.p1Matrix{L} = A;
+            else
+                obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
+                obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
+            end
+                obj.p1Smoother{L} = diag(obj.p1Matrix{L}).^(-1);
+            
+            if L >= 2
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
             end
 
-            freeDofs = getFreeDofs(obj.hoFes);
-            global2freeDofs = zeros(getDofs(obj.hoFes).nDofs, 1);
-            global2freeDofs(freeDofs) = 1:numel(freeDofs);
-            
             if ~obj.highestOrderIsOne
+                freeDofs = getFreeDofs(obj.hoFes);
+                global2freeDofs = zeros(getDofs(obj.hoFes).nDofs, 1);
+                global2freeDofs(freeDofs) = 1:numel(freeDofs);
                 % store cholesky decomposition of local matrices associated
                 % to patches (only upper triangle)
                 obj.patch = assemblePatchDofs(obj.hoFes);
@@ -151,8 +147,9 @@ classdef pLoc_MG < MGSolver
             nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
                 bisecData.nRefinedElements'*bisecData.nInnerNodes;
             bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
-            obj.changedPatches{obj.nLevels+1} = ...
-                [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
+            obj.changedPatches{obj.nLevels+1} = false(nCNew, 1);
+            idx = [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
+            obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
         
         function rho = p1LocalSmoothing(obj, k, res)
