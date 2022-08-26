@@ -56,7 +56,7 @@ while ~meshSufficientlyFine
         u.setFreeData(uz0(freeDofs,1));
         z.setFreeData(uz0(freeDofs,2));
     else
-        solver.setupLinearSystem(A, rhs(freeDofs,:), uz0(freeDofs,:));
+        solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
         while ~all(isConverged(solver))
             solver.step();
         end

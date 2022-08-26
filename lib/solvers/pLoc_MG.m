@@ -17,10 +17,11 @@ classdef pLoc_MG < MGSolver
         lowfinest
         intergridMatrix
         D
-        locAhigh
+        patchwiseChol
         patch
         changedPatches
         freeVertices
+        freeVerticesOld
         P
     end
     
@@ -42,7 +43,7 @@ classdef pLoc_MG < MGSolver
             obj.nLevels = 0;
             obj.D = {};
             obj.Acoarse = [];
-            obj.locAhigh = {};
+            obj.patchwiseChol = {};
             obj.lowfinest = [];
             obj.intergridMatrix = cell(0);
             obj.changedPatches = cell(1);
@@ -57,42 +58,49 @@ classdef pLoc_MG < MGSolver
         end
 
         function setupLinearSystem(obj, A, b, x0)
-            polDeg = obj.hoFes.finiteElement.order;
+            obj.nLevels = obj.nLevels + 1;            
             obj.lowfinest = assemble(obj.blf, obj.loFes);
-            obj.nLevels = obj.nLevels + 1;
-            obj.freeVertices{obj.nLevels} = getFreeDofs(obj.loFes);
+            obj.freeVerticesOld = obj.freeVertices;
+            obj.freeVertices = getFreeDofs(obj.loFes);
+            obj.lowfinest = obj.lowfinest(obj.freeVertices, obj.freeVertices);
             if obj.nLevels >= 2
                 obj.intergridMatrix{obj.nLevels} = ...
-                    obj.P.matrix(obj.freeVertices{obj.nLevels}, obj.freeVertices{obj.nLevels-1});
-            end
-
-            %if high order, assemble patch Dofs
-            if (polDeg>1)
-                %adding the patch dof indices
-                obj.patch = assemblePatchDofs(obj.hoFes);
-
-                %storing cholesky decomposition of local matrices associated to patches
-                for ver = 1:numel(obj.patch)
-                    % U = chol(locmat); %stores only the upper triangular : locA = U'*U
-                    obj.locAhigh{ver} = chol(A(obj.patch{ver},obj.patch{ver}));
-                end
+                    obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                
+                localVer = obj.changedPatches{obj.nLevels}; %numbering on all vertices
+                [~,localVer] = ismember(localVer,obj.freeVertices);
+                obj.changedPatches{obj.nLevels} = localVer(localVer>0); %numbering on all inner vertices
             end
 
             freeDofs = getFreeDofs(obj.hoFes);
-            setupLinearSystem@MGSolver(obj, A(freeDofs,freeDofs), b, x0);
+            global2freeDofs = zeros(getDofs(obj.hoFes).nDofs, 1);
+            global2freeDofs(freeDofs) = 1:numel(freeDofs);
+            %if high order, assemble patch Dofs
+            if obj.hoFes.finiteElement.order > 1
+                obj.patch = assemblePatchDofs(obj.hoFes);
+
+                % store cholesky decomposition of local matrices associated
+                % to patches (only upper triangle)
+                for ver = 1:numel(obj.patch)
+                    idx = global2freeDofs(obj.patch{ver});
+                    obj.patch{ver} = idx;
+                    obj.patchwiseChol{ver} = chol(A(idx,idx));
+                end
+            end
+
+            setupLinearSystem@MGSolver(obj, A, b, x0);
         end
 
 
 
         % Geometric MultiGrid
         function [Cx, algEta2] = Vcycle(obj, res)
-            assert(isequal(getDofs(obj.loFes).nDofs, size(obj.lowfinest, 1)), ...
-                'Data for multilevel iteration not given!')
+            assert(isequal(size(res, 1), size(obj.A, 1)), ...
+                'Setup for multilevel iteration not complete!')
 
             Ahigh = obj.A; %matrix on finest level, potentially high-order
             lev = obj.nLevels; %here numbering starts 1 for coarsest level
             poldeg = obj.hoFes.finiteElement.order;
-            newfree = obj.freeVertices{obj.nLevels};
             
             %built-in estimator of the algebraic error
             algEta2 = zeros(1, size(res, 2));
@@ -100,14 +108,13 @@ classdef pLoc_MG < MGSolver
             %Vcycle only when more than one level;
             %otherwise coarse solve
             if lev > 1
-                freeDofslow = getFreeDofs(obj.loFes);
                 %p to 1 interpolation on the finest level of the residual
                 if poldeg > 1
                     p1SmoothLev = lev-1; %until which level should the local smoothing be done
                     
                     resid{lev} = interpolateFreeData(res, obj.hoFes, obj.loFes);
                     
-                    A{lev} = obj.lowfinest(freeDofslow,freeDofslow);
+                    A{lev} = obj.lowfinest;
                 else
                     p1SmoothLev = lev;
                     A{lev} = Ahigh;
@@ -129,13 +136,8 @@ classdef pLoc_MG < MGSolver
                 for k = 2:p1SmoothLev
                     sigma = obj.intergridMatrix{k}*sigma;
                     uptres = resid{k} - A{k}*sigma; %updated residual 
-
-                    localVer = obj.changedPatches{k}; %numbering on all vertices
-                    [~,vershift] = ismember(localVer,newfree);
-                    vershift = vershift(vershift>0); %numbering on all inner vertices
                     
-                    
-
+                    vershift = obj.changedPatches{k};
                     obj.D = diag(A{k});
                     rho = zeros(size(sigma)); 
                     rho(vershift,:) = obj.D(vershift).^(-1).*uptres(vershift,:);
@@ -155,9 +157,6 @@ classdef pLoc_MG < MGSolver
                 if poldeg > 1
                     %back to finest level: still P1 at this point
                     sigma = obj.intergridMatrix{lev}*sigma;
-
-                    %interpolation of the error correction from 1 to p
-                    freeDofshigh = getFreeDofs(obj.hoFes);
                     
                     sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
 
@@ -166,10 +165,8 @@ classdef pLoc_MG < MGSolver
                     uptres = res - Ahigh*sigma;
                     for ver = 1: obj.hoFes.mesh.nCoordinates
                             
-                        cholA = obj.locAhigh{ver};
-                        dofspatch = obj.patch{ver};
-                        [~,dofshift] = ismember(dofspatch,freeDofshigh);
-                        dofshift = dofshift(dofshift>0); %renumbering on freedofs vector
+                        cholA = obj.patchwiseChol{ver};
+                        dofshift = obj.patch{ver};
 
                         %solve local patch problems
                         temp = (cholA')\(uptres(dofshift,:));
@@ -200,6 +197,9 @@ classdef pLoc_MG < MGSolver
     end
     
     methods (Access=protected)
+        % callback function to be executed before mesh refinement:
+        % -> patches change for all vertices adjacent to refined edges and
+        %    all new vertices
         function getChangedPatches(obj, mesh, bisecData)
             nCOld = mesh.nCoordinates;
             nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...

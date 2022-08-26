@@ -65,7 +65,7 @@ for p = 1:pmax
             u0 = u.data';
             iter = 0; algEta2 = 10;
             %setup : interpolation matrices; patches for high-order
-            solver.setupLinearSystem(A, rhs(freeDofs), u0(freeDofs));
+            solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs), u0(freeDofs));
             
             if ell == 1
                 nIterPrimal(ell) = 1;
