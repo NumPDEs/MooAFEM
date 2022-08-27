@@ -1,9 +1,11 @@
-% pLoc_MG (subclass of MGSolver) Solves linear equations
-%   iteratively using high order p optimal multilevel
-%   local (additive Schwarz/block Jacobi) smoothing
-%   one iteration = Vcycle(0,1) : only 1 post-smoothing
+% OptimalLocalMGSolver (subclass of MGSolver) Solves linear equations
+%   iteratively using high-order p-optimal multilevel local smoothing (additive
+%   Schwarz/block Jacobi).
+%   One iteration = Vcycle(0,1) (no pre-/one post-smoothing step).
+%
+% With the solver comes an 
 
-classdef pLoc_MG < MGSolver
+classdef OptimalLocalMGSolver < MGSolver
     %% properties
     properties (GetAccess=public,SetAccess=protected)
         nLevels
@@ -32,7 +34,7 @@ classdef pLoc_MG < MGSolver
 
     %% methods
     methods (Access=public)
-        function obj = pLoc_MG(fes, blf)
+        function obj = OptimalLocalMGSolver(fes, blf)
             arguments
                 fes FeSpace
                 blf BilinearForm
@@ -64,22 +66,24 @@ classdef pLoc_MG < MGSolver
                 obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
                 obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
             end
-                obj.p1Smoother{L} = diag(obj.p1Matrix{L}).^(-1);
+            obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
             
             if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
-            end
 
-            if ~obj.highestOrderIsOne
-                freeDofs = getFreeDofs(obj.hoFes);
-                global2freeDofs = zeros(getDofs(obj.hoFes).nDofs, 1);
-                global2freeDofs(freeDofs) = 1:numel(freeDofs);
-                % store cholesky decomposition of local matrices associated
-                % to patches (only upper triangle)
-                obj.patch = assemblePatchDofs(obj.hoFes);
-                obj.patch = cellfun(@(p) global2freeDofs(p), obj.patch, 'UniformOutput', false);
-                obj.patchwiseChol = cellfun(@(p) full(chol(A(p,p))), obj.patch, 'UniformOutput', false);
+                if ~obj.highestOrderIsOne
+                    freeDofs = getFreeDofs(obj.hoFes);
+                    global2freeDofs = zeros(getDofs(obj.hoFes).nDofs, 1);
+                    global2freeDofs(freeDofs) = 1:numel(freeDofs);
+                    % store cholesky decomposition of local matrices associated
+                    % to patches (only upper triangle)
+                    obj.patch = assemblePatchDofs(obj.hoFes);
+                    obj.patch = cellfun(@(p) global2freeDofs(p), obj.patch, 'UniformOutput', false);
+                    % TODO: this is the most time intensive line in the code due
+                    % to sparse matrix indexing. Is there a better way?
+                    obj.patchwiseChol = cellfun(@(p) full(chol(A(p,p))), obj.patch, 'UniformOutput', false);
+                end
             end
 
             setupLinearSystem@MGSolver(obj, A, b, x0);
@@ -93,7 +97,7 @@ classdef pLoc_MG < MGSolver
             % if there is only one coarse level: exact solve
             if obj.nLevels == 1
                 Cx = obj.A \ res;
-                algError2 = Cx'*obj.A*Cx;
+                algError2 = scalarProduct(Cx, obj.A*Cx);
                 return
             end
 
@@ -109,15 +113,16 @@ classdef pLoc_MG < MGSolver
             % exact solve on coarsest level to compute accumulative lifting
             % of the residual (sigma)
             sigma = obj.p1Matrix{1} \ residual{1};
-            algError2 = algError2 + sigma'*obj.p1Matrix{1}*sigma;
+            algError2 = algError2 + scalarProduct(sigma, obj.p1Matrix{1}*sigma);
 
             % ascending cascade in P1 AND local smoothing
             for k = 2:(L-1)
                 sigma = obj.intergridMatrix{k}*sigma;
                 uptres = residual{k} - obj.p1Matrix{k}*sigma; %updated residual 
                 rho = p1LocalSmoothing(obj, k, uptres);
-                [aeUpd, sUpd] = computeEstimatorUpdate(obj.p1Matrix{k}, uptres, rho);
-                algError2 = algError2 + aeUpd; sigma = sigma + sUpd;
+                [aeUpd, sUpd] = computeOptimalUpdate(obj.p1Matrix{k}, uptres, rho);
+                sigma = sigma + sUpd;
+                algError2 = algError2 + aeUpd;
             end
             
             % smooting on finest level dependent on p
@@ -131,8 +136,9 @@ classdef pLoc_MG < MGSolver
                 uptres = res - obj.A*sigma;
                 rho = hoGlobalSmoothing(obj, uptres);
             end
-            [aeUpd, sUpd] = computeEstimatorUpdate(obj.A, uptres, rho);
-            algError2 = algError2 + aeUpd; sigma = sigma + sUpd;
+            [aeUpd, sUpd] = computeOptimalUpdate(obj.A, uptres, rho);
+            sigma = sigma + sUpd;
+            algError2 = algError2 + aeUpd;
 
             Cx = sigma;
         end
@@ -153,9 +159,9 @@ classdef pLoc_MG < MGSolver
         end
         
         function rho = p1LocalSmoothing(obj, k, res)
-            vershift = obj.changedPatches{k};
-            rho = zeros(size(res)); 
-            rho(vershift,:) = obj.p1Smoother{k}(vershift).*res(vershift,:);
+            idx = obj.changedPatches{k};
+            rho = zeros(size(res));
+            rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
         end
         
         function rho = hoGlobalSmoothing(obj, res)
@@ -164,11 +170,11 @@ classdef pLoc_MG < MGSolver
             upper = struct('UT', true);
             for ver = 1:obj.hoFes.mesh.nCoordinates
                 U = obj.patchwiseChol{ver};
-                dofshift = obj.patch{ver};
+                patchDofs = obj.patch{ver};
 
                 % solve local patch problems (update is additive)
-                rhoa = linsolve(U, linsolve(U, res(dofshift,:), lower), upper);
-                rho(dofshift,:) = rho(dofshift,:) + rhoa;
+                rhoa = linsolve(U, linsolve(U, res(patchDofs,:), lower), upper);
+                rho(patchDofs,:) = rho(patchDofs,:) + rhoa;
             end
         end
         
@@ -204,12 +210,17 @@ function interpolatedData = interpolateFreeData(data, fromFes, toFes)
 end
 
 % error correction with optimal stepsize 
-function [etaUpdate, sigmaUpdate] = computeEstimatorUpdate(A, res, rho)
-    lambda = (res'*rho)/(rho'*A*rho);
-    sigmaUpdate = lambda*rho;
-    etaUpdate = (rho'*A*rho)*(lambda^2);
+function [etaUpdate, sigmaUpdate] = computeOptimalUpdate(A, res, rho)
+    rhoArho = scalarProduct(rho, A*rho);
+    lambda = scalarProduct(res, rho) ./ rhoArho;
+    sigmaUpdate = lambda.*rho;
+    etaUpdate = rhoArho.*(lambda.^2);
 
-    if (lambda > 3)
+    if any(lambda > 3)
        warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
     end
+end
+
+function a = scalarProduct(x, y)
+    a = sum(x.*y, 1);
 end

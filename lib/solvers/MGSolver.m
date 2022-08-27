@@ -1,5 +1,5 @@
 % MGSolver (abstract subclass of Solver) Solves linear equations
-%   iteratively, using a Vcycle.
+%   iteratively, using a Vcycle geometric multigrid solver.
 %
 % solver.setup(A, b, [x0]) sets up solver for the linear system A*x=b with
 %   initial guess x0 (0 per default). The right-hand side b can have
@@ -51,16 +51,14 @@ classdef MGSolver < IterativeSolver
         function computeUpdate(obj)
             % only iterate on active components
             idx = find(obj.activeComponents);
+            
+            % update solution & residual
+            obj.x(:,idx) = obj.x(:,idx) + obj.Cresidual(:,idx);
+            obj.residual(:,idx) = obj.residual(:,idx) - obj.A * obj.Cresidual(:,idx);
 
             % residual & update error correction
             [obj.Cresidual(:,idx), obj.algEst2] = obj.Vcycle(obj.residual(:,idx));
             obj.residualCNorm(:,idx) = sum(obj.residual(:,idx).*obj.Cresidual(:,idx), 1);
-            
-            % update search direction & solution
-            obj.x(:,idx) = obj.x(:,idx) + obj.Cresidual(:,idx);
-
-            % update residual
-            obj.residual(:,idx) = obj.residual(:,idx) - obj.A * obj.Cresidual(:,idx);
         end
     end
     
