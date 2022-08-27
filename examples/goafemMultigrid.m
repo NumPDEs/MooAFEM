@@ -2,6 +2,8 @@
 % Example of a GOAFEM algorithm with iterative solver.
 % ******************************************************************************
 
+warning('This is largely based on goafemIterativeSolver.m with only minor modifications (change of solver) -> delete this in the future!')
+
 %% paramters
 nDofsMax = 1e4;
 theta = 0.5;
@@ -36,9 +38,9 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
 P = FeProlongation(fes);
-solver = pLoc_MG(fes, blf);
+solver = OptimalLocalMGSolver(fes, blf);
 solver.tol = 1e-6;
-solver.maxIter = 1000;
+solver.maxIter = 100;
 
 %% adaptive loop
 ell = 0;
@@ -51,20 +53,13 @@ while ~meshSufficientlyFine
     A = assemble(blf, fes);
     rhs = [assemble(lfF, fes), assemble(lfG, fes)];
     uz0 = [u.data', z.data'];
-    if ell == 1
-        uz0(freeDofs,:) = A(freeDofs,freeDofs)\rhs(freeDofs,:); %direct solver on coarse mesh
-        u.setFreeData(uz0(freeDofs,1));
-        z.setFreeData(uz0(freeDofs,2));
-    else
-        solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
-        while ~all(isConverged(solver))
-            solver.step();
-        end
-
-        u.setFreeData(solver.x(:,1));
-        z.setFreeData(solver.x(:,2));
-
+    
+    solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
+    while ~all(solver.applyStoppingCriterion())
+        solver.step();
     end
+    u.setFreeData(solver.x(:,1));
+    z.setFreeData(solver.x(:,2));
 
     %% estimate error and store data
     eta2 = estimate(blf, lfF, u);
@@ -116,34 +111,34 @@ title(['GOAFEM p=', num2str(p)])
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
 function indicators = estimate(blf, lf, u)
-p = u.fes.finiteElement.order;
-mesh =  u.fes.mesh;
-trafo = getAffineTransformation(mesh);
+    p = u.fes.finiteElement.order;
+    mesh =  u.fes.mesh;
+    trafo = getAffineTransformation(mesh);
 
-% compute volume residual element-wise
-% For p=1, the diffusion term vanishes in the residual.
-if p == 1
-    f = lf.f;
-else
-    f = CompositeFunction(@(v,f) (v(1,:,:) + v(4,:,:) + f).^2, Hessian(u), lf.f);
-end
-qr = QuadratureRule.ofOrder(2*p);
-volumeResidual = integrateElement(f, qr);
+    % compute volume residual element-wise
+    % For p=1, the diffusion term vanishes in the residual.
+    if p == 1
+        f = lf.f;
+    else
+        f = CompositeFunction(@(v,f) (v(1,:,:) + v(4,:,:) + f).^2, Hessian(u), lf.f);
+    end
+    qr = QuadratureRule.ofOrder(2*p);
+    volumeResidual = integrateElement(f, qr);
 
-% compute edge residual edge-wise
-qr = QuadratureRule.ofOrder(max(p-1, 1), '1D');
-edgeResidual = integrateNormalJump(Gradient(u), qr, ...
-    @(j) zeros(size(j)), {}, vertcat(mesh.boundaries{:}), ... % no jump on dirichlet edges
-    @(j) j.^2, {}, ':');                                      % normal jump on inner edges
+    % compute edge residual edge-wise
+    qr = QuadratureRule.ofOrder(max(p-1, 1), '1D');
+    edgeResidual = integrateNormalJump(Gradient(u), qr, ...
+        @(j) zeros(size(j)), {}, vertcat(mesh.boundaries{:}), ... % no jump on dirichlet edges
+        @(j) j.^2, {}, ':');                                      % normal jump on inner edges
 
-% combine the residuals suitably
-hT = sqrt(trafo.area);
-indicators = hT.^2 .* volumeResidual + ...
-    hT .* sum(edgeResidual(mesh.element2edges), Dim.Vector);
+    % combine the residuals suitably
+    hT = sqrt(trafo.area);
+    indicators = hT.^2 .* volumeResidual + ...
+        hT .* sum(edgeResidual(mesh.element2edges), Dim.Vector);
 end
 
 % Lorentz-peak 1/(eps+||x-x0||^2)
 function y = lorentzian(x, x0, eps)
-dx = x - x0;
-y = 1 ./ (eps + vectorProduct(dx,dx));
+    dx = x - x0;
+    y = 1 ./ (eps + vectorProduct(dx,dx));
 end

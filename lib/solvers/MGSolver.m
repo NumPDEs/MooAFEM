@@ -17,7 +17,7 @@ classdef MGSolver < IterativeSolver
     %% properties    
     properties (SetAccess=protected, GetAccess=public)
         residualCNorm
-        algEst2
+        algEstimator
     end
     
     properties (Access=protected)
@@ -34,7 +34,7 @@ classdef MGSolver < IterativeSolver
             
             % initialize residual & hierarchy
             obj.residual = b - obj.A*obj.x;
-            [obj.Cresidual, obj.algEst2] = obj.Vcycle(obj.residual);
+            [obj.Cresidual, obj.algEstimator] = obj.Vcycle(obj.residual);
             obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
             obj.normb = sqrt(sum(b.^2, 1));
         end
@@ -57,7 +57,7 @@ classdef MGSolver < IterativeSolver
             obj.residual(:,idx) = obj.residual(:,idx) - obj.A * obj.Cresidual(:,idx);
 
             % residual & update error correction
-            [obj.Cresidual(:,idx), obj.algEst2] = obj.Vcycle(obj.residual(:,idx));
+            [obj.Cresidual(:,idx), obj.algEstimator(idx)] = obj.Vcycle(obj.residual(:,idx));
             obj.residualCNorm(:,idx) = sum(obj.residual(:,idx).*obj.Cresidual(:,idx), 1);
         end
     end
