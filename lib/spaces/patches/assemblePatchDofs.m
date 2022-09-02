@@ -45,10 +45,19 @@ end
 function [patches, pointer] = computePatchMembership(objects)
     n = size(objects, 1);
     N = size(objects, 2);
-    [sortedNodes, idx] = sort(objects(:));
-    patches = repmat(1:N, [n 1]);
-    patches = patches(idx);
-    pointer = [0; find(diff(sortedNodes)); n*N] + 1;
+
+    count = accumarray(objects(:), 1);
+    pointer = cumsum([1; count]);
+    ptr = pointer;
+    patches = zeros(n*N, 1);
+
+    for i = 1:N
+        for k = 1:n
+            idx = objects(k,i);
+            patches(ptr(idx)) = i;
+            ptr(idx) = ptr(idx) + 1;
+        end
+    end
 end
 
 function [totalArray, totalGroupSize] = interleaveGroupedArrays(array, groupSize)
