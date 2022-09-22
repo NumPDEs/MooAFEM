@@ -4,14 +4,14 @@
 % ******************************************************************************
 
 %% parameters
-nDofsMax = 1e4;
+nDofsMax = 1e6;
 theta = 0.5;
 pmax = 5;
 mu = 0.1;
 
 %% initialization for every polynomial degree
 refError2 = cell(pmax,1);
-[nElem, nDofs, errEst, time] = deal(zeros(pmax, 1000));
+[nElem, nDofs, errEst, time, directSolveTime] = deal(zeros(pmax, 1000));
 for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
@@ -41,23 +41,26 @@ for p = 1:pmax
     meshSufficientlyFine = false;
     while ~meshSufficientlyFine
         %% setup
+        tic;
         ell = ell + 1;
         A = assemble(blf, fes);
         rhs = assemble(lf, fes);
         
         freeDofs = getFreeDofs(fes);
-        solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs), u.data(freeDofs)');
+        A = A(freeDofs,freeDofs);
+        solver.setupLinearSystem(A, rhs(freeDofs), u.data(freeDofs)');
         
         % exact solution as reference
-        x_ex = A(freeDofs,freeDofs)\rhs(freeDofs);
-        refError2{p} = [refError2{p}, (x_ex - solver.x)'*A(freeDofs,freeDofs)*(x_ex - solver.x)];
+        tic;
+        x_ex = A \ rhs(freeDofs);
+        directSolveTime(p, ell) = toc;
+        refError2{p} = [refError2{p}, (x_ex - solver.x)'*A*(x_ex - solver.x)];
 
         %% iterative solve
-        tic;
         solverIsConverged = false;
         while ~solverIsConverged
             solver.step();
-            refError2{p} = [refError2{p}, (x_ex - solver.x)'*A(freeDofs,freeDofs)*(x_ex - solver.x)];
+            refError2{p} = [refError2{p}, (x_ex - solver.x)'*A*(x_ex - solver.x)];
             algEta2 = solver.algEstimator;
             u.setFreeData(solver.x);
             eta2 = estimate(blf, lf, u);
@@ -65,7 +68,6 @@ for p = 1:pmax
             % adaptive stopping criterion with squares
             solverIsConverged = all(algEta2 < mu^2*sum(eta2));
         end
-        time(p,ell) = toc;
         
         %% estimate error and store data
         nDofs(p,ell) = getDofs(fes).nDofs;
@@ -83,6 +85,7 @@ for p = 1:pmax
             mesh.refineLocally(marked, 'NVB');
             u.setData(prolongate(P, u));
         end
+        time(p,ell) = toc;
     end
 end
 
@@ -105,15 +108,17 @@ title('error estimator over number of dofs')
 figure()
 for p = 1:pmax
     idx = find(nDofs(p,:) > 0);
-    loglog(nDofs(p,idx), time(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
+    loglog(nDofs(p,idx), directSolveTime(p,idx)./nDofs(p,idx), '-^', 'LineWidth', 2, 'DisplayName', ['[direct solve] p=',num2str(p)]);
     hold on
+    remainder = time(p,idx)-directSolveTime(p,idx);
+    loglog(nDofs(p,idx), remainder./nDofs(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['[everything else] p=',num2str(p)]);
 end
 x = nDofs(p,idx) / nDofs(p,1);
-loglog(nDofs(p,1)*x, time(p,1)*x, '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', '\alpha = 1')
+loglog(nDofs(p,1)*x, directSolveTime(p,1)*x./x, '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', '\alpha = 1')
 legend
 xlabel('#T_k')
 ylabel('t [s]')
-title('total runtime over number of dofs')
+title('runtime over number of dofs')
 
 figure()
 for p = 1:pmax
