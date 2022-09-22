@@ -10,7 +10,7 @@ upper = struct('UT', true);
 
 for k = 1:obj.fes.mesh.nCoordinates
     U = obj.patchwiseChol{k};
-    idx = obj.patchDofs{k};
+    idx = obj.global2freeDofs(obj.patchDofs{k});
 
     % solve local patch problems (update is additive)
     update = linsolve(U, linsolve(U, y(idx,:), lower), upper);

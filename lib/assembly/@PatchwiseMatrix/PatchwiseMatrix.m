@@ -9,6 +9,7 @@ classdef PatchwiseMatrix < handle
         patchDofs
         patchElements
         patchwiseChol
+        global2freeDofs
     end
 
     methods (Access=public)
