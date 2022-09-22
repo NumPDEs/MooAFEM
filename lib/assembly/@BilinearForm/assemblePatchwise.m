@@ -16,8 +16,7 @@ if ~isempty(obj.robin)
 end
 
 % in the long run, this should work just with non-assembled data:
-% data = computeVolumeData(obj, fes);
-data = assemble(obj, fes);
+data = computeVolumeData(obj, fes);
 mat = PatchwiseMatrix(fes, data);
 
 end
