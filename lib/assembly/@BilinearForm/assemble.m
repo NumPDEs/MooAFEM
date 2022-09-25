@@ -10,35 +10,8 @@ arguments
     obj
     fes FeSpace
 end
-%% setup
-if all([isempty(obj.a), isempty(obj.b), isempty(obj.c), isempty(obj.robin)])
-    error('BilinearForm:NoCoefficients', 'No coefficients are given.')
-end
-
-%% integrate element data
-mat = 0;
-phi = TestFunction(fes);
-Dphi = TestFunctionGradient(fes);
-
-% diffusion
-if ~isempty(obj.a)
-    f = CompositeFunction(@BilinearForm.diffusionPart, obj.a, Dphi);
-    mat = mat + integrateElement(f, obj.qra);
-end
-
-% convection
-if ~isempty(obj.b)
-    f = CompositeFunction(@BilinearForm.convectionPart, obj.b, Dphi, phi);
-    mat = mat + integrateElement(f, obj.qrb);
-end
-
-% reaction
-if ~isempty(obj.c)
-    f = CompositeFunction(@BilinearForm.reactionPart, obj.c, phi);
-    mat = mat + integrateElement(f, obj.qrc);
-end
-
 %% construct sparse matrix
+mat = computeVolumeData(obj, fes);
 dofs = getDofs(fes);
 
 if ~isequal(mat, 0)
@@ -52,6 +25,7 @@ end
 %% integrate and add boundary data
 % Robin data
 if ~isempty(obj.robin)
+    phi = TestFunction(fes);
     f = CompositeFunction(@BilinearForm.robinPart, obj.robin, phi);
     idx = getCombinedBndEdges(fes.mesh, fes.bnd.robin);
     [I, J] = getLocalDofs(size(dofs.edge2Dofs, Dim.Vector));

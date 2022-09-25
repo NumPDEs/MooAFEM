@@ -21,6 +21,10 @@ classdef BilinearForm < handle
         mat = assemblePatchwise(obj, fes);
     end
     
+    methods (Access=protected)
+        data = computeVolumeData(obj, fes);
+    end
+    
     methods (Static, Access=protected)
         val = diffusionPart(a, Dphi);
         val = convectionPart(b, Dphi, phi);
