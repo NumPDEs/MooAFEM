@@ -53,7 +53,7 @@ classdef OptimalLocalMGSolver < MGSolver
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
-        function setupLinearSystem(obj, A, b, x0)
+        function setupLinearSystem(obj, A, preA, b, x0)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -83,6 +83,10 @@ classdef OptimalLocalMGSolver < MGSolver
                     % TODO: this is the most time intensive line in the code due
                     % to sparse matrix indexing. Is there a better way?
                     obj.patchwiseChol = cellfun(@(p) full(chol(A(p,p))), obj.patch, 'UniformOutput', false);
+
+                    %%%%% UNDER CONSTRUCTION %%%%%
+                    % prepare matrices
+                    patchwiseA = PatchwiseMatrix(obj.hoFes, preA);
                 end
             end
 
