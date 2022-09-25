@@ -3,32 +3,34 @@
 %
 %   assemblePatchDofs(obj)
 
-function patchDofs = assemblePatchDofs(obj)
+function [patchDofs, patchElements] = assemblePatchDofs(obj)
 %% preallocate arrays
-mesh = obj.mesh;
+fes = obj.fes;
+mesh = fes.mesh;
 
 %% compute patch membership of (free) vertices/edges/elements
-dirichletEdges = getCombinedBndEdges(mesh, obj.bnd.dirichlet);
+dirichletEdges = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
 vertexNotOnDirichletBnd = ~ismember(1:mesh.nCoordinates, mesh.edges(:,dirichletEdges));
 
 free = computeFreeEdges(mesh, dirichletEdges);
-[patchEdges, pEdges] = computePatchMembership(mesh.edges(:,free));
+[patchEdges, nEdgesPerPatch] = computePatchMembership(mesh.edges(:,free));
 patchEdges = free(patchEdges);
 
-[patchElements, pElements] = computePatchMembership(mesh.elements);
+[patchElements, nElementsPerPatch] = computePatchMembership(mesh.elements);
 
 %% combine vertex/edge/element dofs for each patch
-vertexDofs = asVector(createVertexDofs(obj, vertexNotOnDirichletBnd));
-edgeDofs = asVector(createInnerEdgeDofs(obj, patchEdges));
-elementDofs = asVector(createInnerElementDofs(obj, patchElements));
+vertexDofs = asVector(createVertexDofs(fes, vertexNotOnDirichletBnd));
+edgeDofs = asVector(createInnerEdgeDofs(fes, patchEdges));
+elementDofs = asVector(createInnerElementDofs(fes, patchElements));
 
-nLocalDofs = getDofConnectivity(obj.finiteElement);
+nLocalDofs = getDofConnectivity(fes.finiteElement);
 [patchDofs, nDofsPerPatch] = interleaveGroupedArrays(...
     vertexDofs, nLocalDofs(1)*double(vertexNotOnDirichletBnd), ...
-    edgeDofs, nLocalDofs(2)*diff(pEdges)', ...
-    elementDofs, nLocalDofs(3)*diff(pElements)');
+    edgeDofs, nLocalDofs(2)*nEdgesPerPatch', ...
+    elementDofs, nLocalDofs(3)*nElementsPerPatch');
 
 patchDofs = mat2cell(patchDofs', nDofsPerPatch);
+patchElements = mat2cell(patchElements, nElementsPerPatch);
 
 end
 
@@ -42,13 +44,12 @@ function freeEdges = computeFreeEdges(mesh, dirichlet)
 end
 
 % requires one global sort of connectivity arrays -> log-linear complexity
-function [patches, pointer] = computePatchMembership(objects)
+function [patches, count] = computePatchMembership(objects)
     n = size(objects, 1);
     N = size(objects, 2);
 
     count = accumarray(objects(:), 1);
-    pointer = cumsum([1; count]);
-    ptr = pointer;
+    ptr = cumsum([1; count]);
     patches = zeros(n*N, 1);
 
     for i = 1:N

@@ -21,10 +21,9 @@ classdef OptimalLocalMGSolver < MGSolver
         intergridMatrix
         freeVertices
         freeVerticesOld
-        patch
         changedPatches
-        patchwiseChol
         highestOrderIsOne
+        patchwiseA
     end
     
     %% event data
@@ -53,7 +52,7 @@ classdef OptimalLocalMGSolver < MGSolver
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
-        function setupLinearSystem(obj, A, preA, b, x0)
+        function setupLinearSystem(obj, A, b, x0)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -73,20 +72,7 @@ classdef OptimalLocalMGSolver < MGSolver
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
 
                 if ~obj.highestOrderIsOne
-                    freeDofs = getFreeDofs(obj.hoFes);
-                    global2freeDofs = zeros(getDofs(obj.hoFes).nDofs, 1);
-                    global2freeDofs(freeDofs) = 1:numel(freeDofs);
-                    % store cholesky decomposition of local matrices associated
-                    % to patches (only upper triangle)
-                    obj.patch = assemblePatchDofs(obj.hoFes);
-                    obj.patch = cellfun(@(p) global2freeDofs(p), obj.patch, 'UniformOutput', false);
-                    % TODO: this is the most time intensive line in the code due
-                    % to sparse matrix indexing. Is there a better way?
-                    obj.patchwiseChol = cellfun(@(p) full(chol(A(p,p))), obj.patch, 'UniformOutput', false);
-
-                    %%%%% UNDER CONSTRUCTION %%%%%
-                    % prepare matrices
-                    patchwiseA = PatchwiseMatrix(obj.hoFes, preA);
+                    obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
                 end
             end
 
@@ -129,7 +115,7 @@ classdef OptimalLocalMGSolver < MGSolver
                 algError2 = algError2 + aeUpd;
             end
             
-            % smooting on finest level dependent on p
+            % smoothing on finest level dependent on p
             sigma = obj.intergridMatrix{L}*sigma;
             sigma = projectFrom1toP(obj, sigma);
             if obj.highestOrderIsOne
@@ -169,17 +155,7 @@ classdef OptimalLocalMGSolver < MGSolver
         end
         
         function rho = hoGlobalSmoothing(obj, res)
-            rho = zeros(size(res));
-            lower = struct('UT', true, 'TRANSA', true); 
-            upper = struct('UT', true);
-            for ver = 1:obj.hoFes.mesh.nCoordinates
-                U = obj.patchwiseChol{ver};
-                patchDofs = obj.patch{ver};
-
-                % solve local patch problems (update is additive)
-                rhoa = linsolve(U, linsolve(U, res(patchDofs,:), lower), upper);
-                rho(patchDofs,:) = rho(patchDofs,:) + rhoa;
-            end
+            rho = obj.patchwiseA \ res;
         end
         
         function y = projectFrom1toP(obj, x)
