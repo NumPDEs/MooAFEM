@@ -85,15 +85,17 @@ classdef AdditiveSchwartzPcg < PcgSolver
             end
             
             L = obj.nLevels;
-
+            y = cell(L, 1);
+            
             % descending cascade
-            for k = L-1:-1:1
+            x{L} = projectFromPto1(obj, x);
+            for k = L:-1:2
                 y{k+1} = obj.D{k} .* x;
-                x = obj.intergridMatrix{k}'*x;
+                x{k-1} = obj.intergridMatrix{k}'*x{k};
             end
             
             % exact solve on coarsest level
-            y{1} = obj.Acoarse \ x;
+            sigma = obj.p1Matrix{1} \ x{1};
             
             % ascending cascade
             for k = 1:obj.nLevels-1
