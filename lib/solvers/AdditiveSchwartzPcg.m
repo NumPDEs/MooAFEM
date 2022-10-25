@@ -22,6 +22,10 @@ classdef AdditiveSchwartzPcg < PcgSolver
         highestOrderIsOne
         patchwiseA
     end
+
+    properties (Access=private)
+        listenerHandle
+    end
     
     %% methods
     methods (Access=public)
@@ -74,9 +78,16 @@ classdef AdditiveSchwartzPcg < PcgSolver
         function Cx = preconditionAction(obj, x)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
             y = cell(obj.nLevels, 1);
+
+            if obj.nLevels == 1
+                Cx = obj.A \ x;
+                return
+            end
             
+            L = obj.nLevels;
+
             % descending cascade
-            for k = obj.nLevels-1:-1:1
+            for k = L-1:-1:1
                 y{k+1} = obj.D{k} .* x;
                 x = obj.intergridMatrix{k}'*x;
             end
