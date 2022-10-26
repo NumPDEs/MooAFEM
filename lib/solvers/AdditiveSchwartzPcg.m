@@ -21,6 +21,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
         changedPatches
         highestOrderIsOne
         patchwiseA
+        D
     end
 
     properties (Access=private)
@@ -58,9 +59,11 @@ classdef AdditiveSchwartzPcg < PcgSolver
             
             if obj.highestOrderIsOne
                 obj.p1Matrix{L} = A;
+                obj.D{L} = 1./full(diag(obj.p1Matrix{L}));
             else
                 obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
                 obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
+                obj.D{L} = 1./full(diag(obj.p1Matrix{L}));
             end
 
             if L >= 2
@@ -87,22 +90,39 @@ classdef AdditiveSchwartzPcg < PcgSolver
             L = obj.nLevels;
             y = cell(L, 1);
             
-            % descending cascade
-            x{L} = projectFromPto1(obj, x);
-            for k = L:-1:2
-                y{k+1} = obj.D{k} .* x;
-                x{k-1} = obj.intergridMatrix{k}'*x{k};
+            % descending cascade in P1: no smoothing
+            residual{L} = projectFromPto1(obj, x);
+            for k = L-1:-1:1
+                residual{k} = obj.D{k+1} .* x;
+                x  = obj.intergridMatrix{k+1}'*x;
             end
-            
-            % exact solve on coarsest level
-            sigma = obj.p1Matrix{1} \ x{1};
-            
-            % ascending cascade
-            for k = 1:obj.nLevels-1
-                y{k+1} = y{k+1} + obj.intergridMatrix{k}*y{k};
+
+            % exact solve on coarsest level to compute accumulative lifting
+            % of the residual (sigma)
+            sigma = obj.p1Matrix{1} \ x;
+
+            % ascending cascade in P1 AND local smoothing
+            for k = 2:(L-1)
+                sigma = obj.intergridMatrix{k}*sigma;
+                uptres = residual{k} - obj.p1Matrix{k}*sigma; %updated residual 
+                rho = p1LocalSmoothing(obj, k, uptres);
+                sigma = sigma + rho;
             end
-            
-            Cx = y{end};
+
+            sigma = obj.intergridMatrix{L}*sigma;
+            sigma = projectFrom1toP(obj, sigma);
+            if obj.highestOrderIsOne
+                uptres = residual{L} - obj.A*sigma;
+                rho = p1LocalSmoothing(obj, L, uptres);
+            else
+                % finest level high-order patch-problems ONLY for p > 1
+                uptres = res - obj.A*sigma;
+                rho = hoGlobalSmoothing(obj, uptres);
+            end
+
+            sigma = sigma + rho;
+
+            Cx = sigma;
         end
     end
 
