@@ -44,6 +44,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
             obj.hoFes = fes;
             obj.P = LoFeProlongation(obj.loFes);
+            obj.D = {};
             obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
@@ -59,18 +60,18 @@ classdef AdditiveSchwartzPcg < PcgSolver
             
             if obj.highestOrderIsOne
                 obj.p1Matrix{L} = A;
-                obj.D{L} = 1./full(diag(obj.p1Matrix{L}));
             else
                 obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
                 obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
-                obj.D{L} = 1./full(diag(obj.p1Matrix{L}));
             end
+            obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
 
             if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
                 if ~obj.highestOrderIsOne
                     obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+                    obj.D{L} = full(diag(obj.patchwiseA{L})).^(-1);
                 end
             end
             
@@ -78,37 +79,34 @@ classdef AdditiveSchwartzPcg < PcgSolver
         end
         
         % preconditioner: inverse of diagonal on each level
-        function Cx = preconditionAction(obj, x)
+        function Cx = preconditionAction(obj, res)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
             y = cell(obj.nLevels, 1);
 
             if obj.nLevels == 1
-                Cx = obj.A \ x;
+                Cx = obj.A \ res;
                 return
             end
             
             L = obj.nLevels;
-            y = cell(L, 1);
             
-            % descending cascade in P1: no smoothing
-            residual{L} = projectFromPto1(obj, x);
-            for k = L-1:-1:1
-                residual{k} = obj.D{k+1} .* x;
-                x  = obj.intergridMatrix{k+1}'*x;
+            % descending cascade
+            residual{L} = projectFromPto1(obj, res);
+            for k = L:-1:2
+                residual{k-1} = obj.intergridMatrix{k}'*(obj.p1Smoother{k} .* residual{k});
             end
-
-            % exact solve on coarsest level to compute accumulative lifting
-            % of the residual (sigma)
-            sigma = obj.p1Matrix{1} \ x;
-
-            % ascending cascade in P1 AND local smoothing
-            for k = 2:(L-1)
+            
+            % exact solve on coarsest level
+            sigma = obj.p1Matrix{1} \ residual{1};
+            
+            % ascending cascade
+            for k = 2:obj.nLevels-1
                 sigma = obj.intergridMatrix{k}*sigma;
                 uptres = residual{k} - obj.p1Matrix{k}*sigma; %updated residual 
                 rho = p1LocalSmoothing(obj, k, uptres);
                 sigma = sigma + rho;
             end
-
+            
             sigma = obj.intergridMatrix{L}*sigma;
             sigma = projectFrom1toP(obj, sigma);
             if obj.highestOrderIsOne
@@ -116,10 +114,9 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 rho = p1LocalSmoothing(obj, L, uptres);
             else
                 % finest level high-order patch-problems ONLY for p > 1
-                uptres = res - obj.A*sigma;
+                uptres = x - obj.A*sigma;
                 rho = hoGlobalSmoothing(obj, uptres);
             end
-
             sigma = sigma + rho;
 
             Cx = sigma;
