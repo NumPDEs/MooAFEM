@@ -75,11 +75,11 @@ classdef OptimalLocalMGSolver < MGSolver
                     obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
                 end
             end
-            setupSystemMatrix(obj, A);
+            setupSystemMatrix@MGSolver(obj, A);
         end
 
         function setupRhs(obj, A, b, x0)
-            setupRhs(obj, A, b, x0);
+            setupRhs@MGSolver(obj, A, b, x0);
         end
 
         % Geometric MultiGrid
