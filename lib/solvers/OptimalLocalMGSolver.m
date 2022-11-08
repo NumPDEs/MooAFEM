@@ -78,8 +78,8 @@ classdef OptimalLocalMGSolver < MGSolver
             setupSystemMatrix@MGSolver(obj, A);
         end
 
-        function setupRhs(obj, A, b, x0)
-            setupRhs@MGSolver(obj, A, b, x0);
+        function setupRhs(obj, b, x0)
+            setupRhs@MGSolver(obj, b, x0);
         end
 
         % Geometric MultiGrid
