@@ -35,7 +35,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.intergridMatrix = [];
         end
         
-        function setupLinearSystem(obj, A, b, x0)
+        function setupSystemMatrix(obj, A)
             mesh = obj.fes.mesh;
             freeDofs = getFreeDofs(obj.fes);
             patchAreas = computePatchAreas(mesh);
@@ -61,7 +61,11 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.oldPatchAreas = patchAreas;
             obj.nLevels = obj.nLevels + 1;
             
-            setupLinearSystem@PcgSolver(obj, A, b, x0);
+            setupSystemMatrix@PcgSolver(obj, A);
+        end
+           
+        function setupRhs(obj, b, x0)
+            setupRhs@PcgSolver(obj, b, x0);
         end
         
         % preconditioner: inverse of diagonal on each level
