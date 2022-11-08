@@ -18,8 +18,12 @@ classdef PcgSolver < IterativeSolver
     
     %% extend superclass methods
     methods (Access=public)
-        function setupLinearSystem(obj, A, b, x0)
-            setupLinearSystem@IterativeSolver(obj, A, b, x0);
+        function setupSystemMatrix(obj, A)
+            setupSystemMatrix@IterativeSolver(obj, A);
+        end
+        
+        function setupRhs(obj, b, x0)
+            setupRhs@IterativeSolver(obj, b, x0);
             
             % initialize residual & search direction
             obj.residual = b - obj.A*obj.x;

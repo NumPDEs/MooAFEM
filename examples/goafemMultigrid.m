@@ -54,7 +54,8 @@ while ~meshSufficientlyFine
     rhs = [assemble(lfF, fes), assemble(lfG, fes)];
     uz0 = [u.data', z.data'];
     
-    solver.setupLinearSystem(A(freeDofs,freeDofs), rhs(freeDofs,:), uz0(freeDofs,:));
+    solver.setupSystemMatrix(A(freeDofs,freeDofs));
+    solver.setupRhs(rhs(freeDofs,:), uz0(freeDofs,:));
     while ~all(solver.applyStoppingCriterion())
         solver.step();
     end
