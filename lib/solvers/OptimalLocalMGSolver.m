@@ -52,7 +52,7 @@ classdef OptimalLocalMGSolver < MGSolver
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
-        function setupLinearSystem(obj, A, b, x0)
+        function setupSystemMatrix(obj, A)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -75,8 +75,11 @@ classdef OptimalLocalMGSolver < MGSolver
                     obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
                 end
             end
+            setupSystemMatrix(obj, A);
+        end
 
-            setupLinearSystem@MGSolver(obj, A, b, x0);
+        function setupRhs(obj, A, b, x0)
+            setupRhs(obj, A, b, x0);
         end
 
         % Geometric MultiGrid
