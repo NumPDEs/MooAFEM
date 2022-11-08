@@ -55,18 +55,23 @@ classdef IterativeSolver < handle
             obj.tol = 1e-8;
         end
         
-        function setupLinearSystem(obj, A, b, x0)
+        function setupSystemMatrix(obj, A)
+            arguments
+                obj
+                A (:,:) double {IterativeSolver.mustBeQuadratic}
+            end
+            obj.A = A;
+        end
+
+        function setupRhs(obj, A, b, x0)
             arguments
                 obj
                 A (:,:) double {IterativeSolver.mustBeQuadratic}
                 b (:,:) double {IterativeSolver.mustBeCompatible(A, b)}
                 x0 (:,:) double {IterativeSolver.mustBeCompatible(A, x0)} = zeros(size(b));
             end
-            
             assert(isequal(size(b,2), size(x0,2)), ...
                 'Right-hand size and initial guess must be of compatible size.')
-            
-            obj.A = A;
             obj.b = b;
             obj.x = x0;
             obj.iterationCount = zeros(1, size(b,2));
