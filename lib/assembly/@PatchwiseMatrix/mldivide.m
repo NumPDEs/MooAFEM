@@ -8,7 +8,7 @@ x = zeros(size(y));
 lower = struct('UT', true, 'TRANSA', true); 
 upper = struct('UT', true);
 
-for k = 1:obj.fes.mesh.nCoordinates
+for k = 1:obj.nPatches
     U = obj.patchwiseChol{k};
     idx = obj.global2freeDofs(obj.patchDofs{k});
 
