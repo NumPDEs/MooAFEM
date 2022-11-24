@@ -5,10 +5,12 @@
 %
 %   See also: BilinearForm
 
-function mat = assemblePatchwise(obj, fes)
+function mat = assemblePatchwise(obj, fes, L, V)
 arguments
     obj
     fes FeSpace
+    L
+    V
 end
 
 if ~isempty(obj.robin)
@@ -17,6 +19,6 @@ end
 
 % in the long run, this should work just with non-assembled data:
 data = computeVolumeData(obj, fes);
-mat = PatchwiseMatrix(fes, data);
+mat = PatchwiseMatrix(fes, data, L, V);
 
 end

@@ -29,7 +29,7 @@ classdef MGSolver < IterativeSolver
     %% methods
     methods (Access=public)        
         % initialize iteration
-        function setupSystemMatrix(obj, A)
+        function setupSystemMatrix(obj, A, varargin)
             setupSystemMatrix@IterativeSolver(obj, A);
         end
 
