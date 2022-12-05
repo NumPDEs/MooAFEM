@@ -83,7 +83,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
         % preconditioner: inverse of diagonal on each level
         function Cx = preconditionAction(obj, res)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
-            y = cell(obj.nLevels, 1);
+            residual = cell(obj.nLevels, 1);
 
             if obj.nLevels == 1
                 Cx = obj.A \ res;
@@ -91,36 +91,37 @@ classdef AdditiveSchwartzPcg < PcgSolver
             end
             
             L = obj.nLevels;
-            
+
             % descending cascade
-            residual{L} = projectFromPto1(obj, res);
-            for k = L:-1:2
-                residual{k-1} = obj.intergridMatrix{k}'*(obj.p1Smoother{k} .* residual{k});
+            residual{L} = res;
+
+            if obj.highestOrderIsOne
+                rho{L} = p1LocalSmoothing(obj, L, residual{L});
+            else
+                %finest level high-order patch-problems ONLY for p > 1
+                rho{L} = hoGlobalSmoothing(obj, res);
+            end
+
+
+            residual{L-1} = projectFromPto1(obj, res);
+            residual{L-1} = obj.intergridMatrix{L}'*residual{L-1};
+            for k = L-1:-1:2
+                rho{k} = p1LocalSmoothing(obj, k, residual{k});
+                residual{k-1} = obj.intergridMatrix{k}'*residual{k};
             end
             
             % exact solve on coarsest level
             sigma = obj.p1Matrix{1} \ residual{1};
             
             % ascending cascade
-            for k = 2:obj.nLevels-1
+            for k = 2:L-1
                 sigma = obj.intergridMatrix{k}*sigma;
-                uptres = residual{k} - obj.p1Matrix{k}*sigma; %updated residual 
-                rho = p1LocalSmoothing(obj, k, uptres);
-                sigma = sigma + rho;
+                sigma = sigma + rho{k};
             end
-            
             sigma = obj.intergridMatrix{L}*sigma;
             sigma = projectFrom1toP(obj, sigma);
-            if obj.highestOrderIsOne
-                uptres = residual{L} - obj.A*sigma;
-                rho = p1LocalSmoothing(obj, L, uptres);
-            else
-                % finest level high-order patch-problems ONLY for p > 1
-                uptres = res - obj.A*sigma;
-                rho = hoGlobalSmoothing(obj, uptres);
-            end
-            sigma = sigma + rho;
-
+            sigma = sigma + rho{L};
+           
             Cx = sigma;
         end
     end
