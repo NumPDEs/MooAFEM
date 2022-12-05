@@ -55,18 +55,22 @@ classdef IterativeSolver < handle
             obj.tol = 1e-8;
         end
         
-        function setupLinearSystem(obj, A, b, x0)
+        function setupSystemMatrix(obj, A)
             arguments
                 obj
                 A (:,:) double {IterativeSolver.mustBeQuadratic}
-                b (:,:) double {IterativeSolver.mustBeCompatible(A, b)}
-                x0 (:,:) double {IterativeSolver.mustBeCompatible(A, x0)} = zeros(size(b));
             end
-            
-            assert(isequal(size(b,2), size(x0,2)), ...
-                'Right-hand size and initial guess must be of compatible size.')
-            
             obj.A = A;
+        end
+
+        function setupRhs(obj, b, x0)
+            arguments
+                obj
+                b (:,:) double 
+                x0 (:,:) double {IterativeSolver.mustBeCompatible(b, x0)} = zeros(size(b));
+            end
+            assert(isequal(size(obj.A,2), size(b,1)), ...
+                'Right-hand size and matrix must be of compatible size.')
             obj.b = b;
             obj.x = x0;
             obj.iterationCount = zeros(1, size(b,2));
@@ -107,10 +111,10 @@ classdef IterativeSolver < handle
             end
         end
         
-        function mustBeCompatible(A, b)
-            if ~(size(A,2) == size(b,1))
+        function mustBeCompatible(b, x0)
+            if ~isempty(x0) && ~isequal(size(b), size(x0))
                 eidType = 'Solver:dataNotCompatible';
-                msgType = 'Vector must have size compatible with matrix.';
+                msgType = 'Size of RHS and initial guess must be compatible.';
                 throwAsCaller(MException(eidType,msgType))
             end
         end

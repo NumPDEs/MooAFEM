@@ -4,7 +4,7 @@
 % ******************************************************************************
 
 %% parameters
-nDofsMax = 1e6;
+nDofsMax = 1e4;
 theta = 0.5;
 pmax = 5;
 mu = 0.1;
@@ -48,7 +48,8 @@ for p = 1:pmax
         
         freeDofs = getFreeDofs(fes);
         A = A(freeDofs,freeDofs);
-        solver.setupLinearSystem(A, rhs(freeDofs), u.data(freeDofs)');
+        solver.setupSystemMatrix(A);
+        solver.setupRhs(rhs(freeDofs), u.data(freeDofs)');
         
         % exact solution as reference
         tic;

@@ -29,9 +29,12 @@ classdef MGSolver < IterativeSolver
     %% methods
     methods (Access=public)        
         % initialize iteration
-        function setupLinearSystem(obj, A, b, x0)
-            setupLinearSystem@IterativeSolver(obj, A, b, x0);
-            
+        function setupSystemMatrix(obj, A)
+            setupSystemMatrix@IterativeSolver(obj, A);
+        end
+
+        function setupRhs(obj, b, x0)
+            setupRhs@IterativeSolver(obj, b, x0);
             % initialize residual & hierarchy
             obj.residual = b - obj.A*obj.x;
             [obj.Cresidual, obj.algEstimator] = obj.Vcycle(obj.residual);

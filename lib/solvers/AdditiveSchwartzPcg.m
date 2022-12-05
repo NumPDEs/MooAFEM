@@ -51,7 +51,31 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.intergridMatrix = [];
         end
         
-        function setupLinearSystem(obj, A, b, x0)
+        function setupSystemMatrix(obj, A)
+            mesh = obj.fes.mesh;
+            freeDofs = getFreeDofs(obj.fes);
+            patchAreas = computePatchAreas(mesh);
+            
+            if obj.nLevels == 0
+                % on coarsest level store whole matrix
+                obj.Acoarse = A;
+            else    
+                % find nodes where patch has changed to ensure that no node gets
+                % considered twice (new nodes are just appended)
+                obj.oldPatchAreas(mesh.nCoordinates) = 0;
+                stableNodes = abs(obj.oldPatchAreas - patchAreas) < 2*eps;
+                obj.intergridMatrix{obj.nLevels} = obj.P.matrix(freeDofs, obj.oldFreeDofs);
+                
+                % on every other level only store inverse of diagonal
+                % (only on free dofs and dofs where refinement happened;
+                % we heavily use that dofs and nodes coincide, here)
+                obj.D{obj.nLevels} = 1./full(diag(A));
+                obj.D{obj.nLevels}(stableNodes(freeDofs)) = 0;
+            end
+            
+            obj.oldFreeDofs = freeDofs;
+            obj.oldPatchAreas = patchAreas;
+>>>>>>> origin/feature-iterative-solvers
             obj.nLevels = obj.nLevels + 1;
 
             L = obj.nLevels;
@@ -75,7 +99,11 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 end
             end
             
-            setupLinearSystem@PcgSolver(obj, A, b, x0);
+            setupSystemMatrix@PcgSolver(obj, A);
+        end
+           
+        function setupRhs(obj, b, x0)
+            setupRhs@PcgSolver(obj, b, x0);
         end
         
         % preconditioner: inverse of diagonal on each level

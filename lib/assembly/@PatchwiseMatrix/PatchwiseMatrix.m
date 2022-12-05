@@ -12,6 +12,10 @@ classdef PatchwiseMatrix < handle
         global2freeDofs
     end
 
+    properties (Dependent)
+        nPatches
+    end
+
     methods (Access=public)
         function obj = PatchwiseMatrix(fes, data)
             obj.fes = fes;
@@ -33,6 +37,12 @@ classdef PatchwiseMatrix < handle
                 idx {mustBeIndexVector}
             end
             elements = vertcat(obj.patchElements{idx});
+        end
+    end
+
+    methods
+        function nPatches = get.nPatches(obj)
+            nPatches = numel(obj.patchwiseChol);
         end
     end
 
