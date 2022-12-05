@@ -15,16 +15,14 @@ classdef OptimalLocalMGSolver1pp < MGSolver
         blf
         hoFes
         loFes
-        p1Matrix
-        p1Smoother
         intergridMatrix
-        freeVertices
-        freeVerticesOld
         freeDofs
         freeDofsOld
         changedPatches
         highestOrderIsOne
         patchwiseA
+        Acoarse
+        Afine
         coarsemesh
         coarseLoFes
         coarseHoFes
@@ -49,9 +47,12 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             mesh = fes.mesh;
             
-            obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
+            obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', fes.bnd.dirichlet);
             obj.hoFes = fes;
             obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
+            obj.Afine = cell(1,1);
+            obj.Acoarse = assemble(obj.blf, obj.loFes);
+            obj.Acoarse = obj.Acoarse(getFreeDofs(obj.loFes), getFreeDofs(obj.loFes));
             
             % set up FE spaces on coarsest level for projection
             if ~obj.highestOrderIsOne
@@ -67,24 +68,14 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
-            obj.freeVerticesOld = obj.freeVertices;
-            obj.freeVertices = getFreeDofs(obj.loFes);
+            freeVertices = getFreeDofs(obj.loFes);
 
             obj.freeDofsOld = obj.freeDofs;
             obj.freeDofs = getFreeDofs(obj.hoFes);
-
-            
-            if obj.highestOrderIsOne
-                obj.p1Matrix{L} = A;
-            else
-                obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
-                obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
-            end
-            obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
             
             if L >= 2
                 obj.intergridMatrix{L} = P(obj.freeDofs, obj.freeDofsOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
+                obj.changedPatches{L} = find(obj.changedPatches{L}(freeVertices));
 
                 if ~obj.highestOrderIsOne
                   obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes);
@@ -115,16 +106,15 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             % descending cascade in Pp: no smoothing
             residual{L} = res;
-            ppmatrix{L} = obj.A;
+            obj.Afine{L} = obj.A;
             for k = L:-1:2
-                ppmatrix{k-1} = obj.intergridMatrix{k}'*ppmatrix{k}*obj.intergridMatrix{k};
                 residual{k-1} = obj.intergridMatrix{k}'*residual{k};
             end
 
             % coarse level in P1
             residual{1} = projectFromPto1(obj, residual{1});
-            sigma = obj.p1Matrix{1} \ residual{1};
-            algError2 = algError2 + scalarProduct(sigma, obj.p1Matrix{1}*sigma);
+            sigma = obj.Acoarse \ residual{1};
+            algError2 = algError2 + scalarProduct(sigma, obj.Acoarse*sigma);
 
             
             % ascending cascade in Pp 
@@ -132,25 +122,24 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             sigma = obj.intergridMatrix{2}*sigma;
             
             %level 2 : ALL patches are smoothed IF high-order
-            uptres = residual{2} - ppmatrix{2}*sigma;
+            uptres = residual{2} - obj.Afine{2}*sigma;
             if obj.highestOrderIsOne
                 rho = p1LocalSmoothing(obj, L, uptres); %FIX LATER: p=1 case
-            else 
-                %getPatchDofs(obj.patchwiseA{2}, 1)
+            else
                 rho = obj.patchwiseA{2} \ uptres;
             end
 
 
-            [aeUpd, sUpd] = computeOptimalUpdate(ppmatrix{2}, uptres, rho);
+            [aeUpd, sUpd] = computeOptimalUpdate(obj.Afine{2}, uptres, rho);
             sigma = sigma + sUpd;
             algError2 = algError2 + aeUpd;
             
             % under construction: ONLY modified patches are smoothed
             for k = 3:L
                 sigma = obj.intergridMatrix{k}*sigma;
-                uptres = residual{k} - ppmatrix{k}*sigma; %updated residual 
-                rho = obj.patchwiseA{k} \ uptres; %p1LocalSmoothing(obj, k, uptres);
-                [aeUpd, sUpd] = computeOptimalUpdate(ppmatrix{k}, uptres, rho);
+                uptres = residual{k} - obj.Afine{k}*sigma; %updated residual 
+                rho = obj.patchwiseA{k} \ uptres;
+                [aeUpd, sUpd] = computeOptimalUpdate(obj.Afine{k}, uptres, rho);
                 sigma = sigma + sUpd;
                 algError2 = algError2 + aeUpd;
             end
