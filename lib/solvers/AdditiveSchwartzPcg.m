@@ -21,7 +21,6 @@ classdef AdditiveSchwartzPcg < PcgSolver
         changedPatches
         highestOrderIsOne
         patchwiseA
-        D
     end
 
     properties (Access=private)
@@ -44,7 +43,6 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
             obj.hoFes = fes;
             obj.P = LoFeProlongation(obj.loFes);
-            obj.D = {};
             obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
@@ -52,32 +50,8 @@ classdef AdditiveSchwartzPcg < PcgSolver
         end
         
         function setupSystemMatrix(obj, A)
-            mesh = obj.fes.mesh;
-            freeDofs = getFreeDofs(obj.fes);
-            patchAreas = computePatchAreas(mesh);
-            
-            if obj.nLevels == 0
-                % on coarsest level store whole matrix
-                obj.Acoarse = A;
-            else    
-                % find nodes where patch has changed to ensure that no node gets
-                % considered twice (new nodes are just appended)
-                obj.oldPatchAreas(mesh.nCoordinates) = 0;
-                stableNodes = abs(obj.oldPatchAreas - patchAreas) < 2*eps;
-                obj.intergridMatrix{obj.nLevels} = obj.P.matrix(freeDofs, obj.oldFreeDofs);
-                
-                % on every other level only store inverse of diagonal
-                % (only on free dofs and dofs where refinement happened;
-                % we heavily use that dofs and nodes coincide, here)
-                obj.D{obj.nLevels} = 1./full(diag(A));
-                obj.D{obj.nLevels}(stableNodes(freeDofs)) = 0;
-            end
-            
-            obj.oldFreeDofs = freeDofs;
-            obj.oldPatchAreas = patchAreas;
->>>>>>> origin/feature-iterative-solvers
             obj.nLevels = obj.nLevels + 1;
-
+            
             L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
@@ -89,13 +63,13 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
             end
             obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
-
+            
             if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
+
                 if ~obj.highestOrderIsOne
                     obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
-                    obj.D{L} = full(diag(obj.patchwiseA{L})).^(-1);
                 end
             end
             
@@ -142,7 +116,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 rho = p1LocalSmoothing(obj, L, uptres);
             else
                 % finest level high-order patch-problems ONLY for p > 1
-                uptres = x - obj.A*sigma;
+                uptres = res - obj.A*sigma;
                 rho = hoGlobalSmoothing(obj, uptres);
             end
             sigma = sigma + rho;
@@ -191,4 +165,33 @@ classdef AdditiveSchwartzPcg < PcgSolver
             end
         end
     end
+end
+
+ %% auxiliary functions
+function interpolatedData = interpolateFreeData(data, fromFes, toFes)
+    freeDofs = getFreeDofs(toFes);
+    nComponents = size(data, 2);
+    interpolatedData = zeros(numel(freeDofs), nComponents);
+    feFunctionWrapper = FeFunction(fromFes);
+    for k = 1:nComponents
+        feFunctionWrapper.setFreeData(data(:,k));
+        wholeData = nodalInterpolation(feFunctionWrapper, toFes);
+        interpolatedData(:,k) = wholeData(freeDofs);
+    end
+end
+
+% error correction with optimal stepsize 
+function [etaUpdate, sigmaUpdate] = computeOptimalUpdate(A, res, rho)
+    rhoArho = scalarProduct(rho, A*rho);
+    lambda = scalarProduct(res, rho) ./ rhoArho;
+    sigmaUpdate = lambda.*rho;
+    etaUpdate = rhoArho.*(lambda.^2);
+
+    if any(lambda > 3)
+       warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
+    end
+end
+
+function a = scalarProduct(x, y)
+    a = sum(x.*y, 1);
 end
