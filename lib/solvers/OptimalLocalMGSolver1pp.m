@@ -17,8 +17,6 @@ classdef OptimalLocalMGSolver1pp < MGSolver
         loFes
         p1Matrix
         p1Smoother
-        P
-        Pinter
         intergridMatrix
         freeVertices
         freeVerticesOld
@@ -53,13 +51,12 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
             obj.hoFes = fes;
-            obj.P = LoFeProlongation(obj.loFes);
             obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
-        function setupSystemMatrix(obj, A, Pinter)
+        function setupSystemMatrix(obj, A, P)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -84,9 +81,8 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
             
             if L >= 2
-                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                obj.intergridMatrix{L} = P(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
-                obj.Pinter{L} = Pinter(obj.freeDofs, obj.freeDofsOld);
 
                 if ~obj.highestOrderIsOne
                   obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes);
@@ -119,8 +115,8 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             residual{L} = res;
             ppmatrix{L} = obj.A;
             for k = L:-1:2
-                ppmatrix{k-1} = obj.Pinter{k}'*ppmatrix{k}*obj.Pinter{k};
-                residual{k-1} = obj.Pinter{k}'*residual{k};
+                ppmatrix{k-1} = obj.intergridMatrix{k}'*ppmatrix{k}*obj.intergridMatrix{k};
+                residual{k-1} = obj.intergridMatrix{k}'*residual{k};
             end
 
             % coarse level in P1
@@ -131,7 +127,7 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             % ascending cascade in Pp 
             sigma = projectFrom1toP(obj, sigma);
-            sigma = obj.Pinter{2}*sigma;
+            sigma = obj.intergridMatrix{2}*sigma;
             
             %level 2 : ALL patches are smoothed IF high-order
             uptres = residual{2} - ppmatrix{2}*sigma;
@@ -149,7 +145,7 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             % under construction: ONLY modified patches are smoothed
             for k = 3:L
-                sigma = obj.Pinter{k}*sigma;
+                sigma = obj.intergridMatrix{k}*sigma;
                 uptres = residual{k} - ppmatrix{k}*sigma; %updated residual 
                 rho = obj.patchwiseA{k} \ uptres; %p1LocalSmoothing(obj, k, uptres);
                 [aeUpd, sUpd] = computeOptimalUpdate(ppmatrix{k}, uptres, rho);
@@ -207,7 +203,7 @@ end
 
 %% auxiliary functions
 
-function interpolatedData = interpolateFreeDatacoarse(data, fromFes, toFes, freeVer)
+function interpolatedData = interpolateFreeData(data, fromFes, toFes, freeVer)
     coarsemesh = Mesh.loadFromGeometry('Lshape');  %should be general depending which problem is used
     freeDofs = freeVer;
     nComponents = size(data, 2);
