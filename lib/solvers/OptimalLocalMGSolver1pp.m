@@ -26,8 +26,8 @@ classdef OptimalLocalMGSolver1pp < MGSolver
         highestOrderIsOne
         patchwiseA
         coarsemesh
-        freeVerticescoarse
-        freeDofscoarse
+        coarseLoFes
+        coarseHoFes
     end
     
     %% event data
@@ -53,6 +53,13 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             obj.hoFes = fes;
             obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
             
+            % set up FE spaces on coarsest level for projection
+            if ~obj.highestOrderIsOne
+                coarseMesh = clone(fes.mesh);
+                obj.coarseLoFes = FeSpace(coarseMesh, LowestOrderH1Fe, 'dirichlet', fes.bnd.dirichlet);
+                obj.coarseHoFes = FeSpace(coarseMesh, HigherOrderH1Fe(fes.finiteElement.order), 'dirichlet', fes.bnd.dirichlet);
+            end
+            
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
@@ -62,11 +69,6 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
-
-            if L == 1
-             obj.freeVerticescoarse = getFreeDofs(obj.loFes);
-             obj.freeDofscoarse = getFreeDofs(obj.hoFes);
-            end
 
             obj.freeDofsOld = obj.freeDofs;
             obj.freeDofs = getFreeDofs(obj.hoFes);
@@ -185,8 +187,7 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             if obj.highestOrderIsOne
                 y = x;
             else
-                %y = interpolateFreeData(x, obj.loFes, obj.hoFes, obj.freeVerticesOld);
-                y = interpolateFreeDatacoarse(x, obj.loFes, obj.hoFes, obj.freeDofscoarse);
+                y = interpolateCoarseFreeData(x, obj.coarseLoFes, obj.coarseHoFes);
             end
         end
         
@@ -194,36 +195,15 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             if obj.highestOrderIsOne
                 y = x;
             else
-                %y = interpolateFreeData(x, obj.hoFes, obj.loFes);
-                y = interpolateFreeDatacoarse(x, obj.hoFes, obj.loFes, obj.freeVerticescoarse);
+                y = interpolateCoarseFreeData(x, obj.coarseHoFes, obj.coarseLoFes);
             end
         end
     end
 end
 
 %% auxiliary functions
-
-function interpolatedData = interpolateFreeData(data, fromFes, toFes, freeVer)
-    coarsemesh = Mesh.loadFromGeometry('Lshape');  %should be general depending which problem is used
-    freeDofs = freeVer;
-    nComponents = size(data, 2);
-    interpolatedData = zeros(numel(freeDofs), nComponents);
-    
-
-        fromFescoarse = FeSpace(coarsemesh, HigherOrderH1Fe(fromFes.finiteElement.order), 'dirichlet', ':');
-        toFescoarse =  FeSpace(coarsemesh, HigherOrderH1Fe(toFes.finiteElement.order), 'dirichlet', ':');
-
-     feFunctionWrapper = FeFunction(fromFescoarse);
-    for k = 1:nComponents
-        feFunctionWrapper.setFreeData(data(:,k));
-        wholeData = nodalInterpolation(feFunctionWrapper, toFescoarse);
-        interpolatedData(:,k) = wholeData(freeDofs);
-    end
-end
-
-function interpolatedData = interpolateFreeData(data, fromFes, toFes)
+function interpolatedData = interpolateCoarseFreeData(data, fromFes, toFes)
     freeDofs = getFreeDofs(toFes);
-    getFreeDofs(obj.loFes);
     nComponents = size(data, 2);
     interpolatedData = zeros(numel(freeDofs), nComponents);
     feFunctionWrapper = FeFunction(fromFes);
