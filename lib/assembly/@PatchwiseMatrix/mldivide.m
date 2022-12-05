@@ -9,15 +9,9 @@ x = zeros(size(y));
 lower = struct('UT', true, 'TRANSA', true); 
 upper = struct('UT', true);
 
-% if obj.L == 2
-   vertices = 1:obj.nPatches;
-% else
-%    vertices = obj.V';
-% end
-
-for k = vertices %obj.V %1:obj.nPatches
+for k = 1:obj.nPatches
     U = obj.patchwiseChol{k};
-    idx = obj.global2freeDofs(obj.patchDofs{k});
+    idx = obj.patchesAsFreeDofs{k};
 
     % solve local patch problems (update is additive)
     update = linsolve(U, linsolve(U, y(idx,:), lower), upper);

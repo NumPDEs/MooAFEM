@@ -6,8 +6,9 @@ function buildLocalMatrixFactorization(obj, data)
 % since this operates only on free dofs, store global numbering
 freeDofs = getFreeDofs(obj.fes);
 dofs = getDofs(obj.fes);
-obj.global2freeDofs = zeros(dofs.nDofs, 1);
-obj.global2freeDofs(freeDofs) = 1:numel(freeDofs);
+global2freeDofs = zeros(dofs.nDofs, 1);
+global2freeDofs(freeDofs) = 1:numel(freeDofs);
+obj.patchesAsFreeDofs = cellfun(@(x) global2freeDofs(x), obj.patchDofs, 'UniformOutput', false);
 nDofsPerElement = size(dofs.element2Dofs, 1);
 
 % store cholesky decomposition of local matrices associated to patches

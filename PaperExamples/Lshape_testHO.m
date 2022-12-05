@@ -4,7 +4,7 @@
 % ******************************************************************************
 
 %% parameters
-nDofsMax = 1e5;
+nDofsMax = 1e4;
 theta = 0.5;
 pmax = 6; %FIX LATER: solver for p=1 case not working at the moment
 mu = 1e-5;

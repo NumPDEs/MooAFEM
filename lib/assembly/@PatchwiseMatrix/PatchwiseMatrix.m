@@ -3,15 +3,13 @@
 classdef PatchwiseMatrix < handle
     properties (GetAccess=public, SetAccess=protected)
         fes
-        patchwiseChol
-        L
-        V
     end
     
     properties (Access=protected)
         patchDofs
         patchElements
-        global2freeDofs
+        patchesAsFreeDofs
+        patchwiseChol
     end
 
     properties (Dependent)
@@ -19,12 +17,10 @@ classdef PatchwiseMatrix < handle
     end
 
     methods (Access=public)
-        function obj = PatchwiseMatrix(fes, data, L, V)
+        function obj = PatchwiseMatrix(fes, data)
             obj.fes = fes;
             [obj.patchDofs, obj.patchElements] = assemblePatchDofs(obj);
             obj.buildLocalMatrixFactorization(data);
-            obj.L = L;
-            obj.V = V;
         end
         
         function dofs = getPatchDofs(obj, idx)

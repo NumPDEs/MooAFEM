@@ -89,7 +89,7 @@ classdef OptimalLocalMGSolver1pp < MGSolver
                 obj.Pinter{L} = Pinter(obj.freeDofs, obj.freeDofsOld);
 
                 if ~obj.highestOrderIsOne
-                  obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, L, obj.changedPatches{L});
+                  obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes);
                 end
             end
             
