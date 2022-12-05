@@ -9,7 +9,7 @@ x = zeros(size(y));
 lower = struct('UT', true, 'TRANSA', true); 
 upper = struct('UT', true);
 
-for k = 1:obj.nPatches
+for k = obj.activePatches
     U = obj.patchwiseChol{k};
     idx = obj.patchesAsFreeDofs{k};
 

@@ -75,10 +75,14 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             if L >= 2
                 obj.intergridMatrix{L} = P(obj.freeDofs, obj.freeDofsOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(freeVertices));
+                obj.changedPatches{L} = freeVertices(obj.changedPatches{L}(freeVertices));
 
                 if ~obj.highestOrderIsOne
-                  obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes);
+                    if L == 2
+                        obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, ':');
+                    else
+                        obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, obj.changedPatches{L});
+                    end
                 end
             end
             
@@ -119,23 +123,8 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             
             % ascending cascade in Pp 
             sigma = projectFrom1toP(obj, sigma);
-            sigma = obj.intergridMatrix{2}*sigma;
             
-            %level 2 : ALL patches are smoothed IF high-order
-            uptres = residual{2} - obj.Afine{2}*sigma;
-            if obj.highestOrderIsOne
-                rho = p1LocalSmoothing(obj, L, uptres); %FIX LATER: p=1 case
-            else
-                rho = obj.patchwiseA{2} \ uptres;
-            end
-
-
-            [aeUpd, sUpd] = computeOptimalUpdate(obj.Afine{2}, uptres, rho);
-            sigma = sigma + sUpd;
-            algError2 = algError2 + aeUpd;
-            
-            % under construction: ONLY modified patches are smoothed
-            for k = 3:L
+            for k = 2:L
                 sigma = obj.intergridMatrix{k}*sigma;
                 uptres = residual{k} - obj.Afine{k}*sigma; %updated residual 
                 rho = obj.patchwiseA{k} \ uptres;

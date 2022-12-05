@@ -12,8 +12,8 @@ obj.patchesAsFreeDofs = cellfun(@(x) global2freeDofs(x), obj.patchDofs, 'Uniform
 nDofsPerElement = size(dofs.element2Dofs, 1);
 
 % store cholesky decomposition of local matrices associated to patches
-obj.patchwiseChol = cell(numel(obj.patchDofs), 1);
-for k = 1:numel(obj.patchDofs)
+obj.patchwiseChol = cell(obj.nPatches, 1);
+for k = obj.activePatches
     % get free dofs on patch and all dofs on patch
     pDofs = obj.patchDofs{k};
     n = numel(pDofs);

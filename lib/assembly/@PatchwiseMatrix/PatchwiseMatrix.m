@@ -3,6 +3,7 @@
 classdef PatchwiseMatrix < handle
     properties (GetAccess=public, SetAccess=protected)
         fes
+        activePatches
     end
     
     properties (Access=protected)
@@ -17,9 +18,17 @@ classdef PatchwiseMatrix < handle
     end
 
     methods (Access=public)
-        function obj = PatchwiseMatrix(fes, data)
+        function obj = PatchwiseMatrix(fes, data, patches)
+            arguments
+                fes FeSpace
+                data
+                patches {mustBeIndexVector}
+            end
+            
             obj.fes = fes;
             [obj.patchDofs, obj.patchElements] = assemblePatchDofs(obj);
+            idx = 1:obj.nPatches;
+            obj.activePatches = reshape(idx(patches), 1, []);
             obj.buildLocalMatrixFactorization(data);
         end
         
@@ -42,7 +51,7 @@ classdef PatchwiseMatrix < handle
 
     methods
         function nPatches = get.nPatches(obj)
-            nPatches = numel(obj.patchwiseChol);
+            nPatches = numel(obj.patchDofs);
         end
     end
 
