@@ -16,8 +16,8 @@ classdef AdditiveSchwartzPcg < PcgSolver
         p1Smoother
         P
         intergridMatrix
-        freeVertices
-        freeVerticesOld
+        freeDofs
+        freeDofsOld
         changedPatches
         highestOrderIsOne
         patchwiseA
@@ -46,30 +46,29 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
-            obj.intergridMatrix = [];
         end
         
         function setupSystemMatrix(obj, A)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
-            obj.freeVerticesOld = obj.freeVertices;
-            obj.freeVertices = getFreeDofs(obj.loFes);
+            obj.freeDofsOld = obj.freeDofs;
+            obj.freeDofs = getFreeDofs(obj.loFes);
             
             if obj.highestOrderIsOne
                 obj.p1Matrix{L} = A;
             else
                 obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
-                obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
+                obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeDofs, obj.freeDofs);
             end
             obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
             
             if L >= 2
-                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
 
                 if ~obj.highestOrderIsOne
-                    obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+                    obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes, ':');
                 end
             end
             
@@ -83,35 +82,33 @@ classdef AdditiveSchwartzPcg < PcgSolver
         % preconditioner: inverse of diagonal on each level
         function Cx = preconditionAction(obj, res)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
-            residual = cell(obj.nLevels, 1);
 
-            if obj.nLevels == 1
+            L = obj.nLevels;
+            rho = cell(L, 1);
+
+            if L == 1
                 Cx = obj.A \ res;
                 return
             end
-            
-            L = obj.nLevels;
 
             % descending cascade
-            residual{L} = res;
-
             if obj.highestOrderIsOne
-                rho{L} = p1LocalSmoothing(obj, L, residual{L});
+                rho{L} = p1LocalSmoothing(obj, L, res);
             else
                 %finest level high-order patch-problems ONLY for p > 1
+                % HERE BE BUGS!!!
                 rho{L} = hoGlobalSmoothing(obj, res);
             end
 
-
-            residual{L-1} = projectFromPto1(obj, res);
-            residual{L-1} = obj.intergridMatrix{L}'*residual{L-1};
+            residual = projectFromPto1(obj, res);
             for k = L-1:-1:2
-                rho{k} = p1LocalSmoothing(obj, k, residual{k});
-                residual{k-1} = obj.intergridMatrix{k}'*residual{k};
+                residual = obj.intergridMatrix{k+1}'*residual;
+                rho{k} = p1LocalSmoothing(obj, k, residual);
             end
             
             % exact solve on coarsest level
-            sigma = obj.p1Matrix{1} \ residual{1};
+            residual = obj.intergridMatrix{2}'*residual;
+            sigma = obj.p1Matrix{1} \ residual;
             
             % ascending cascade
             for k = 2:L-1
@@ -178,18 +175,6 @@ function interpolatedData = interpolateFreeData(data, fromFes, toFes)
         feFunctionWrapper.setFreeData(data(:,k));
         wholeData = nodalInterpolation(feFunctionWrapper, toFes);
         interpolatedData(:,k) = wholeData(freeDofs);
-    end
-end
-
-% error correction with optimal stepsize 
-function [etaUpdate, sigmaUpdate] = computeOptimalUpdate(A, res, rho)
-    rhoArho = scalarProduct(rho, A*rho);
-    lambda = scalarProduct(res, rho) ./ rhoArho;
-    sigmaUpdate = lambda.*rho;
-    etaUpdate = rhoArho.*(lambda.^2);
-
-    if any(lambda > 3)
-       warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
     end
 end
 
