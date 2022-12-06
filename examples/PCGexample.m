@@ -6,13 +6,13 @@
 %% parameters
 nDofsMax = 1e6;
 theta = 0.5;
-pmax = 5;
-mu = 0.1;
+pmax = 4;
+mu = 1e-1;
 
 %% initialization for every polynomial degree
 refError2 = cell(pmax,1);
 [nElem, nDofs, errEst, time, directSolveTime] = deal(zeros(pmax, 1000));
-for p = 1:pmax
+for p = 2:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
@@ -27,12 +27,12 @@ for p = 1:pmax
     blf.a = Constant(mesh, 1);
     blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
     
-    lf.f = MeshFunction(mesh, @(x) 1);
+    lf.f = Constant(mesh, 1);
     lf.qrf = QuadratureRule.ofOrder(2*p);
     
     %% set up solver and operator for nested iteration
     P = FeProlongation(fes);
-    solver = AdditiveSchwartzPcg(fes, blf);
+    solver = JacobiPcgSolver(fes, blf);
     solver.tol = 1e-8;
     solver.maxIter = 100;
     
@@ -55,15 +55,18 @@ for p = 1:pmax
         tic;
         x_ex = A \ rhs(freeDofs);
         directSolveTime(p, ell) = toc;
-        refError2{p} = [refError2{p}, (x_ex - solver.x)'*A*(x_ex - solver.x)];
 
         %% iterative solve
         solverIsConverged = false;
-        while ~all(solver.applyStoppingCriterion())
+        while ~solverIsConverged
             solver.step();
-            refError2{p} = [refError2{p}, (x_ex - solver.x)'*A*(x_ex - solver.x)];
+            jIncrementNorm = energyNorm(A, u.data(freeDofs)' - solver.x);
             u.setFreeData(solver.x);
             eta2 = estimate(blf, lf, u);
+            estimator = sqrt(sum(eta2));
+            
+            % adaptive stopping criterion with squares
+            solverIsConverged = all(jIncrementNorm < mu*estimator);
         end
         
         %% estimate error and store data
@@ -118,14 +121,15 @@ ylabel('t [s]')
 title('runtime over number of dofs')
 
 figure()
-for p = 1:pmax
-    idx = 1:numel(refError2{p});
-    semilogy(idx, refError2{p}, '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
-    hold on
+hold on
+for p = 2:pmax
+    idx = find(contraction(p, :) > 0);
+    semilogy(idx, contraction(p, idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
 end
 legend
-xlabel('# solver step')
-ylabel('difference to real solution')
+xlabel('#dofs')
+ylabel('alg contraction')
+title('alg contraction over number of dofs')
 
 %% local function for residual a posteriori error estimation
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
@@ -156,3 +160,8 @@ hT = sqrt(trafo.area);
 indicators = hT.^2 .* volumeResidual + ...
     hT .* sum(edgeResidual(mesh.element2edges), Dim.Vector);
 end
+
+function e = energyNorm(A, v)
+    e = sqrt(v' * A * v);
+end
+
