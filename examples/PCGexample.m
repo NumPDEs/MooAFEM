@@ -48,7 +48,8 @@ for p = 1:pmax
         
         freeDofs = getFreeDofs(fes);
         A = A(freeDofs,freeDofs);
-        solver.setupLinearSystem(A, rhs(freeDofs), u.data(freeDofs)');
+        solver.setupSystemMatrix(A)
+        solver.setupRhs(rhs(freeDofs), u.data(freeDofs)');
         
         % exact solution as reference
         tic;
