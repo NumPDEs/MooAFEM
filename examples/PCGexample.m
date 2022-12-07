@@ -6,13 +6,12 @@
 %% parameters
 nDofsMax = 1e6;
 theta = 0.5;
-pmax = 4;
-mu = 1e-1;
+pmax = 4; 
 
 %% initialization for every polynomial degree
 refError2 = cell(pmax,1);
 [nElem, nDofs, errEst, time, directSolveTime] = deal(zeros(pmax, 1000));
-for p = 2:pmax
+for p = 3:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
@@ -57,18 +56,10 @@ for p = 2:pmax
         directSolveTime(p, ell) = toc;
 
         %% iterative solve
-        solverIsConverged = false;
-        while ~solverIsConverged
-            solver.step();
-            jIncrementNorm = energyNorm(A, u.data(freeDofs)' - solver.x);
-            u.setFreeData(solver.x);
-            eta2 = estimate(blf, lf, u);
-            estimator = sqrt(sum(eta2));
-            
-            % adaptive stopping criterion with squares
-            solverIsConverged = all(jIncrementNorm < mu*estimator);
-        end
-        
+        solver.solve();
+        u.setFreeData(solver.x);
+        eta2 = estimate(blf, lf, u);
+        estimator = sqrt(sum(eta2));
         %% estimate error and store data
         nDofs(p,ell) = getDofs(fes).nDofs;
         errEst(p,ell) = sqrt(sum(eta2));
@@ -142,7 +133,7 @@ trafo = getAffineTransformation(mesh);
 % compute volume residual element-wise
 % For p=1, the diffusion term vanishes in the residual.
 if p == 1
-    f = lf.f;
+    f = CompositeFunction(@(f) f.^2, lf.f);
 else
     f = CompositeFunction(@(v,f) (v(1,:,:) + v(4,:,:) + f).^2, Hessian(u), lf.f);
 end
