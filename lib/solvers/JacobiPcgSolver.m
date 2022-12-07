@@ -7,8 +7,11 @@ classdef JacobiPcgSolver < PcgSolver
         C
         hoFes
         blf
+    end
 
-        highestOrderIsOne
+    properties (Access=private)
+        setupPreconditioner
+        apply
     end
     
     %% methods
@@ -20,22 +23,20 @@ classdef JacobiPcgSolver < PcgSolver
                 blf BilinearForm
             end
             obj = obj@PcgSolver();
-
-            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
-
             obj.hoFes = fes;
-            obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
-            
-            %obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
-        end
-        function setupSystemMatrix(obj, A)
-            
-            if obj.highestOrderIsOne
-                obj.C = full(diag(A)).^(-1);
+            obj.blf = blf;
+
+            if fes.finiteElement.order == 1
+                obj.setupPreconditioner = @(A, blf, hoFes) full(diag(A)).^(-1);
+                obj.apply = @(C, x) C .* x;
             else
-                obj.C = assemblePatchwise(obj.blf, obj.hoFes, ':');
+                obj.setupPreconditioner = @(A, blf, hoFes) assemblePatchwise(blf, hoFes, ':');
+                obj.apply = @(C, x) C \ x;
             end
-            
+        end
+
+        function setupSystemMatrix(obj, A)
+            obj.C = obj.setupPreconditioner(A, obj.blf, obj.hoFes);
             setupSystemMatrix@PcgSolver(obj, A);
         end
            
@@ -44,7 +45,7 @@ classdef JacobiPcgSolver < PcgSolver
         end
         
         function Cx = preconditionAction(obj, x)
-            Cx = obj.C \ x;
+            Cx = obj.apply(obj.C, x);
         end
     end
 end
