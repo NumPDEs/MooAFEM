@@ -38,7 +38,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
 P = FeProlongation(fes);
-solver = OptimalLocalMGSolver(fes, blf);
+solver = chooseIterativeSolver(fes, blf, 'multigrid');
 solver.tol = 1e-6;
 solver.maxIter = 100;
 

@@ -36,7 +36,7 @@ lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
 P = LoFeProlongation(fes);
-solver = AdditiveSchwartzPcg(P);
+solver = chooseIterativeSolver(fes, blf, 'pcg', 'additiveSchwarz');
 solver.tol = 1e-8;
 solver.maxIter = 1000;
 

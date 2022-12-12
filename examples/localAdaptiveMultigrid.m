@@ -32,7 +32,7 @@ for p = 1:pmax
     
     %% set up solver and operator for nested iteration
     P = FeProlongation(fes);
-    solver = OptimalLocalMGSolver(fes, blf);
+    solver = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
     solver.tol = 1e-8;
     solver.maxIter = 100;
     
