@@ -9,57 +9,68 @@ classdef AdditiveSchwartzPcg < PcgSolver
     end
     
     properties (Access=protected)
-        Acoarse
-        fine2coarse
-        intergridMatrix
-        oldFreeDofs
-        oldPatchAreas
-        fes
-        D
+        blf
+        hoFes
+        loFes
+        p1Matrix
+        p1Smoother
         P
+        intergridMatrix
+        freeDofs
+        freeDofsOld
+        changedPatches
+        highestOrderIsOne
+        patchwiseA
+    end
+
+    properties (Access=private)
+        listenerHandle
     end
     
     %% methods
     methods (Access=public)
-        function obj = AdditiveSchwartzPcg(P)
-            assert(isa(P, 'Prolongation'), 'P must be an instance of Prolongation')
-            assert(isa(P.fes.finiteElement, 'LowestOrderH1Fe'), 'Only lowest-order H1 finite elements are supported')
-            
+        function obj = AdditiveSchwartzPcg(fes, blf)
+            arguments
+                fes FeSpace
+                blf BilinearForm
+            end
             obj = obj@PcgSolver();
-            obj.fes = P.fes;
-            obj.P = P;
+            
+            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
             obj.nLevels = 0;
-            obj.fine2coarse = [];
-            obj.D = {};
-            obj.Acoarse = [];
-            obj.intergridMatrix = [];
+            
+            mesh = fes.mesh;
+            obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
+            obj.hoFes = fes;
+            obj.P = LoFeProlongation(obj.loFes);
+            obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
+            
+            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
         
         function setupSystemMatrix(obj, A)
-            mesh = obj.fes.mesh;
-            freeDofs = getFreeDofs(obj.fes);
-            patchAreas = computePatchAreas(mesh);
-            
-            if obj.nLevels == 0
-                % on coarsest level store whole matrix
-                obj.Acoarse = A;
-            else    
-                % find nodes where patch has changed to ensure that no node gets
-                % considered twice (new nodes are just appended)
-                obj.oldPatchAreas(mesh.nCoordinates) = 0;
-                stableNodes = abs(obj.oldPatchAreas - patchAreas) < 2*eps;
-                obj.intergridMatrix{obj.nLevels} = obj.P.matrix(freeDofs, obj.oldFreeDofs);
-                
-                % on every other level only store inverse of diagonal
-                % (only on free dofs and dofs where refinement happened;
-                % we heavily use that dofs and nodes coincide, here)
-                obj.D{obj.nLevels} = 1./full(diag(A));
-                obj.D{obj.nLevels}(stableNodes(freeDofs)) = 0;
-            end
-            
-            obj.oldFreeDofs = freeDofs;
-            obj.oldPatchAreas = patchAreas;
             obj.nLevels = obj.nLevels + 1;
+            
+            L = obj.nLevels;
+            obj.freeDofsOld = obj.freeDofs;
+            obj.freeDofs = getFreeDofs(obj.loFes);
+            
+            if obj.highestOrderIsOne
+                obj.p1Matrix{L} = A;
+            else
+                obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
+                obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeDofs, obj.freeDofs);
+            end
+            obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
+            
+            if L >= 2
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
+
+                if ~obj.highestOrderIsOne
+                    obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes, ':');
+                end
+            end
             
             setupSystemMatrix@PcgSolver(obj, A);
         end
@@ -69,25 +80,104 @@ classdef AdditiveSchwartzPcg < PcgSolver
         end
         
         % preconditioner: inverse of diagonal on each level
-        function Cx = preconditionAction(obj, x)
+        function Cx = preconditionAction(obj, res)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
-            y = cell(obj.nLevels, 1);
-            
+
+            L = obj.nLevels;
+            rho = cell(L, 1);
+
+            if L == 1
+                Cx = obj.A \ res;
+                return
+            end
+
             % descending cascade
-            for k = obj.nLevels-1:-1:1
-                y{k+1} = obj.D{k} .* x;
-                x = obj.intergridMatrix{k}'*x;
+            if obj.highestOrderIsOne
+                rho{L} = p1LocalSmoothing(obj, L, res);
+            else
+                %finest level high-order patch-problems ONLY for p > 1
+                % HERE BE BUGS!!!
+                rho{L} = hoGlobalSmoothing(obj, res);
+            end
+
+            residual = projectFromPto1(obj, res);
+            for k = L-1:-1:2
+                residual = obj.intergridMatrix{k+1}'*residual;
+                rho{k} = p1LocalSmoothing(obj, k, residual);
             end
             
             % exact solve on coarsest level
-            y{1} = obj.Acoarse \ x;
+            residual = obj.intergridMatrix{2}'*residual;
+            sigma = obj.p1Matrix{1} \ residual;
             
             % ascending cascade
-            for k = 1:obj.nLevels-1
-                y{k+1} = y{k+1} + obj.intergridMatrix{k}*y{k};
+            for k = 2:L-1
+                sigma = obj.intergridMatrix{k}*sigma;
+                sigma = sigma + rho{k};
             end
-            
-            Cx = y{end};
+            sigma = obj.intergridMatrix{L}*sigma;
+            sigma = projectFrom1toP(obj, sigma);
+            sigma = sigma + rho{L};
+           
+            Cx = sigma;
         end
     end
+
+    methods (Access=protected)
+        % callback function to be executed before mesh refinement:
+        % -> patches change for all vertices adjacent to refined edges and
+        %    all new vertices
+        function getChangedPatches(obj, mesh, bisecData)
+            nCOld = mesh.nCoordinates;
+            nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
+                bisecData.nRefinedElements'*bisecData.nInnerNodes;
+            bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
+            obj.changedPatches{obj.nLevels+1} = false(nCNew, 1);
+            idx = [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
+            obj.changedPatches{obj.nLevels+1}(idx) = true;
+        end
+        
+        function rho = p1LocalSmoothing(obj, k, res)
+            idx = obj.changedPatches{k};
+            rho = zeros(size(res));
+            rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
+        end
+        
+        function rho = hoGlobalSmoothing(obj, res)
+            rho = obj.patchwiseA \ res;
+        end
+        
+        function y = projectFrom1toP(obj, x)
+            if obj.highestOrderIsOne
+                y = x;
+            else
+                y = interpolateFreeData(x, obj.loFes, obj.hoFes);
+            end
+        end
+        
+        function y = projectFromPto1(obj, x)
+            if obj.highestOrderIsOne
+                y = x;
+            else
+                y = interpolateFreeData(x, obj.hoFes, obj.loFes);
+            end
+        end
+    end
+end
+
+ %% auxiliary functions
+function interpolatedData = interpolateFreeData(data, fromFes, toFes)
+    freeDofs = getFreeDofs(toFes);
+    nComponents = size(data, 2);
+    interpolatedData = zeros(numel(freeDofs), nComponents);
+    feFunctionWrapper = FeFunction(fromFes);
+    for k = 1:nComponents
+        feFunctionWrapper.setFreeData(data(:,k));
+        wholeData = nodalInterpolation(feFunctionWrapper, toFes);
+        interpolatedData(:,k) = wholeData(freeDofs);
+    end
+end
+
+function a = scalarProduct(x, y)
+    a = sum(x.*y, 1);
 end
