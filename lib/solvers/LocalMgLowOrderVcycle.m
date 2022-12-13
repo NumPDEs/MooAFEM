@@ -5,7 +5,7 @@
 %
 % With the solver comes an 
 
-classdef OptimalLocalMGSolver < MGSolver
+classdef LocalMgLowOrderVcycle < MGSolver
     %% properties
     properties (GetAccess=public,SetAccess=protected)
         nLevels
@@ -33,7 +33,7 @@ classdef OptimalLocalMGSolver < MGSolver
 
     %% methods
     methods (Access=public)
-        function obj = OptimalLocalMGSolver(fes, blf)
+        function obj = LocalMgLowOrderVcycle(fes, blf)
             arguments
                 fes FeSpace
                 blf BilinearForm

@@ -5,7 +5,7 @@
 %
 % With the solver comes an 
 
-classdef OptimalLocalMGSolver1pp < MGSolver
+classdef LocalMgHighOrderVcycle < MGSolver
     %% properties
     properties (GetAccess=public,SetAccess=protected)
         nLevels
@@ -15,15 +15,14 @@ classdef OptimalLocalMGSolver1pp < MGSolver
         blf
         hoFes
         loFes
+        P
         intergridMatrix
         freeDofs
         freeDofsOld
         changedPatches
-        highestOrderIsOne
         patchwiseA
         Acoarse
         Afine
-        coarsemesh
         coarseLoFes
         coarseHoFes
     end
@@ -35,36 +34,39 @@ classdef OptimalLocalMGSolver1pp < MGSolver
 
     %% methods
     methods (Access=public)
-        function obj = OptimalLocalMGSolver1pp(fes, blf)
+        function obj = LocalMgHighOrderVcycle(fes, blf, P)
             arguments
                 fes FeSpace
                 blf BilinearForm
+                P Prolongation
             end
             obj = obj@MGSolver();
             
-            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
+            assert(fes.finiteElement.order > 1, ...
+                'LocalMgLowOrderVcycle only works for higher order finite elements.')
+            assert(isempty(blf.b), ...
+                'Multigrid solvers only tested for symmetric problems.')
+            
             obj.nLevels = 0;
             
             mesh = fes.mesh;
-            
+            obj.P = P;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', fes.bnd.dirichlet);
             obj.hoFes = fes;
-            obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
+            obj.blf = blf;
             obj.Afine = cell(1,1);
             obj.Acoarse = assemble(obj.blf, obj.loFes);
             obj.Acoarse = obj.Acoarse(getFreeDofs(obj.loFes), getFreeDofs(obj.loFes));
             
             % set up FE spaces on coarsest level for projection
-            if ~obj.highestOrderIsOne
-                coarseMesh = clone(fes.mesh);
-                obj.coarseLoFes = FeSpace(coarseMesh, LowestOrderH1Fe, 'dirichlet', fes.bnd.dirichlet);
-                obj.coarseHoFes = FeSpace(coarseMesh, HigherOrderH1Fe(fes.finiteElement.order), 'dirichlet', fes.bnd.dirichlet);
-            end
+            coarseMesh = clone(fes.mesh);
+            obj.coarseLoFes = FeSpace(coarseMesh, LowestOrderH1Fe, 'dirichlet', fes.bnd.dirichlet);
+            obj.coarseHoFes = FeSpace(coarseMesh, HigherOrderH1Fe(fes.finiteElement.order), 'dirichlet', fes.bnd.dirichlet);
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
-        function setupSystemMatrix(obj, A, P)
+        function setupSystemMatrix(obj, A)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -74,23 +76,21 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             obj.freeDofs = getFreeDofs(obj.hoFes);
             
             if L >= 2
-                obj.intergridMatrix{L} = P(obj.freeDofs, obj.freeDofsOld);
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = freeVertices(obj.changedPatches{L}(freeVertices));
 
-                if ~obj.highestOrderIsOne
-                    if L == 2
-                        obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, ':');
-                    else
-                        obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, obj.changedPatches{L});
-                    end
+                if L == 2
+                    obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, ':');
+                else
+                    obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, obj.changedPatches{L});
                 end
             end
             
             setupSystemMatrix@MGSolver(obj, A);
         end
 
-        function setupRhs(obj, b, x0)
-            setupRhs@MGSolver(obj, b, x0);
+        function setupRhs(obj, b, varargin)
+            setupRhs@MGSolver(obj, b, varargin{:});
         end
 
         % Geometric MultiGrid
@@ -108,7 +108,7 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             L = obj.nLevels;
             algError2 = zeros(1, size(res, 2)); % built-in estimator of the algebraic error
             
-            % descending cascade in Pp: no smoothing
+            % descending cascade in p: no smoothing
             residual{L} = res;
             obj.Afine{L} = obj.A;
             for k = L:-1:2
@@ -116,13 +116,12 @@ classdef OptimalLocalMGSolver1pp < MGSolver
             end
 
             % coarse level in P1
-            residual{1} = projectFromPto1(obj, residual{1});
+            residual{1} = interpolateCoarseFreeData(residual{1}, obj.coarseHoFes, obj.coarseLoFes);
             sigma = obj.Acoarse \ residual{1};
             algError2 = algError2 + scalarProduct(sigma, obj.Acoarse*sigma);
-
             
             % ascending cascade in Pp 
-            sigma = projectFrom1toP(obj, sigma);
+            sigma = interpolateCoarseFreeData(sigma, obj.coarseLoFes, obj.coarseHoFes);
             
             for k = 2:L
                 sigma = obj.intergridMatrix{k}*sigma;
@@ -159,22 +158,6 @@ classdef OptimalLocalMGSolver1pp < MGSolver
         
         function rho = hoGlobalSmoothing(obj, res)
             rho = obj.patchwiseA \ res;
-        end
-        
-        function y = projectFrom1toP(obj, x)
-            if obj.highestOrderIsOne
-                y = x;
-            else
-                y = interpolateCoarseFreeData(x, obj.coarseLoFes, obj.coarseHoFes);
-            end
-        end
-        
-        function y = projectFromPto1(obj, x)
-            if obj.highestOrderIsOne
-                y = x;
-            else
-                y = interpolateCoarseFreeData(x, obj.coarseHoFes, obj.coarseLoFes);
-            end
         end
     end
 end

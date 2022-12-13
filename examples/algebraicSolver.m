@@ -33,8 +33,7 @@ for p = 1:pmax
     % choose the iterative solver of choice: multigrid (with the variants
     % lowOrderVcycle and highOrderVcycle), pcg (with jacobi and additive
     % Schwarz preconditioner), and the cg solver
-    P = FeProlongation(fes);
-    solver = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
+    [solver, P] = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
     solver.tol = 1e-8;
     solver.maxIter = 100;
 

@@ -37,8 +37,7 @@ lfG.f = MeshFunction(mesh, @(x) lorentzian(x, [0.2;0.3], 1e-2));
 lfG.qrf = QuadratureRule.ofOrder(2*p);
 
 %% set up solver and lifting operator for nested iteration
-P = FeProlongation(fes);
-solver = chooseIterativeSolver(fes, blf, 'multigrid');
+[solver, P] = chooseIterativeSolver(fes, blf, 'multigrid');
 solver.tol = 1e-6;
 solver.maxIter = 100;
 

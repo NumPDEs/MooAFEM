@@ -1,6 +1,7 @@
-% chooseIterativeSolver Return suitable subclass of IterativeSolver.
+% chooseIterativeSolver Return suitable solver (instance of subclass of
+%   IterativeSolver) and suitable Prolongation P.
 
-function solver = chooseIterativeSolver(fes, blf, class, variant)
+function [solver, P] = chooseIterativeSolver(fes, blf, class, variant)
 arguments
     fes FeSpace
     blf BilinearForm
@@ -9,6 +10,9 @@ arguments
         "jacobi", "additiveSchwarz", ...
         "lowOrderVcycle", "highOrderVcycle"])} = ""
 end
+
+order = fes.finiteElement.order;
+P = Prolongation.chooseFor(fes);
 
 switch class
     % non-preconditioned CG
@@ -31,9 +35,11 @@ switch class
     case "multigrid"
         switch variant
             case {"", "lowOrderVcycle"}
-                solver = OptimalLocalMGSolver(fes, blf);
+                if order == 1, solver = LowestOrderLocalMg(fes, blf);
+                else, solver = LocalMgLowOrderVcycle(fes, blf); end
             case "highOrderVcycle"
-                solver = OptimalLocalMGSolver1pp(fes, blf);
+                if order == 1, solver = LowestOrderLocalMg(fes, blf);
+                else, solver = LocalMgHighOrderVcycle(fes, blf, P); end
             otherwise
                 error('No multigrid variant %s!', variant)
         end
