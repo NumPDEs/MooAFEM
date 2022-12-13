@@ -45,7 +45,8 @@ classdef MGSolver < IterativeSolver
         % stopping criterion
         function tf = isConverged(obj)
             tf = ((obj.iterationCount >= obj.maxIter) ...
-                        | (sqrt(obj.residualCNorm)./obj.normb < obj.tol));  
+                        | (sqrt(obj.residualCNorm) < obj.tol) ...
+                        | (sqrt(obj.residualCNorm)./obj.normb < obj.tol)); 
         end
     end
         
