@@ -18,3 +18,4 @@ slprj/
 
 # Simulink autosave extension
 .autosave
+**/.DS_Store

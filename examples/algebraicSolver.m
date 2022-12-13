@@ -1,40 +1,44 @@
 % ******************************************************************************
-% Adaptive FEM algorithm with known solution and convergence rates for higher
-% order finite elements.
+% Prototypical AFEM example with iterative solver for higher order finite
+% elements.
 % ******************************************************************************
 
 %% parameters
 nDofsMax = 1e4;
 theta = 0.5;
-pmax = 4; 
+pmax = 4;
+lamalg = 0.1;
 
 %% initialization for every polynomial degree
-refError2 = cell(pmax,1);
 [nElem, nDofs, errEst, time, directSolveTime] = deal(zeros(pmax, 1000));
-for p = 3:pmax
+
+for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
     fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
     u = FeFunction(fes);
     u.setData(0);
-    
+
     %% set problem data for -\Delta u = 1 on L-shape
     blf = BilinearForm();
     lf = LinearForm();
-    
+
     blf.a = Constant(mesh, 1);
     blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
-    
+
     lf.f = Constant(mesh, 1);
     lf.qrf = QuadratureRule.ofOrder(2*p);
-    
+
     %% set up solver and operator for nested iteration
+    % choose the iterative solver of choice: multigrid (with the variants
+    % lowOrderVcycle and highOrderVcycle), pcg (with jacobi and additive
+    % Schwarz preconditioner), and the cg solver
     P = FeProlongation(fes);
-    solver = chooseIterativeSolver(fes, blf, 'pcg', 'jacobi');
+    solver = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
     solver.tol = 1e-8;
     solver.maxIter = 100;
-    
+
     %% adaptive loop
     ell = 0;
     meshSufficientlyFine = false;
@@ -44,32 +48,39 @@ for p = 3:pmax
         ell = ell + 1;
         A = assemble(blf, fes);
         rhs = assemble(lf, fes);
-        
+
         freeDofs = getFreeDofs(fes);
         A = A(freeDofs,freeDofs);
-        solver.setupSystemMatrix(A)
+        solver.setupSystemMatrix(A);
         solver.setupRhs(rhs(freeDofs), u.data(freeDofs)');
-        
+
         % exact solution as reference
         tic;
         x_ex = A \ rhs(freeDofs);
         directSolveTime(p, ell) = toc;
-
+        
         %% iterative solve
+        % solver.solve() implements the algebraic solver loop and
+        % terminates automatically once the wanted accuracy is reached
+        % Another option is to manually implement a loop and implement one
+        % solver step with solver.step() and stop by setting a stopping
+        % criterion
         solver.solve();
-        u.setFreeData(solver.x);
+        u.setFreeData(solver.x)
         eta2 = estimate(blf, lf, u);
         estimator = sqrt(sum(eta2));
+
         %% estimate error and store data
         nDofs(p,ell) = getDofs(fes).nDofs;
-        errEst(p,ell) = sqrt(sum(eta2));
+        errEst(p,ell) = estimator;
+        cost(p, ell) = nDofs(p, ell) .* solver.iterationCount();
         nElem(p,ell) = mesh.nElements;
         printLogMessage('number of dofs: %d, estimator: %.2e after %d iterations', ...
             nDofs(p,ell), errEst(p,ell), solver.iterationCount);
-        
+
         %% stoping criterion
         meshSufficientlyFine = (nDofs(p,ell) > nDofsMax);
-        
+
         %% refine mesh
         if ~meshSufficientlyFine
             marked = markDoerflerSorting(eta2, theta);
@@ -80,47 +91,22 @@ for p = 3:pmax
     end
 end
 
-%% plot convergence rates
 figure()
 for p = 1:pmax
     idx = find(nDofs(p,:) > 0);
-    loglog(nDofs(p,idx), errEst(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
+    complexity = [cumsum(cost(p, idx))];
+    loglog(complexity, errEst(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
     hold on
 end
 for p = unique([1,pmax])
-    x = nDofs(p,idx) / nDofs(p,1);
-    loglog(nDofs(p,1)*x, errEst(p,1)*x.^(-p/2), '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', ['\alpha = ', num2str(p), '/2'])
+    x = complexity / complexity(1);
+    loglog(complexity(1)*x, errEst(p,1)*x.^(-p/2), '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', ['\alpha = ', num2str(p), '/2'])
 end
 legend
 xlabel('#T_k')
 ylabel('\eta')
-title('error estimator over number of dofs')
+title('error estimator over number of total computational cost')
 
-figure()
-for p = 1:pmax
-    idx = find(nDofs(p,:) > 0);
-    loglog(nDofs(p,idx), directSolveTime(p,idx)./nDofs(p,idx), '-^', 'LineWidth', 2, 'DisplayName', ['[direct solve] p=',num2str(p)]);
-    hold on
-    remainder = time(p,idx)-directSolveTime(p,idx);
-    loglog(nDofs(p,idx), remainder./nDofs(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['[everything else] p=',num2str(p)]);
-end
-x = nDofs(p,idx) / nDofs(p,1);
-loglog(nDofs(p,1)*x, directSolveTime(p,1)*x./x, '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', '\alpha = 1')
-legend
-xlabel('#T_k')
-ylabel('t [s]')
-title('runtime over number of dofs')
-
-figure()
-hold on
-for p = 2:pmax
-    idx = find(contraction(p, :) > 0);
-    semilogy(idx, contraction(p, idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
-end
-legend
-xlabel('#dofs')
-ylabel('alg contraction')
-title('alg contraction over number of dofs')
 
 %% local function for residual a posteriori error estimation
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
@@ -155,4 +141,3 @@ end
 function e = energyNorm(A, v)
     e = sqrt(v' * A * v);
 end
-
