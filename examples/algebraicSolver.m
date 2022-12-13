@@ -10,7 +10,7 @@ pmax = 4;
 lamalg = 0.1;
 
 %% initialization for every polynomial degree
-[nElem, nDofs, errEst, time, directSolveTime] = deal(zeros(pmax, 1000));
+[nElem, nDofs, errEst, iterations, time, directSolveTime] = deal(zeros(pmax, 1000));
 for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
@@ -78,7 +78,7 @@ for p = 1:pmax
         %% estimate error and store data
         nDofs(p,ell) = getDofs(fes).nDofs;
         errEst(p,ell) = estimator;
-        cost(p, ell) = nDofs(p, ell) .* solver.iterationCount();
+        iterations(p, ell) = solver.iterationCount();
         nElem(p,ell) = mesh.nElements;
         printLogMessage('number of dofs: %d, estimator: %.2e after %d iterations', ...
             nDofs(p,ell), errEst(p,ell), solver.iterationCount);
@@ -99,7 +99,7 @@ end
 figure()
 for p = 1:pmax
     idx = find(nDofs(p,:) > 0);
-    complexity = [cumsum(cost(p, idx))];
+    complexity = [cumsum(nDofs(p, idx) .* iterations(p, idx))];
     loglog(complexity, errEst(p,idx), '-o', 'LineWidth', 2, 'DisplayName', ['p=',num2str(p)]);
     hold on
 end
@@ -141,8 +141,4 @@ edgeResidual = integrateNormalJump(Gradient(u), qr, ...
 hT = sqrt(trafo.area);
 indicators = hT.^2 .* volumeResidual + ...
     hT .* sum(edgeResidual(mesh.element2edges), Dim.Vector);
-end
-
-function e = energyNorm(A, v)
-    e = sqrt(v' * A * v);
 end
