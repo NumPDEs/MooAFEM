@@ -96,12 +96,7 @@ end
 methods (Access=private)
     function refineAndInterpolate(~, mesh, fes, v, val)
         v.setData(val);
-        if isa(fes.finiteElement, 'LowestOrderH1Fe') ...
-            || isa(fes.finiteElement, 'LowestOrderL2Fe')
-            P = LoFeProlongation(fes);
-        else
-            P = FeProlongation(fes);
-        end
+        P = Prolongation.chooseFor(fes);
         mesh.refineUniform();
         v.setData(prolongate(P, v));
     end

@@ -34,6 +34,17 @@ classdef Prolongation < handle
         end
     end
     
+    methods (Static, Access=public)
+        function P = chooseFor(fes)
+            if isa(fes.finiteElement, 'LowestOrderH1Fe') ...
+                    || isa(fes.finiteElement, 'LowestOrderL2Fe')
+                P = LoFeProlongation(fes);
+            else
+                P = FeProlongation(fes);
+            end
+        end
+    end
+    
     methods (Abstract, Access=protected)
         setupMatrix(obj, src, event)
     end
