@@ -103,7 +103,7 @@ for p = unique([1,pmax])
     loglog(complexity(1)*x, errEst(p,1)*x.^(-p/2), '--', 'LineWidth', 2, 'Color', 'k', 'DisplayName', ['\alpha = ', num2str(p), '/2'])
 end
 legend
-xlabel('#T_k')
+xlabel('computational cost')
 ylabel('\eta')
 title('error estimator over number of total computational cost')
 
