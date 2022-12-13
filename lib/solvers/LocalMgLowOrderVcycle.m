@@ -22,7 +22,6 @@ classdef LocalMgLowOrderVcycle < MGSolver
         freeVertices
         freeVerticesOld
         changedPatches
-        highestOrderIsOne
         patchwiseA
     end
     
@@ -40,14 +39,18 @@ classdef LocalMgLowOrderVcycle < MGSolver
             end
             obj = obj@MGSolver();
             
-            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
+            assert(fes.finiteElement.order > 1, ...
+                'LocalMgLowOrderVcycle only works for higher order finite elements.')
+            assert(isempty(blf.b), ...
+                'Multigrid solvers only tested for symmetric problems.')
+            
             obj.nLevels = 0;
             
             mesh = fes.mesh;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', ':');
             obj.hoFes = fes;
-            obj.P = LoFeProlongation(obj.loFes);
-            obj.blf = blf; % TODO: check coefficients of blf for compatibility with theoretical results!
+            obj.P = Prolongation.chooseFor(obj.loFes);
+            obj.blf = blf;
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
@@ -59,27 +62,20 @@ classdef LocalMgLowOrderVcycle < MGSolver
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
             
-            if obj.highestOrderIsOne
-                obj.p1Matrix{L} = A;
-            else
-                obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
-                obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
-            end
+            obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
+            obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
             obj.p1Smoother{L} = full(diag(obj.p1Matrix{L})).^(-1);
             
             if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
-
-                if ~obj.highestOrderIsOne
-                    obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
-                end
+                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
             end
             setupSystemMatrix@MGSolver(obj, A);
         end
 
-        function setupRhs(obj, b, x0)
-            setupRhs@MGSolver(obj, b, x0);
+        function setupRhs(obj, b, varargin)
+            setupRhs@MGSolver(obj, b, varargin{:});
         end
 
         % Geometric MultiGrid
@@ -98,7 +94,7 @@ classdef LocalMgLowOrderVcycle < MGSolver
             algError2 = zeros(1, size(res, 2)); % built-in estimator of the algebraic error
             
             % descending cascade in P1: no smoothing
-            residual{L} = projectFromPto1(obj, res);
+            residual{L} = interpolateFreeData(res, obj.hoFes, obj.loFes);
             for k = L:-1:2
                 residual{k-1}  = obj.intergridMatrix{k}'*residual{k};
             end
@@ -120,15 +116,9 @@ classdef LocalMgLowOrderVcycle < MGSolver
             
             % smoothing on finest level dependent on p
             sigma = obj.intergridMatrix{L}*sigma;
-            sigma = projectFrom1toP(obj, sigma);
-            if obj.highestOrderIsOne
-                uptres = residual{L} - obj.A*sigma;
-                rho = p1LocalSmoothing(obj, L, uptres);
-            else
-                % finest level high-order patch-problems ONLY for p > 1
-                uptres = res - obj.A*sigma;
-                rho = hoGlobalSmoothing(obj, uptres);
-            end
+            sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
+            uptres = res - obj.A*sigma;
+            rho = hoGlobalSmoothing(obj, uptres);
             [aeUpd, sUpd] = computeOptimalUpdate(obj.A, uptres, rho);
             sigma = sigma + sUpd;
             algError2 = algError2 + aeUpd;
@@ -159,22 +149,6 @@ classdef LocalMgLowOrderVcycle < MGSolver
         
         function rho = hoGlobalSmoothing(obj, res)
             rho = obj.patchwiseA \ res;
-        end
-        
-        function y = projectFrom1toP(obj, x)
-            if obj.highestOrderIsOne
-                y = x;
-            else
-                y = interpolateFreeData(x, obj.loFes, obj.hoFes);
-            end
-        end
-        
-        function y = projectFromPto1(obj, x)
-            if obj.highestOrderIsOne
-                y = x;
-            else
-                y = interpolateFreeData(x, obj.hoFes, obj.loFes);
-            end
         end
     end
 end

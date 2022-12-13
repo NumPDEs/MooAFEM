@@ -34,7 +34,7 @@ for p = 1:pmax
     % lowOrderVcycle and highOrderVcycle), pcg (with jacobi and additive
     % Schwarz preconditioner), and the cg solver
     [solver, P] = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
-    solver.tol = 1e-8;
+    solver.tol = 1e-6;
     solver.maxIter = 100;
 
     %% adaptive loop

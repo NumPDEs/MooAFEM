@@ -22,8 +22,8 @@ classdef PcgSolver < IterativeSolver
             setupSystemMatrix@IterativeSolver(obj, A);
         end
         
-        function setupRhs(obj, b, x0)
-            setupRhs@IterativeSolver(obj, b, x0);
+        function setupRhs(obj, b, varargin)
+            setupRhs@IterativeSolver(obj, b, varargin{:});
             
             % initialize residual & search direction
             obj.residual = b - obj.A*obj.x;

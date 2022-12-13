@@ -75,8 +75,8 @@ classdef AdditiveSchwartzPcg < PcgSolver
             setupSystemMatrix@PcgSolver(obj, A);
         end
            
-        function setupRhs(obj, b, x0)
-            setupRhs@PcgSolver(obj, b, x0);
+        function setupRhs(obj, b, varargin)
+            setupRhs@PcgSolver(obj, b, varargin{:});
         end
         
         % preconditioner: inverse of diagonal on each level
@@ -96,7 +96,6 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 rho{L} = p1LocalSmoothing(obj, L, res);
             else
                 %finest level high-order patch-problems ONLY for p > 1
-                % HERE BE BUGS!!!
                 rho{L} = hoGlobalSmoothing(obj, res);
             end
 
@@ -176,8 +175,4 @@ function interpolatedData = interpolateFreeData(data, fromFes, toFes)
         wholeData = nodalInterpolation(feFunctionWrapper, toFes);
         interpolatedData(:,k) = wholeData(freeDofs);
     end
-end
-
-function a = scalarProduct(x, y)
-    a = sum(x.*y, 1);
 end

@@ -149,16 +149,6 @@ classdef LocalMgHighOrderVcycle < MGSolver
             idx = [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
             obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
-        
-        function rho = p1LocalSmoothing(obj, k, res)
-            idx = obj.changedPatches{k};
-            rho = zeros(size(res));
-            rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
-        end
-        
-        function rho = hoGlobalSmoothing(obj, res)
-            rho = obj.patchwiseA \ res;
-        end
     end
 end
 

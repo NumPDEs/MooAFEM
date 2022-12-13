@@ -40,8 +40,8 @@ classdef JacobiPcgSolver < PcgSolver
             setupSystemMatrix@PcgSolver(obj, A);
         end
            
-        function setupRhs(obj, b, x0)
-            setupRhs@PcgSolver(obj, b, x0);
+        function setupRhs(obj, b, varargin)
+            setupRhs@PcgSolver(obj, b, varargin{:});
         end
         
         function Cx = preconditionAction(obj, x)
