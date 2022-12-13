@@ -29,7 +29,7 @@ methods (Test)
             solver.setupRhs(rhs(freeDofs), u.data(freeDofs)');
             exact = A \ rhs(freeDofs);
             solver.solve();
-            norm(ell) = (exact - solver.x)' * A * (exact - solver.x);
+            norm(ell) = sqrt((exact - solver.x)' * A * (exact - solver.x));
         end
         normDifference = norm(1) - norm(2);
         testCase.verifyGreaterThan(normDifference, 0, 'RelTol', 10*eps);
