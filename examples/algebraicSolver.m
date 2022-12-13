@@ -11,7 +11,6 @@ lamalg = 0.1;
 
 %% initialization for every polynomial degree
 [nElem, nDofs, errEst, time, directSolveTime] = deal(zeros(pmax, 1000));
-
 for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
@@ -65,10 +64,16 @@ for p = 1:pmax
         % Another option is to manually implement a loop and implement one
         % solver step with solver.step() and stop by setting a stopping
         % criterion
-        solver.solve();
-        u.setFreeData(solver.x)
-        eta2 = estimate(blf, lf, u);
-        estimator = sqrt(sum(eta2));
+        solverIsConverged = false;
+        while ~solverIsConverged
+            solver.step();
+            u.setFreeData(solver.x)
+            eta2 = estimate(blf, lf, u);
+            estimator = sqrt(sum(eta2));
+            solver.tol = lamalg*estimator;
+            solverIsConverged = solver.isConverged;
+        end
+        
 
         %% estimate error and store data
         nDofs(p,ell) = getDofs(fes).nDofs;
