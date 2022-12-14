@@ -5,80 +5,94 @@
 %% paramters
 nDofsMax = 1e4;
 theta = 0.5;
+pmax = 4;
+lamalg = 0.1;
 
 %% setup geometry & spaces
 [nElem, nDofs, nIterPrimal, nIterDual, goalErrEst] = deal(zeros(1, 1000));
-p = 1;
 
-printLogMessage('*** GOAFEM with p = %d and iterative solver ***', p)
-mesh = Mesh.loadFromGeometry('unitsquare');
-mesh.refineUniform(1, 'RGB');
-fes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', ':');
-u = FeFunction(fes);
-z = FeFunction(fes);
-u.setData(0);
-z.setData(0);
+for p = 1:pmax
+    printLogMessage('*** GOAFEM with p = %d and iterative solver ***', p)
+    mesh = Mesh.loadFromGeometry('unitsquare');
+    mesh.refineUniform(1, 'RGB');
+    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
+    u = FeFunction(fes);
+    z = FeFunction(fes);
+    u.setData(0);
+    z.setData(0);
 
-%% set problem data
-% primal: -\Delta u = "lorentzian peak 1"
-% dual:   -\Delta z = "lorentzian peak 2"
-blf = BilinearForm();
-blf.a = Constant(mesh, 1);
-blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
+    %% set problem data
+    % primal: -\Delta u = "lorentzian peak 1"
+    % dual:   -\Delta z = "lorentzian peak 2"
+    blf = BilinearForm();
+    blf.a = Constant(mesh, 1);
+    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
 
-lfF = LinearForm();
-lfF.f = MeshFunction(mesh, @(x) lorentzian(x, [0.7;0.7], 1e-1));
-lfF.qrf = QuadratureRule.ofOrder(2*p);
+    lfF = LinearForm();
+    lfF.f = MeshFunction(mesh, @(x) lorentzian(x, [0.7;0.7], 1e-1));
+    lfF.qrf = QuadratureRule.ofOrder(2*p);
 
-lfG = LinearForm();
-lfG.f = MeshFunction(mesh, @(x) lorentzian(x, [0.2;0.3], 1e-2));
-lfG.qrf = QuadratureRule.ofOrder(2*p);
+    lfG = LinearForm();
+    lfG.f = MeshFunction(mesh, @(x) lorentzian(x, [0.2;0.3], 1e-2));
+    lfG.qrf = QuadratureRule.ofOrder(2*p);
 
-%% set up solver and lifting operator for nested iteration
-[solver, P] = chooseIterativeSolver(fes, blf, 'pcg', 'additiveSchwarz');
-solver.tol = 1e-8;
-solver.maxIter = 1000;
+    %% set up solver and lifting operator for nested iteration
+    [solver, P] = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
+    solver.tol = 1e-6;
+    solver.maxIter = 1000;
 
-%% adaptive loop
-ell = 0;
-meshSufficientlyFine = false;
-while ~meshSufficientlyFine
-    ell = ell + 1;
-    
-    %% assemble & solve FEM system iteratively
-    freeDofs = getFreeDofs(fes);
-    A = assemble(blf, fes);
-    rhs = [assemble(lfF, fes), assemble(lfG, fes)];
-    uz0 = [u.data', z.data'];
-    solver.setupSystemMatrix(A(freeDofs,freeDofs));
-    solver.setupRhs(rhs(freeDofs,:), uz0(freeDofs,:));
-    
-    while ~all(solver.applyStoppingCriterion())
-        solver.step();
-    end
-    u.setFreeData(solver.x(:,1));
-    z.setFreeData(solver.x(:,2));
-    
-    %% estimate error and store data
-    eta2 = estimate(blf, lfF, u);
-    zeta2 = estimate(blf, lfG, z);
-    nDofs(ell) = getDofs(fes).nDofs;
-    nElem(ell) = mesh.nElements;
-    nIterPrimal(ell) = solver.iterationCount(1);
-    nIterDual(ell) = solver.iterationCount(2);
-    goalErrEst(ell) = sqrt(sum(eta2)*sum(zeta2));
-    printLogMessage('number of dofs: %d, iterations (primal/dual): %d / %d, estimator: %.2e', ...
-        nDofs(ell), nIterPrimal(ell), nIterDual(ell), goalErrEst(ell));
-    
-    %% stoping criterion
-    meshSufficientlyFine = (nDofs(ell) > nDofsMax);
-    
-    %% refine mesh and transfer solutions to finer mesh for nested iteration
-    if ~meshSufficientlyFine
-        marked = markGoafemMS(eta2, zeta2, theta);
-        mesh.refineLocally(marked, 'NVB');
-        u.setData(prolongate(P, u));
-        z.setData(prolongate(P, z));
+    %% adaptive loop
+    ell = 0;
+    meshSufficientlyFine = false;
+    while ~meshSufficientlyFine
+        ell = ell + 1;
+
+        %% assemble & solve FEM system iteratively
+        freeDofs = getFreeDofs(fes);
+        A = assemble(blf, fes);
+        A = A(freeDofs, freeDofs);
+        rhs = [assemble(lfF, fes), assemble(lfG, fes)];
+        rhs = rhs(freeDofs,:);
+        uz0 = [u.data', z.data'];
+        solver.setupSystemMatrix(A);
+        solver.setupRhs(rhs, uz0(freeDofs,:));
+
+        solverIsConverged = false;
+        while ~solverIsConverged
+            solver.step();
+            u.setFreeData(solver.x(:,1));
+            z.setFreeData(solver.x(:,2));
+            eta2 = estimate(blf, lfF, u);
+            zeta2 = estimate(blf, lfG, z);
+            primalEstimator = sqrt(sum(eta2));
+            dualEstimator = sqrt(sum(zeta2));
+            solver.tol = lamalg*[primalEstimator, dualEstimator];
+            solverIsConverged = solver.isConverged;
+        end
+        u.setFreeData(solver.x(:,1));
+        z.setFreeData(solver.x(:,2));
+
+        %% estimate error and store data
+        eta2 = estimate(blf, lfF, u);
+        zeta2 = estimate(blf, lfG, z);
+        nDofs(ell) = getDofs(fes).nDofs;
+        nElem(ell) = mesh.nElements;
+        nIterPrimal(ell) = solver.iterationCount(1);
+        nIterDual(ell) = solver.iterationCount(2);
+        goalErrEst(ell) = primalEstimator*dualEstimator;
+        printLogMessage('number of dofs: %d, iterations (primal/dual): %d / %d, estimator: %.2e', ...
+            nDofs(ell), nIterPrimal(ell), nIterDual(ell), goalErrEst(ell));
+
+        %% stoping criterion
+        meshSufficientlyFine = (nDofs(ell) > nDofsMax);
+
+        %% refine mesh and transfer solutions to finer mesh for nested iteration
+        if ~meshSufficientlyFine
+            marked = markGoafemMS(eta2, zeta2, theta);
+            mesh.refineLocally(marked, 'NVB');
+            u.setData(prolongate(P, u));
+            z.setData(prolongate(P, z));
+        end
     end
 end
 
