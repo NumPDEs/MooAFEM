@@ -18,7 +18,7 @@ methods (Test)
         for k = 1:3
             [xstar, A, F] = assembleData(testCase, blf, lf, fes);
             solver.setupSystemMatrix(A);
-            if k < 3, mesh.refineLocally(1); end
+            if k < 3, mesh.refineUniform(); end
         end
         
         solver.setupRhs(F);
@@ -27,6 +27,24 @@ methods (Test)
         normAfterwards = sqrt((xstar - solver.x)' * A * (xstar - solver.x));
         
         testCase.verifyGreaterThan(normBefore, normAfterwards);
+    end
+    
+    function solverIsLinear(testCase, p, variant)
+        [mesh, fes, blf, lf] = setupProblem(testCase, p);
+        s = variant(1); v = variant(2);
+        solver = chooseIterativeSolver(fes, blf, s, v);
+        
+        for k = 1:3
+            [xstar, A, F] = assembleData(testCase, blf, lf, fes);
+            solver.setupSystemMatrix(A);
+            if k < 3, mesh.refineLocally(k); end
+        end
+        
+        solver.setupRhs([F, -pi*F], 0*[F, F]);
+        solver.solve();
+        
+        testCase.verifyEqual(-pi*solver.x(:,1), solver.x(:,2), 'RelTol', 2e-5);
+        testCase.verifyEqual(solver.x(:,1), xstar, 'RelTol', 2e-5);
     end
 end
 
