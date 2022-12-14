@@ -1,8 +1,8 @@
-% AdditiveSchwartzPcg (subclass of PcgSolver) Solves linear equations
-%   iteratively using the CG method with optimal multilevel additive
-%   Schwartz preconditioner.
+% LowestOrderAdditiveSchwartzPcg (subclass of PcgSolver) Solves linear
+%   equations iteratively using the CG method with optimal multilevel
+%   additive Schwartz preconditioner for lowest order finite elements.
 
-classdef AdditiveSchwartzPcg < PcgSolver
+classdef LowestOrderAdditiveSchwartzPcg < PcgSolver
     %% properties
     properties (GetAccess=public,SetAccess=protected)
         nLevels
@@ -10,17 +10,15 @@ classdef AdditiveSchwartzPcg < PcgSolver
     
     properties (Access=protected)
         blf
-        hoFes
-        loFes
-        p1Acoarse
-        p1Smoother
+        fes
+        matrix
+        smoother
         P
         intergridMatrix
         freeDofs
         freeDofsOld
         changedPatches
         highestOrderIsOne
-        patchwiseA
     end
 
     properties (Access=private)
@@ -29,7 +27,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
     
     %% methods
     methods (Access=public)
-        function obj = AdditiveSchwartzPcg(fes, blf, P)
+        function obj = LowestOrderAdditiveSchwartzPcg(fes, blf, P)
             arguments
                 fes FeSpace
                 blf BilinearForm
@@ -37,17 +35,15 @@ classdef AdditiveSchwartzPcg < PcgSolver
             end
             obj = obj@PcgSolver();
             
-            assert(fes.finiteElement.order > 1, ...
-                'AdditiveSchwartzPcg only works for higher order finite elements.')
+            assert(fes.finiteElement.order == 1, ...
+                'LowestOrderAdditiveSchwartzPcg only works for lowest order finite elements.')
             assert(isempty(blf.b), ...
                 'Additive Schwarz PCG solvers only tested for symmetric problems.')
             
-            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
             obj.nLevels = 0;
             
             mesh = fes.mesh;
-            obj.loFes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', ':');
-            obj.hoFes = fes;
+            obj.fes = fes;
             obj.P = P;
             obj.blf = blf;
             
@@ -59,18 +55,14 @@ classdef AdditiveSchwartzPcg < PcgSolver
             
             L = obj.nLevels;
             obj.freeDofsOld = obj.freeDofs;
-            obj.freeDofs = getFreeDofs(obj.loFes);
+            obj.freeDofs = getFreeDofs(obj.fes);
             
-            p1Matrix = assemble(obj.blf, obj.loFes);
-            p1Matrix = p1Matrix(obj.freeDofs, obj.freeDofs);
+            obj.matrix{L} = A;
+            obj.smoother{L} = full(diag(obj.matrix{L})).^(-1);
             
-            if L == 1
-                obj.p1Acoarse = p1Matrix;
-            else
-                obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
+            if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
-                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes, ':');
             end
             
             setupSystemMatrix@PcgSolver(obj, A);
@@ -93,25 +85,23 @@ classdef AdditiveSchwartzPcg < PcgSolver
             end
 
             % descending cascade
-            rho{L} = hoGlobalSmoothing(obj, res);
-            residual = interpolateFreeData(res, obj.hoFes, obj.loFes);
+            rho{L} = localSmoothing(obj, L, res);
+            residual = res;
             for k = L-1:-1:2
                 residual = obj.intergridMatrix{k+1}'*residual;
-                rho{k} = p1LocalSmoothing(obj, k, residual);
+                rho{k} = localSmoothing(obj, k, residual);
             end
             
             % exact solve on coarsest level
             residual = obj.intergridMatrix{2}'*residual;
-            sigma = obj.p1Acoarse \ residual;
+            sigma = obj.matrix{1} \ residual;
             
             % ascending cascade
             for k = 2:L-1
                 sigma = obj.intergridMatrix{k}*sigma;
                 sigma = sigma + rho{k};
             end
-            sigma = obj.intergridMatrix{L}*sigma;
-            sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
-            sigma = sigma + rho{L};
+            sigma = obj.intergridMatrix{L}*sigma + rho{L};
            
             Cx = sigma;
         end
@@ -131,27 +121,10 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
         
-        function rho = p1LocalSmoothing(obj, k, res)
+        function rho = localSmoothing(obj, k, res)
             idx = obj.changedPatches{k};
             rho = zeros(size(res));
-            rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
+            rho(idx,:) = obj.smoother{k}(idx).*res(idx,:);
         end
-        
-        function rho = hoGlobalSmoothing(obj, res)
-            rho = obj.patchwiseA \ res;
-        end
-    end
-end
-
- %% auxiliary functions
-function interpolatedData = interpolateFreeData(data, fromFes, toFes)
-    freeDofs = getFreeDofs(toFes);
-    nComponents = size(data, 2);
-    interpolatedData = zeros(numel(freeDofs), nComponents);
-    feFunctionWrapper = FeFunction(fromFes);
-    for k = 1:nComponents
-        feFunctionWrapper.setFreeData(data(:,k));
-        wholeData = nodalInterpolation(feFunctionWrapper, toFes);
-        interpolatedData(:,k) = wholeData(freeDofs);
     end
 end

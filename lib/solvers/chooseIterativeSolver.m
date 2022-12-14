@@ -26,7 +26,8 @@ switch class
                 if order == 1, solver = JacobiPcgSolver(fes);
                 else, solver = BlockJacobiPcgSolver(fes, blf); end
             case {"", "additiveSchwarz"}
-                solver = AdditiveSchwartzPcg(fes, blf);
+                if order == 1, solver = LowestOrderAdditiveSchwartzPcg(fes, blf, P);
+                else, solver = AdditiveSchwartzPcg(fes, blf, P); end
             otherwise
                 error('No PCG variant %s!', variant)
         end
@@ -36,10 +37,10 @@ switch class
     case "multigrid"
         switch variant
             case {"", "lowOrderVcycle"}
-                if order == 1, solver = LowestOrderLocalMg(fes, blf);
+                if order == 1, solver = LowestOrderLocalMg(fes, blf, P);
                 else, solver = LocalMgLowOrderVcycle(fes, blf); end
             case "highOrderVcycle"
-                if order == 1, solver = LowestOrderLocalMg(fes, blf);
+                if order == 1, solver = LowestOrderLocalMg(fes, blf, P);
                 else, solver = LocalMgHighOrderVcycle(fes, blf, P); end
             otherwise
                 error('No multigrid variant %s!', variant)

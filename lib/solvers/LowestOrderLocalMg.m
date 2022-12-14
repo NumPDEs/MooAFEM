@@ -34,10 +34,11 @@ classdef LowestOrderLocalMg < MGSolver
 
     %% methods
     methods (Access=public)
-        function obj = LowestOrderLocalMg(fes, blf)
+        function obj = LowestOrderLocalMg(fes, blf, P)
             arguments
                 fes FeSpace
                 blf BilinearForm
+                P Prolongation
             end
             obj = obj@MGSolver();
             
@@ -50,7 +51,7 @@ classdef LowestOrderLocalMg < MGSolver
             
             mesh = fes.mesh;
             obj.fes = fes;
-            obj.P = Prolongation.chooseFor(obj.fes);
+            obj.P = P;
             obj.blf = blf;
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
