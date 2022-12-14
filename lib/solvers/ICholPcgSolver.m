@@ -25,7 +25,7 @@ classdef ICholPcgSolver < PcgSolver
         end
 
         function setupSystemMatrix(obj, A)
-            obj.C = ichol(A, struct('michol', 'on'));
+            obj.C = ichol(A);
             setupSystemMatrix@PcgSolver(obj, A);
         end
            
