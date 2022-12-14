@@ -1,7 +1,7 @@
-% JacobiPcgSolver (subclass of PcgSolver) Solves linear equations
-%   iteratively using the CG method with diagonal preconditioner.
+% BlockJacobiPcgSolver (subclass of PcgSolver) Solves linear equations
+%   iteratively using the CG method with block-diagonal preconditioner.
 
-classdef JacobiPcgSolver < PcgSolver
+classdef BlockJacobiPcgSolver < PcgSolver
     %% properties
     properties (GetAccess=public,SetAccess=protected)
         fes
@@ -9,22 +9,25 @@ classdef JacobiPcgSolver < PcgSolver
 
     properties (Access=private)
         C
+        blf
     end
     
     %% methods
     methods (Access=public)
-        % preconditioner action: inverse of diagonal
-        function obj = JacobiPcgSolver(fes)
+        % preconditioner action: patchwise inverse of diagonal
+        function obj = BlockJacobiPcgSolver(fes, blf)
             arguments
                 fes FeSpace
+                blf BilinearForm
             end
             
             obj = obj@PcgSolver();
             obj.fes = fes;
+            obj.blf = blf;
         end
 
         function setupSystemMatrix(obj, A)
-            obj.C = full(diag(A)).^(-1);
+            obj.C = assemblePatchwise(obj.blf, obj.fes, ':');
             setupSystemMatrix@PcgSolver(obj, A);
         end
            
@@ -33,7 +36,7 @@ classdef JacobiPcgSolver < PcgSolver
         end
         
         function Cx = preconditionAction(obj, x)
-            Cx = obj.C .* x;
+            Cx = obj.C \ x;
         end
     end
 end

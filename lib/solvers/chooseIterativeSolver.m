@@ -23,7 +23,8 @@ switch class
     case "pcg"
         switch variant
             case "jacobi"
-                solver = JacobiPcgSolver(fes, blf);
+                if order == 1, solver = JacobiPcgSolver(fes);
+                else, solver = BlockJacobiPcgSolver(fes, blf); end
             case {"", "additiveSchwarz"}
                 solver = AdditiveSchwartzPcg(fes, blf);
             otherwise
