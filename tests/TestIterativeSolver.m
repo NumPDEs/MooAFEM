@@ -18,10 +18,10 @@ methods (Test)
         for k = 1:3
             [xstar, A, F] = assembleData(testCase, blf, lf, fes);
             solver.setupSystemMatrix(A);
-            solver.setupRhs(F);
             if k < 3, mesh.refineLocally(1); end
         end
         
+        solver.setupRhs(F);
         normBefore = sqrt((xstar - solver.x)' * A * (xstar - solver.x));
         solver.step();
         normAfterwards = sqrt((xstar - solver.x)' * A * (xstar - solver.x));

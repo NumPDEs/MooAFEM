@@ -87,6 +87,7 @@ classdef LocalMgHighOrderVcycle < MGSolver
             end
             
             setupSystemMatrix@MGSolver(obj, A);
+            obj.Afine{L} = obj.A;
         end
 
         function setupRhs(obj, b, varargin)
@@ -110,7 +111,6 @@ classdef LocalMgHighOrderVcycle < MGSolver
             
             % descending cascade in p: no smoothing
             residual{L} = res;
-            obj.Afine{L} = obj.A;
             for k = L:-1:2
                 residual{k-1} = obj.intergridMatrix{k}'*residual{k};
             end
