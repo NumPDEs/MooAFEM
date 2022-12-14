@@ -144,10 +144,14 @@ end
 % error correction with optimal stepsize 
 function [etaUpdate, sigmaUpdate] = computeOptimalUpdate(A, res, rho)
     rhoArho = scalarProduct(rho, A*rho);
-    lambda = scalarProduct(res, rho) ./ rhoArho;
+    if max(abs(rho)) < eps
+        lambda = 1; 
+    else
+        lambda = scalarProduct(res, rho) ./ rhoArho;
+    end
     sigmaUpdate = lambda.*rho;
     etaUpdate = rhoArho.*(lambda.^2);
-
+    
     if any(lambda > 3)
        warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
     end
