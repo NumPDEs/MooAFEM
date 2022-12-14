@@ -29,11 +29,10 @@ classdef AdditiveSchwartzPcg < PcgSolver
     
     %% methods
     methods (Access=public)
-        function obj = AdditiveSchwartzPcg(fes, blf, P)
+        function obj = AdditiveSchwartzPcg(fes, blf)
             arguments
                 fes FeSpace
                 blf BilinearForm
-                P Prolongation
             end
             obj = obj@PcgSolver();
             
@@ -48,7 +47,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             mesh = fes.mesh;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', ':');
             obj.hoFes = fes;
-            obj.P = P;
+            obj.P = Prolongation.chooseFor(obj.loFes);
             obj.blf = blf;
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);

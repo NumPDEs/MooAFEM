@@ -27,7 +27,7 @@ switch class
                 else, solver = BlockJacobiPcgSolver(fes, blf); end
             case {"", "additiveSchwarz"}
                 if order == 1, solver = LowestOrderAdditiveSchwartzPcg(fes, blf, P);
-                else, solver = AdditiveSchwartzPcg(fes, blf, P); end
+                else, solver = AdditiveSchwartzPcg(fes, blf); end
             otherwise
                 error('No PCG variant %s!', variant)
         end
