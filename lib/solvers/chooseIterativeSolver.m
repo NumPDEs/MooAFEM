@@ -5,9 +5,9 @@ function [solver, P] = chooseIterativeSolver(fes, blf, class, variant)
 arguments
     fes FeSpace
     blf BilinearForm
-    class (1,1) string {mustBeMember(class, ["cg", "pcg", "multigrid"])}
+    class (1,1) string {mustBeMember(class, ["cg", "pcg", "multigrid", "direct"])}
     variant (1,1) string {mustBeMember(variant, [ "", ...
-        "jacobi", "additiveSchwarz", ...
+        "iChol", "jacobi", "additiveSchwarz", ...
         "lowOrderVcycle", "highOrderVcycle"])} = ""
 end
 
@@ -22,6 +22,8 @@ switch class
     % preconditioned CG family
     case "pcg"
         switch variant
+            case "iChol"
+                solver = ICholPcgSolver(fes);
             case "jacobi"
                 if order == 1, solver = JacobiPcgSolver(fes);
                 else, solver = BlockJacobiPcgSolver(fes, blf); end
@@ -32,7 +34,6 @@ switch class
                 error('No PCG variant %s!', variant)
         end
         
-    
     % geometric multigrid family
     case "multigrid"
         switch variant
@@ -45,6 +46,10 @@ switch class
             otherwise
                 error('No multigrid variant %s!', variant)
         end
+        
+    % direct solve (for testing purposes)
+    case "direct"
+        solver = DirectSolver();
    
     % default
     otherwise
