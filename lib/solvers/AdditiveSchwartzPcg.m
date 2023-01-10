@@ -19,7 +19,6 @@ classdef AdditiveSchwartzPcg < PcgSolver
         freeDofs
         freeDofsOld
         changedPatches
-        highestOrderIsOne
         patchwiseA
     end
 
@@ -40,8 +39,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 'AdditiveSchwartzPcg only works for higher order finite elements.')
             assert(isempty(blf.b), ...
                 'Additive Schwarz PCG solvers only tested for symmetric problems.')
-            
-            obj.highestOrderIsOne = (fes.finiteElement.order == 1);
+
             obj.nLevels = 0;
             
             mesh = fes.mesh;
