@@ -2,13 +2,13 @@ classdef TestIterativeSolver < matlab.unittest.TestCase
     
 properties (TestParameter)
     p = struct('low', 1, 'medium', 2, 'high', 5);
-    variant = struct('CG', ["cg", ""])
-        %'direct', ["direct", ""], ...
-%         'jacobiPCG', ["pcg", "jacobi"], ...
-%         'iChol', ["pcg", "iChol"], ...
-%         'additiveSchwarzPCG', ["pcg", "additiveSchwarz"], ...
-%         'lowMG', ["multigrid", "lowOrderVcycle"], ...
-%         'highMG', ["multigrid", "highOrderVcycle"]);
+    variant = struct('CG', ["cg", ""],...
+        'direct', ["direct", ""], ...
+        'jacobiPCG', ["pcg", "jacobi"], ...
+        'iChol', ["pcg", "iChol"], ...
+        'additiveSchwarzPCG', ["pcg", "additiveSchwarz"], ...
+        'lowMG', ["multigrid", "lowOrderVcycle"], ...
+        'highMG', ["multigrid", "highOrderVcycle"]);
 end
 
 methods (Test)
@@ -43,12 +43,13 @@ methods (Test)
         end
         
         solver.setupRhs([F, -pi*F], 0*[F, F]);
-        for i = 1:60
-            solver.step();
-        end
-        %xmat = cgs(A, F, 1e-16, 60);
+        solver.solve();
+%         for i = 1:60
+%             solver.step();
+%         end
+        %xmat = cgs(A, F, 1e-16, 100);
         
-%          testCase.verifyEqual(-pi*solver.x(:,1), solver.x(:,2), 'RelTol', 2e-5);
+         testCase.verifyEqual(-pi*solver.x(:,1), solver.x(:,2), 'RelTol', 2e-5);
          testCase.verifyEqual(solver.x(:,1), xstar, 'RelTol', 2e-5);
          %testCase.verifyEqual(solver.x(:, 1), xmat(:, 1), 'RelTol', 2e-5)
         %testCase.verifyEqual(xmat(:,1), xstar, 'RelTol', 2e-5);
