@@ -5,7 +5,7 @@ lambda = 0.1;
 deltaZ = 0.1;
 linearization = 'kacanov';
 geometry = 'Lshape';
-p = 2;
+p = 3;
 
 %% initialisation
 [nElem, eta, E] = deal(zeros(1,1000));
@@ -21,9 +21,7 @@ Du = Gradient(u);
 g = Constant(mesh, 1);
 [blf, lf] = setProblemData(mesh, fes, Du, g, linearization, p);
 eDensity = CompositeFunction(@(t) muIntegral(vectorProduct(t, t),p), Du);
-u.setData(0); 
-%u.setFreeData(1);
-u.setData(rand(1,length(u.data)));
+u.setFreeData(rand(1,length(getFreeDofs(u.fes))));
 
 %% nested iteration
 P = LoFeProlongation(fes);
@@ -128,7 +126,7 @@ function updateDataU(u, deltaZ, A, F, linearization)
             u.setData(u.data + deltaZ*v.data);
         case "kacanov"
             %u.setData(A \ F);
-            u.setFreeData(A(freeDofs,freeDofs) \ F(freeDofs))
+            u.setFreeData(A(freeDofs,freeDofs) \ F(freeDofs));
         case "newton"
             v.setFreeData(A(freeDofs,freeDofs) \ F(freeDofs));
             u.setData(u.data + v.data);
