@@ -62,10 +62,15 @@ function leveldata = runIterativeSolver(maxNiter)
         % Store variables
         leveldata.append('ndof', uint32(ndof), ...
                          'errorU', errorU);
-        leveldata.setAbsolute(nIter, 'nIter', nIter, 'contraction', contraction);
+        leveldata.setAbsolute(nIter, 'nIter', uint32(nIter), ...
+                                     'contraction', contraction);
 
         % Print level information
         leveldata.printLevel();
+
+        u.setFreeData(solver.x);
+        plot(u);
+        pause(2)
 
         % Break condition
         % if ndof > maxNdof
