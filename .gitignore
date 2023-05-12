@@ -19,3 +19,13 @@ slprj/
 # Simulink autosave extension
 .autosave
 **/.DS_Store
+
+# Ctags file
+tags
+
+# Vim files
+*.swp
+*.swo
+
+# Output files
+*.csv
