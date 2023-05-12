@@ -131,7 +131,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 bisecData.nRefinedElements'*bisecData.nInnerNodes;
             bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
             obj.changedPatches{obj.nLevels+1} = false(nCNew, 1);
-            idx = [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
+            idx = [bisectedEdgeNodes; ((nCOld+1):nCNew)'];
             obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
         
