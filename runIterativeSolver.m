@@ -10,6 +10,7 @@ function leveldata = runIterativeSolver(maxNiter)
 
     % Load mesh
     mesh = Mesh.loadFromGeometry('unitsquare');
+    [~, ~, onDirichlet, onNeumann] = Square();
 
     % Create FE space
     fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
@@ -49,13 +50,13 @@ function leveldata = runIterativeSolver(maxNiter)
     solver.setupSystemMatrix(A(freeDofs,freeDofs));
     solver.setupRhs(F(freeDofs));  % initializes x0 as well
 
+    % Compute exact solution
+    xstar = A(freeDofs,freeDofs) \ F(freeDofs);
+
     % Refinement loop
     nIter = 1;
     while true
         ndof = getDofs(fes).nDofs;
-
-        % Compute exact solution
-        xstar = A(freeDofs,freeDofs) \ F(freeDofs);
 
         % Compute energy norm
         errorU = sqrt((xstar - solver.x)' * A(freeDofs,freeDofs) * (xstar - solver.x));
@@ -76,8 +77,14 @@ function leveldata = runIterativeSolver(maxNiter)
         % Print level information
         leveldata.printLevel();
 
-        u.setFreeData(solver.x);
-        plot(u);
+        % u.setFreeData(solver.x);
+        % plot(u);
+        % pause(2)
+
+        x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
+        x(freeDofs) = solver.x;
+        figure(1);
+        plotS2(mesh.clone(), x);
         pause(2)
 
         % Break condition
