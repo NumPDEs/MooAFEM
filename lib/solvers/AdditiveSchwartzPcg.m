@@ -69,7 +69,7 @@ classdef AdditiveSchwartzPcg < PcgSolver
             else
                 obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
+                obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
                 % DEBUG: exact on highest level
@@ -126,6 +126,8 @@ classdef AdditiveSchwartzPcg < PcgSolver
         % -> patches change for all vertices adjacent to refined edges and
         %    all new vertices
         function getChangedPatches(obj, mesh, bisecData)
+            % Selects vertices of bisected edges and all newly created
+            % vertices
             nCOld = mesh.nCoordinates;
             nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
                 bisecData.nRefinedElements'*bisecData.nInnerNodes;
