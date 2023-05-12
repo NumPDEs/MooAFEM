@@ -15,7 +15,7 @@ classdef AdditiveSchwarzHighOrderPcg < PcgSolver
         coarseLoFes
         coarseHoFes
         p1Acoarse
-        p1Smoother
+        smoother
         P
         intergridMatrix
         freeVertices
@@ -79,10 +79,10 @@ classdef AdditiveSchwarzHighOrderPcg < PcgSolver
                 obj.coarseLoFes = FeSpace(coarseMesh, LowestOrderH1Fe, 'dirichlet', fes.bnd.dirichlet);
                 obj.coarseHoFes = FeSpace(coarseMesh, HigherOrderH1Fe(fes.finiteElement.order), 'dirichlet', fes.bnd.dirichlet);
             else
-                obj.p1Smoother{L} = full(diag(ppMatrix)).^(-1);
+                obj.smoother{L} = full(diag(ppMatrix)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
-                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+                obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, obj.changedPatches{L});
             end
             
             setupSystemMatrix@PcgSolver(obj, A);
@@ -105,26 +105,21 @@ classdef AdditiveSchwarzHighOrderPcg < PcgSolver
             end
 
             % descending cascade
-            rho{L} = hoGlobalSmoothing(obj, residual);
-            for k = L:-1:3
+            for k = L:-1:2
+                rho{k} = localSmoothing(obj, k, residual);
                 residual = obj.intergridMatrix{k}'*residual;
-                rho{k-1} = p1LocalSmoothing(obj, k-1, residual);
             end
-            
 
             % exact solve on coarsest level
-            residual = obj.intergridMatrix{2}'*residual;
             residual = interpolateFreeData(residual, obj.coarseHoFes, obj.coarseLoFes);
             sigma = obj.p1Acoarse \ residual;
             sigma = interpolateFreeData(sigma, obj.coarseLoFes, obj.coarseHoFes);
-            sigma = obj.intergridMatrix{2}*sigma;
             
             % ascending cascade
-            for k = 3:L
-                sigma = sigma + rho{k-1};
+            for k = 2:L
                 sigma = obj.intergridMatrix{k}*sigma;
+                sigma = sigma + rho{k};
             end
-            sigma = sigma + rho{L};
            
             Cx = sigma;
         end
@@ -146,14 +141,8 @@ classdef AdditiveSchwarzHighOrderPcg < PcgSolver
             obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
         
-        function rho = p1LocalSmoothing(obj, k, res)
-            idx = obj.changedPatches{k};
-            rho = zeros(size(res));
-            rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
-        end
-        
-        function rho = hoGlobalSmoothing(obj, res)
-            rho = obj.patchwiseA \ res;
+        function rho = localSmoothing(obj, k, res)
+            rho = obj.patchwiseA{k} \ res;
         end
     end
 end

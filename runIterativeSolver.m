@@ -6,10 +6,14 @@ function leveldata = runIterativeSolver(maxNiter)
     end
 
     % Polynomial degree
-    p = 2;
+    p = 5;
+
+    % Number of refinement levels
+    nLevels = 4;
 
     % Load mesh
     mesh = Mesh.loadFromGeometry('unitsquare');
+    % mesh.refineUniform();
 
     % Create FE space
     fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
@@ -23,8 +27,9 @@ function leveldata = runIterativeSolver(maxNiter)
     lf.f = Constant(mesh, 1);
 
     % Choose iterative solver
-    solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzLowOrder");
-    % solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzHighOrder");
+    % solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzLowOrder");
+    solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzHighOrder");
+    % solver = chooseIterativeSolver(fes, blf, "pcg", "iChol");
 
     % Initialize LevelData
     leveldata = LevelData('results');
@@ -32,7 +37,7 @@ function leveldata = runIterativeSolver(maxNiter)
     leveldata.domain = 'UnitSquare';
     leveldata.method = 'Sp_PCG_AdditiveSchwarz';
 
-    for k = 1:4
+    for k = 1:nLevels
         % Assemble matrices on intermediate meshes
         A = assemble(blf, fes);
         F = assemble(lf, fes);
@@ -77,15 +82,15 @@ function leveldata = runIterativeSolver(maxNiter)
         % Print level information
         leveldata.printLevel();
 
-        % u.setFreeData(solver.x);
-        % plot(u);
-        % pause(2)
-
-        x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
-        x(freeDofs) = solver.x;
-        figure(1);
-        plotS2(mesh.clone(), x);
+        u.setFreeData(solver.x);
+        plot(u);
         pause(2)
+
+        % x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
+        % x(freeDofs) = solver.x;
+        % figure(1);
+        % plotS2(mesh.clone(), x);
+        % pause(2)
 
         % Break condition
         % if ndof > maxNdof
