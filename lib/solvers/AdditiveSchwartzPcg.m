@@ -16,8 +16,8 @@ classdef AdditiveSchwartzPcg < PcgSolver
         p1Smoother
         P
         intergridMatrix
-        freeDofs
-        freeDofsOld
+        freeVertices
+        freeVerticesOld
         changedPatches
         patchwiseA
     end
@@ -41,13 +41,13 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 'Additive Schwarz PCG solvers only tested for symmetric problems.')
 
             obj.nLevels = 0;
-            
+
             mesh = fes.mesh;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', ':');
             obj.hoFes = fes;
             obj.P = Prolongation.chooseFor(obj.loFes);
             obj.blf = blf;
-            
+
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
         
@@ -55,18 +55,21 @@ classdef AdditiveSchwartzPcg < PcgSolver
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
-            obj.freeDofsOld = obj.freeDofs;
-            obj.freeDofs = getFreeDofs(obj.loFes);
+            obj.freeVerticesOld = obj.freeVertices;
+            obj.freeVertices = getFreeDofs(obj.loFes);
             
+            % DEBUG: higher order only
+            % p1Matrix = assemble(obj.blf, obj.hoFes);
+
             p1Matrix = assemble(obj.blf, obj.loFes);
-            p1Matrix = p1Matrix(obj.freeDofs, obj.freeDofs);
+            p1Matrix = p1Matrix(obj.freeVertices, obj.freeVertices);
             
             if L == 1
                 obj.p1Acoarse = p1Matrix;
             else
                 obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
-                obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
                 % DEBUG: exact on highest level
