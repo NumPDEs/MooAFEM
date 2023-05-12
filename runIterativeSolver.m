@@ -10,7 +10,6 @@ function leveldata = runIterativeSolver(maxNiter)
 
     % Load mesh
     mesh = Mesh.loadFromGeometry('unitsquare');
-    [~, ~, onDirichlet, onNeumann] = Square();
 
     % Create FE space
     fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
