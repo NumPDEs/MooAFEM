@@ -7,7 +7,8 @@ arguments
     blf BilinearForm
     class (1,1) string {mustBeMember(class, ["cg", "pcg", "multigrid", "direct"])}
     variant (1,1) string {mustBeMember(variant, [ "", ...
-        "iChol", "jacobi", "additiveSchwarz", ...
+        "iChol", "jacobi", ...
+        "additiveSchwarzLowOrder", "additiveSchwarzHighOrder" ...
         "lowOrderVcycle", "highOrderVcycle"])} = ""
 end
 
@@ -27,9 +28,11 @@ switch class
             case "jacobi"
                 if order == 1, solver = JacobiPcgSolver(fes);
                 else, solver = BlockJacobiPcgSolver(fes, blf); end
-            case {"", "additiveSchwarz"}
-                if order == 1, solver = LowestOrderAdditiveSchwartzPcg(fes, blf, P);
-                else, solver = AdditiveSchwartzPcg(fes, blf); end
+            case {"", "additiveSchwarzLowOrder"}
+                if order == 1, solver = LowestOrderAdditiveSchwarzPcg(fes, blf, P);
+                else, solver = AdditiveSchwarzLowOrderPcg(fes, blf); end
+            case "additiveSchwarzHighOrder"
+                solver = AdditiveSchwarzHighOrderPcg(fes, blf, P);
             otherwise
                 error('No PCG variant %s!', variant)
         end

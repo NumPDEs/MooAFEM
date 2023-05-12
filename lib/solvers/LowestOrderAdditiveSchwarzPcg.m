@@ -2,7 +2,7 @@
 %   equations iteratively using the CG method with optimal multilevel
 %   additive Schwartz preconditioner for lowest order finite elements.
 
-classdef LowestOrderAdditiveSchwartzPcg < PcgSolver
+classdef LowestOrderAdditiveSchwarzPcg < PcgSolver
     %% properties
     properties (GetAccess=public,SetAccess=protected)
         nLevels
@@ -27,7 +27,7 @@ classdef LowestOrderAdditiveSchwartzPcg < PcgSolver
     
     %% methods
     methods (Access=public)
-        function obj = LowestOrderAdditiveSchwartzPcg(fes, blf, P)
+        function obj = LowestOrderAdditiveSchwarzPcg(fes, blf, P)
             arguments
                 fes FeSpace
                 blf BilinearForm
