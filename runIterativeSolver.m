@@ -32,14 +32,22 @@ function leveldata = runIterativeSolver(maxNiter)
     leveldata.method = 'Sp_PCG_AdditiveSchwarz';
 
     for k = 1:4
-        mesh.refineUniform();
-        % Preparation
+        % Assemble matrices on intermediate meshes
         A = assemble(blf, fes);
         F = assemble(lf, fes);
         freeDofs = getFreeDofs(fes);
         solver.setupSystemMatrix(A(freeDofs,freeDofs));
         solver.setupRhs(F(freeDofs));  % initializes x0 as well
+        % Mesh refinement
+        mesh.refineUniform();
     end
+
+    % Assemble matrices on fine mesh
+    A = assemble(blf, fes);
+    F = assemble(lf, fes);
+    freeDofs = getFreeDofs(fes);
+    solver.setupSystemMatrix(A(freeDofs,freeDofs));
+    solver.setupRhs(F(freeDofs));  % initializes x0 as well
 
     % Refinement loop
     nIter = 1;

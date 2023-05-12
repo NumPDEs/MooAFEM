@@ -67,7 +67,11 @@ classdef AdditiveSchwartzPcg < PcgSolver
                 obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
-                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes, ':');
+                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+
+                % DEBUG: exact on highest level
+                % TMP = assemble(obj.blf, obj.hoFes);
+                % obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
             end
             
             setupSystemMatrix@PcgSolver(obj, A);
@@ -92,21 +96,21 @@ classdef AdditiveSchwartzPcg < PcgSolver
             % descending cascade
             rho{L} = hoGlobalSmoothing(obj, res);
             residual = interpolateFreeData(res, obj.hoFes, obj.loFes);
-            for k = L-1:-1:2
-                residual = obj.intergridMatrix{k+1}'*residual;
-                rho{k} = p1LocalSmoothing(obj, k, residual);
+            for k = L:-1:3
+                residual = obj.intergridMatrix{k}'*residual;
+                rho{k-1} = p1LocalSmoothing(obj, k-1, residual);
             end
             
             % exact solve on coarsest level
             residual = obj.intergridMatrix{2}'*residual;
             sigma = obj.p1Acoarse \ residual;
+            sigma = obj.intergridMatrix{2}*sigma;
             
             % ascending cascade
-            for k = 2:L-1
+            for k = 3:L
+                sigma = sigma + rho{k-1};
                 sigma = obj.intergridMatrix{k}*sigma;
-                sigma = sigma + rho{k};
             end
-            sigma = obj.intergridMatrix{L}*sigma;
             sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
             sigma = sigma + rho{L};
            
