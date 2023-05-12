@@ -20,6 +20,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
         freeVerticesOld
         changedPatches
         patchwiseA
+        patchwiseP1Matrix
     end
 
     properties (Access=private)
@@ -69,6 +70,8 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
+                obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
+
                 % DEBUG: exact on highest level
                 % TMP = assemble(obj.blf, obj.hoFes);
                 % obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
@@ -96,17 +99,24 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % descending cascade
             rho{L} = hoGlobalSmoothing(obj, residual);
             residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
+
+            % DEBUG: p1 smoothing only
+            % rho{L} = p1LocalSmoothing(obj, L, residual);
+
             for k = L:-1:3
                 residual = obj.intergridMatrix{k}'*residual;
                 rho{k-1} = p1LocalSmoothing(obj, k-1, residual);
+                % DEBUG: delete some corrections
+                % if k > 5
+                %     rho{k-1} = zeros(size(residual));
+                % end
             end
-            
 
             % exact solve on coarsest level
             residual = obj.intergridMatrix{2}'*residual;
             sigma = obj.p1Acoarse \ residual;
             sigma = obj.intergridMatrix{2}*sigma;
-            
+
             % ascending cascade
             for k = 3:L
                 sigma = sigma + rho{k-1};
@@ -139,6 +149,8 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             idx = obj.changedPatches{k};
             rho = zeros(size(res));
             rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
+            % DEBUG: Local patchwise smoothing in P1
+            % rho = obj.patchwiseP1Matrix{k} \ res;
         end
         
         function rho = hoGlobalSmoothing(obj, res)

@@ -6,7 +6,7 @@ function leveldata = runIterativeSolver(maxNiter)
     end
 
     % Polynomial degree
-    p = 5;
+    p = 2;
 
     % Number of refinement levels
     nLevels = 4;
@@ -27,8 +27,8 @@ function leveldata = runIterativeSolver(maxNiter)
     lf.f = Constant(mesh, 1);
 
     % Choose iterative solver
-    % solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzLowOrder");
-    solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzHighOrder");
+    solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzLowOrder");
+    % solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzHighOrder");
     % solver = chooseIterativeSolver(fes, blf, "pcg", "iChol");
 
     % Initialize LevelData
@@ -57,6 +57,9 @@ function leveldata = runIterativeSolver(maxNiter)
 
     % Compute exact solution
     xstar = A(freeDofs,freeDofs) \ F(freeDofs);
+    
+    % DEBUG: direct smoothing
+    xFree = zeros(size(xstar));
 
     % Refinement loop
     nIter = 1;
@@ -82,15 +85,16 @@ function leveldata = runIterativeSolver(maxNiter)
         % Print level information
         leveldata.printLevel();
 
-        u.setFreeData(solver.x);
-        plot(u);
-        pause(2)
-
-        % x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
-        % x(freeDofs) = solver.x;
-        % figure(1);
-        % plotS2(mesh.clone(), x);
+        % u.setFreeData(solver.x);
+        % plot(u);
         % pause(2)
+
+        x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
+        % x(freeDofs) = solver.x;
+        x(freeDofs) = xFree;
+        figure(1);
+        plotS2(mesh.clone(), x);
+        pause(2)
 
         % Break condition
         % if ndof > maxNdof
@@ -105,7 +109,11 @@ function leveldata = runIterativeSolver(maxNiter)
         end
 
         % One iterative solver step
-        solver.step();
+        % solver.step();
+
+        res = F(freeDofs) - A(freeDofs,freeDofs) * xFree;
+        Cres = solver.preconditionAction(res);
+        xFree = xFree + Cres;
 
         % Update iteration counter
         nIter = nIter + 1;
