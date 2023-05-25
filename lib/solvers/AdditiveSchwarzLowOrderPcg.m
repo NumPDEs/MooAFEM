@@ -68,13 +68,13 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
-                % obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
                 % obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
 
                 % DEBUG: exact on highest level
-                TMP = assemble(obj.blf, obj.hoFes);
-                obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
+                % TMP = assemble(obj.blf, obj.hoFes);
+                % obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
             end
             
             setupSystemMatrix@PcgSolver(obj, A);

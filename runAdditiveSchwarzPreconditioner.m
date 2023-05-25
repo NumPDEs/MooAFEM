@@ -18,7 +18,7 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
     for p = 1:pMax
         % Load mesh
         mesh = Mesh.loadFromGeometry('unitsquare');
-        mesh.refineUniform();
+        %mesh.refineUniform();
     
         % Create FE space
         fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
@@ -51,13 +51,19 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
         % Assemble matrices on fine mesh
         A = assemble(blf, fes);
         if ~issymmetric(A)
-            warning(['symmetrizing, norm(asym(A)) = ', num2str(norm(A - A', 1))])
+            %warning(['symmetrizing, norm(asym(A)) = ', num2str(norm(A - A', 1))])
             A = (A + A') / 2;
         end
         F = assemble(lf, fes);
         freeDofs = getFreeDofs(fes);
         solver.setupSystemMatrix(A(freeDofs,freeDofs));
         solver.setupRhs(F(freeDofs));  % initializes x0 as well
+
+        A = A(freeDofs,freeDofs);
+
+        figure(2);
+        spy(A);
+        title('Matrix A');
 
         % Compute C
         C = zeros(length(freeDofs));
@@ -71,14 +77,32 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
         %     C = (C + C') / 2;
         % end
 
+        figure(3);
+        spy(C);
+        title('Matrix C');
+
+        asymC = (C - C');
+
+        figure(4);
+        largeAsymC = asymC;
+        largeAsymC(abs(largeAsymC) < max(abs(largeAsymC(:))) / 10) = 0;
+        spy(largeAsymC);
+        title('Large entries of asym(C)');
+
+        figure(5);
+        asymC(abs(asymC) < 1e-10) = 0;
+        spy(asymC);
+        title('Nonzero entries of asym(C)');
+
         % Compute conditional number
-        lambda = eig(full(C*A(freeDofs,freeDofs)));
+        CA = C*A;
+        lambda = eig(full(CA));
         condition = max(abs(lambda)) / min(abs(lambda));
-        % lambdaMin = eigs(@(x)applyCA(x, A(freeDofs,freeDofs), solver), length(freeDofs), 1, 'smallestreal');
-        % lambdaMax = eigs(@(x)applyCA(x, A(freeDofs,freeDofs), solver), length(freeDofs), 1, 'largestreal');
+        % lambdaMin = eigs(@(x)applyCA(x, A, solver), length(freeDofs), 1, 'smallestreal');
+        % lambdaMax = eigs(@(x)applyCA(x, A, solver), length(freeDofs), 1, 'largestreal');
+        % lambdaMin = eigs(CA, 1, 'smallestabs');
+        % lambdaMax = eigs(CA, 1, 'largestabs');
         % condition = lambdaMax / lambdaMin;
-        figure(2);
-        spy(A(freeDofs,freeDofs));
 
         % Print result to commandline
         leveldata.append('p', uint32(p), 'condition', condition);
