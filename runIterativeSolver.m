@@ -6,7 +6,7 @@ function leveldata = runIterativeSolver(maxNiter)
     end
 
     % Polynomial degree
-    p = 2;
+    p = 1;
 
     % Number of refinement levels
     nLevels = 4;
@@ -83,13 +83,14 @@ function leveldata = runIterativeSolver(maxNiter)
         leveldata.printLevel();
 
         % u.setFreeData(solver.x);
-        % plot(u);
-        % pause(2)
-
-        x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
-        x(freeDofs) = solver.x;
-        figure(1);
-        plotS2(mesh.clone(), x);
+        if p == 2
+            x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
+            x(freeDofs) = solver.x;
+            figure(1);
+            plotS2(mesh.clone(), x);
+        else
+            plot(u);
+        end
         pause(2)
 
         % Break condition
