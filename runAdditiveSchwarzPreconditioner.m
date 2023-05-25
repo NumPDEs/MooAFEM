@@ -72,27 +72,27 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
             ej(j) = 1;
             C(:,j) = solver.preconditionAction(ej);  
         end
-        % if ~issymmetric(C)
-        %     warning(['symmetrizing, norm(asym(C)) = ', num2str(norm(C - C', 1))])
-        %     C = (C + C') / 2;
-        % end
+        if ~issymmetric(C)
+            % warning(['symmetrizing, norm(asym(C)) = ', num2str(norm(C - C', 1))])
+            C = (C + C') / 2;
+        end
 
-        figure(3);
-        spy(C);
-        title('Matrix C');
+        % figure(3);
+        % spy(C);
+        % title('Matrix C');
+        % 
+        % asymC = (C - C');
 
-        asymC = (C - C');
+        % figure(4);
+        % largeAsymC = asymC;
+        % largeAsymC(abs(largeAsymC) < max(abs(largeAsymC(:))) / 10) = 0;
+        % spy(largeAsymC);
+        % title('Large entries of asym(C)');
 
-        figure(4);
-        largeAsymC = asymC;
-        largeAsymC(abs(largeAsymC) < max(abs(largeAsymC(:))) / 10) = 0;
-        spy(largeAsymC);
-        title('Large entries of asym(C)');
-
-        figure(5);
-        asymC(abs(asymC) < 1e-10) = 0;
-        spy(asymC);
-        title('Nonzero entries of asym(C)');
+        % figure(5);
+        % asymC(abs(asymC) < 1e-10) = 0;
+        % spy(asymC);
+        % title('Nonzero entries of asym(C)');
 
         % Compute conditional number
         CA = C*A;

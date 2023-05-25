@@ -106,7 +106,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % [~, sUpd] = computeOptimalUpdate(obj.A, residual, rho{L});
             % rho{L} = sUpd;
 
-            % Correct interpolation (NOT SYMMETRIC!)
+            % Exact interpolation (NOT SYMMETRIC!)
             % residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
 
             residual = obj.inclusionMatrix' * residual;
