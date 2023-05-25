@@ -27,7 +27,7 @@ data = eval(obj, Barycentric2D([1;0;0]), 1);
 nComponents = size(data, Dim.Vector);
 ax = cell(nComponents, 1);
 for i = 1:nComponents
-    ax{i} = axes(figure());
+    ax{i} = axes(gcf);
 end
 
 %% determine large triangles
