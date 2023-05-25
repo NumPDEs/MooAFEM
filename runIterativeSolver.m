@@ -6,14 +6,14 @@ function leveldata = runIterativeSolver(maxNiter)
     end
 
     % Polynomial degree
-    p = 2;
+    p = 4;
 
     % Number of refinement levels
-    nLevels = 2;
+    nLevels = 4;
 
     % Load mesh
     mesh = Mesh.loadFromGeometry('unitsquare');
-    % mesh.refineUniform();
+    mesh.refineUniform();
 
     % Create FE space
     fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
@@ -96,9 +96,11 @@ function leveldata = runIterativeSolver(maxNiter)
             plotS2(mesh.clone(), x);
             title("Exact algebraic solution")
         else
+            figure(1);
             u.setFreeData(solver.x);
             plot(u);
 
+            figure(2);
             ustar.setFreeData(xstar);
             plot(ustar);
         end

@@ -15,6 +15,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
         p1Acoarse
         p1Smoother
         P
+        inclusionMatrix
         intergridMatrix
         freeVertices
         freeVerticesOld
@@ -70,6 +71,8 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
+                obj.inclusionMatrix = interpolateFreeData(eye(length(obj.freeVertices)), obj.loFes, obj.hoFes);
+
                 % obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
 
                 % DEBUG: exact on highest level
@@ -103,7 +106,10 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % [~, sUpd] = computeOptimalUpdate(obj.A, residual, rho{L});
             % rho{L} = sUpd;
 
-            residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
+            % Correct interpolation (NOT SYMMETRIC!)
+            % residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
+
+            residual = obj.inclusionMatrix' * residual;
 
             % DEBUG: p1 smoothing only
             % rho{L} = p1LocalSmoothing(obj, L, residual);
@@ -127,9 +133,13 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 sigma = sigma + rho{k-1};
                 sigma = obj.intergridMatrix{k}*sigma;
             end
-            sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
+
+            % Correct interpolation (NOT SYMMETRIC!)
+            % sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
+
+            sigma = obj.inclusionMatrix * sigma;
             sigma = sigma + rho{L};
-           
+
             Cx = sigma;
         end
     end
@@ -149,7 +159,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             idx = [bisectedEdgeNodes; ((nCOld+1):nCNew)'];
             obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
-        
+
         function rho = p1LocalSmoothing(obj, k, res)
             idx = obj.changedPatches{k};
             rho = zeros(size(res));
