@@ -68,13 +68,13 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
-                obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+                % obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
-                obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
+                % obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
 
                 % DEBUG: exact on highest level
-                % TMP = assemble(obj.blf, obj.hoFes);
-                % obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
+                TMP = assemble(obj.blf, obj.hoFes);
+                obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
             end
             
             setupSystemMatrix@PcgSolver(obj, A);
@@ -98,6 +98,11 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
 
             % descending cascade
             rho{L} = hoGlobalSmoothing(obj, residual);
+
+            % DEBUG: extra step size choice
+            % [~, sUpd] = computeOptimalUpdate(obj.A, residual, rho{L});
+            % rho{L} = sUpd;
+
             residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
 
             % DEBUG: p1 smoothing only
@@ -170,4 +175,26 @@ function interpolatedData = interpolateFreeData(data, fromFes, toFes)
         wholeData = nodalInterpolation(feFunctionWrapper, toFes);
         interpolatedData(:,k) = wholeData(freeDofs);
     end
+end
+
+
+%% DEBUG: COPIED FROM MG
+
+function [etaUpdate, sigmaUpdate] = computeOptimalUpdate(A, res, rho)
+    rhoArho = scalarProduct(rho, A*rho);
+    if max(abs(rho)) < eps
+        lambda = 1; 
+    else
+        lambda = scalarProduct(res, rho) ./ rhoArho;
+    end
+    sigmaUpdate = lambda.*rho;
+    etaUpdate = rhoArho.*(lambda.^2);
+
+    if any(lambda > 3)
+       warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
+    end
+end
+
+function a = scalarProduct(x, y)
+    a = sum(x.*y, 1);
 end

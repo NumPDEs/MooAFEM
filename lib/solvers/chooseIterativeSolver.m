@@ -30,7 +30,9 @@ switch class
                 else, solver = BlockJacobiPcgSolver(fes, blf); end
             case {"", "additiveSchwarzLowOrder"}
                 if order == 1, solver = LowestOrderAdditiveSchwarzPcg(fes, blf, P);
-                else, solver = AdditiveSchwarzLowOrderPcg(fes, blf); end
+                else
+                    solver = AdditiveSchwarzLowOrderPcg(fes, blf);
+                end
             case "additiveSchwarzHighOrder"
                 solver = AdditiveSchwarzHighOrderPcg(fes, blf, P);
             otherwise

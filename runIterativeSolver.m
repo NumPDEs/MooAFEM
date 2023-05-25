@@ -6,10 +6,10 @@ function leveldata = runIterativeSolver(maxNiter)
     end
 
     % Polynomial degree
-    p = 1;
+    p = 2;
 
     % Number of refinement levels
-    nLevels = 4;
+    nLevels = 2;
 
     % Load mesh
     mesh = Mesh.loadFromGeometry('unitsquare');
@@ -18,6 +18,7 @@ function leveldata = runIterativeSolver(maxNiter)
     % Create FE space
     fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', ':');
     u = FeFunction(fes);
+    ustar = FeFunction(fes);
 
     % Setup variational problem
     blf = BilinearForm();
@@ -30,6 +31,7 @@ function leveldata = runIterativeSolver(maxNiter)
     solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzLowOrder");
     % solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzHighOrder");
     % solver = chooseIterativeSolver(fes, blf, "pcg", "iChol");
+    % solver = chooseIterativeSolver(fes, blf, "multigrid", "lowOrderVcycle");
 
     % Initialize LevelData
     leveldata = LevelData('results');
@@ -37,7 +39,7 @@ function leveldata = runIterativeSolver(maxNiter)
     leveldata.domain = 'UnitSquare';
     leveldata.method = 'Sp_PCG_AdditiveSchwarz';
 
-    for k = 1:nLevels
+    for k = 1:nLevels-1
         % Assemble matrices on intermediate meshes
         A = assemble(blf, fes);
         F = assemble(lf, fes);
@@ -82,14 +84,23 @@ function leveldata = runIterativeSolver(maxNiter)
         % Print level information
         leveldata.printLevel();
 
-        % u.setFreeData(solver.x);
+        % Plot solution
         if p == 2
             x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
             x(freeDofs) = solver.x;
             figure(1);
             plotS2(mesh.clone(), x);
+
+            figure(2);
+            x(freeDofs) = xstar;
+            plotS2(mesh.clone(), x);
+            title("Exact algebraic solution")
         else
+            u.setFreeData(solver.x);
             plot(u);
+
+            ustar.setFreeData(xstar);
+            plot(ustar);
         end
         pause(2)
 
