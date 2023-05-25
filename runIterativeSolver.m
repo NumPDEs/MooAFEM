@@ -57,9 +57,6 @@ function leveldata = runIterativeSolver(maxNiter)
 
     % Compute exact solution
     xstar = A(freeDofs,freeDofs) \ F(freeDofs);
-    
-    % DEBUG: direct smoothing
-    xFree = zeros(size(xstar));
 
     % Refinement loop
     nIter = 1;
@@ -90,8 +87,7 @@ function leveldata = runIterativeSolver(maxNiter)
         % pause(2)
 
         x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
-        % x(freeDofs) = solver.x;
-        x(freeDofs) = xFree;
+        x(freeDofs) = solver.x;
         figure(1);
         plotS2(mesh.clone(), x);
         pause(2)
@@ -109,11 +105,7 @@ function leveldata = runIterativeSolver(maxNiter)
         end
 
         % One iterative solver step
-        % solver.step();
-
-        res = F(freeDofs) - A(freeDofs,freeDofs) * xFree;
-        Cres = solver.preconditionAction(res);
-        xFree = xFree + Cres;
+        solver.step();
 
         % Update iteration counter
         nIter = nIter + 1;

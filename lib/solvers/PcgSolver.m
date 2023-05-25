@@ -56,6 +56,9 @@ classdef PcgSolver < IterativeSolver
                 alpha = obj.residualCNorm(:,idx) ./ sum(obj.searchDirection(:,idx).*AsearchDirection, 1);
             end
             obj.x(:,idx) = obj.x(:,idx) + alpha .* obj.searchDirection(:,idx);
+
+            % DEBUG:
+            disp(['alpha = ', num2str(alpha)])
             
             % update residual
             obj.residual(:,idx) = obj.residual(:,idx) - alpha .* AsearchDirection;
