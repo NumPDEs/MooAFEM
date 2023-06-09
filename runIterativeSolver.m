@@ -9,7 +9,7 @@ function leveldata = runIterativeSolver(maxNiter)
     p = 4;
 
     % Number of refinement levels
-    nLevels = 4;
+    nLevels = 6;
 
     % Load mesh
     mesh = Mesh.loadFromGeometry('unitsquare');
@@ -40,6 +40,8 @@ function leveldata = runIterativeSolver(maxNiter)
     leveldata.method = 'Sp_PCG_AdditiveSchwarz';
 
     for k = 1:nLevels-1
+        % Output
+        fprintf('Assemble data for level = %d\n', k);
         % Assemble matrices on intermediate meshes
         A = assemble(blf, fes);
         F = assemble(lf, fes);
@@ -50,6 +52,8 @@ function leveldata = runIterativeSolver(maxNiter)
         mesh.refineUniform();
     end
 
+    fprintf('Assemble data for level = %d\n', nLevels);
+
     % Assemble matrices on fine mesh
     A = assemble(blf, fes);
     F = assemble(lf, fes);
@@ -58,6 +62,7 @@ function leveldata = runIterativeSolver(maxNiter)
     solver.setupRhs(F(freeDofs));  % initializes x0 as well
 
     % Compute exact solution
+    fprintf('Do exact solve\n');
     xstar = A(freeDofs,freeDofs) \ F(freeDofs);
 
     % Refinement loop
@@ -85,26 +90,26 @@ function leveldata = runIterativeSolver(maxNiter)
         leveldata.printLevel();
 
         % Plot solution
-        if p == 2
-            x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
-            x(freeDofs) = solver.x;
-            figure(1);
-            plotS2(mesh.clone(), x);
-
-            figure(2);
-            x(freeDofs) = xstar;
-            plotS2(mesh.clone(), x);
-            title("Exact algebraic solution")
-        else
-            figure(1);
-            u.setFreeData(solver.x);
-            plot(u);
-
-            figure(2);
-            ustar.setFreeData(xstar);
-            plot(ustar);
-        end
-        pause(2)
+        % if p == 2
+        %     x = zeros(mesh.nCoordinates + mesh.nEdges, 1);
+        %     x(freeDofs) = solver.x;
+        %     figure(1);
+        %     plotS2(mesh.clone(), x);
+        % 
+        %     figure(2);
+        %     x(freeDofs) = xstar;
+        %     plotS2(mesh.clone(), x);
+        %     title("Exact algebraic solution")
+        % else
+        %     figure(1);
+        %     u.setFreeData(solver.x);
+        %     plot(u);
+        % 
+        %     figure(2);
+        %     ustar.setFreeData(xstar);
+        %     plot(ustar);
+        % end
+        % pause(2)
 
         % Break condition
         % if ndof > maxNdof

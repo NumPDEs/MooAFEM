@@ -59,26 +59,28 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
         solver.setupSystemMatrix(A(freeDofs,freeDofs));
         solver.setupRhs(F(freeDofs));  % initializes x0 as well
 
-        A = A(freeDofs,freeDofs);
+        % A = A(freeDofs,freeDofs);
 
-        figure(2);
-        spy(A);
-        title('Matrix A');
+        % figure(2);
+        % spy(A);
+        % title('Matrix A');
 
         % Compute C
-        C = zeros(length(freeDofs));
-        for j = 1:length(freeDofs)
-            ej = zeros(length(freeDofs), 1);
-            ej(j) = 1;
-            C(:,j) = solver.preconditionAction(ej);  
-        end
-        if ~issymmetric(C)
-            % warning(['symmetrizing, norm(asym(C)) = ', num2str(norm(C - C', 1))])
-            C = (C + C') / 2;
-        end
+        % C = zeros(length(freeDofs));
+        % for j = 1:length(freeDofs)
+        %     ej = zeros(length(freeDofs), 1);
+        %     ej(j) = 1;
+        %     C(:,j) = solver.preconditionAction(ej);  
+        % end
+        % if ~issymmetric(C)
+        %     % warning(['symmetrizing, norm(asym(C)) = ', num2str(norm(C - C', 1))])
+        %     C = (C + C') / 2;
+        % end
 
         % figure(3);
-        % spy(C);
+        % CC = C;
+        % CC(abs(C) < 1e-10) = 0; 
+        % spy(CC);
         % title('Matrix C');
         % 
         % asymC = (C - C');
@@ -95,9 +97,9 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
         % title('Nonzero entries of asym(C)');
 
         % Compute conditional number
-        CA = C*A;
-        lambda = eig(full(CA));
-        condition = max(abs(lambda)) / min(abs(lambda));
+        % CA = C*A;
+        % lambda = eig(full(CA));
+        % condition = max(abs(lambda)) / min(abs(lambda));
         % lambdaMin = eigs(@(x)applyCA(x, A, solver), length(freeDofs), 1, 'smallestreal');
         % lambdaMax = eigs(@(x)applyCA(x, A, solver), length(freeDofs), 1, 'largestreal');
         % lambdaMin = eigs(CA, 1, 'smallestabs');
@@ -105,8 +107,8 @@ function leveldata = runAdditiveSchwarzPreconditioner(pMax)
         % condition = lambdaMax / lambdaMin;
 
         % Print result to commandline
-        leveldata.append('p', uint32(p), 'condition', condition);
-        leveldata.printLevel();
+        % leveldata.append('p', uint32(p), 'condition', condition);
+        % leveldata.printLevel();
     end
 
     % Plot condition

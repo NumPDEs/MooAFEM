@@ -71,7 +71,10 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
 
-                obj.inclusionMatrix = interpolateFreeData(eye(length(obj.freeVertices)), obj.loFes, obj.hoFes);
+                obj.inclusionMatrix = quickSparseInclusionMatrix(obj);
+
+                % Global computation
+                % obj.inclusionMatrix = interpolateFreeData(eye(length(obj.freeVertices)), obj.loFes, obj.hoFes);
 
                 % obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
 
@@ -171,6 +174,24 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
         function rho = hoGlobalSmoothing(obj, res)
             rho = obj.patchwiseA \ res;
         end
+
+        function I = quickSparseInclusionMatrix(obj)
+
+            nFreeVertices = length(obj.freeVertices);
+
+            % TODO: setup nnz
+            expectedNNZ = (obj.hoFes.finiteElement.order + 1)^2 * 8 * nFreeVertices;
+            I = spalloc(length(getFreeDofs(obj.hoFes)), nFreeVertices, expectedNNZ);
+
+            for j = 1:nFreeVertices
+                data = zeros(nFreeVertices, 1);
+                data(j) = 1;
+                tmp = interpolateFreeData(data, obj.loFes, obj.hoFes);
+                tmp(abs(tmp) < 1e-10) = 0;
+                I(:,j) = tmp;
+            end
+        end
+
     end
 end
 
