@@ -73,15 +73,6 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
                 obj.inclusionMatrix = spaceProlongation(obj.loFes, obj.hoFes);
                 obj.inclusionMatrix = obj.inclusionMatrix(obj.freeVertices, freeVerticesHigher);
-
-                % Global computation
-                % obj.inclusionMatrix = interpolateFreeData(eye(length(obj.freeVertices)), obj.loFes, obj.hoFes);
-
-                % obj.patchwiseP1Matrix{L} = assemblePatchwise(obj.blf, obj.loFes, obj.changedPatches{L});
-
-                % DEBUG: exact on highest level
-                % TMP = assemble(obj.blf, obj.hoFes);
-                % obj.patchwiseA = TMP(getFreeDofs(obj.hoFes),getFreeDofs(obj.hoFes));
             end
             
             setupSystemMatrix@PcgSolver(obj, A);
@@ -106,25 +97,11 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % descending cascade
             rho{L} = hoGlobalSmoothing(obj, residual);
 
-            % DEBUG: extra step size choice
-            % [~, sUpd] = computeOptimalUpdate(obj.A, residual, rho{L});
-            % rho{L} = sUpd;
-
-            % Exact interpolation (NOT SYMMETRIC!)
-            % residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
-
             residual = obj.inclusionMatrix * residual;
-
-            % DEBUG: p1 smoothing only
-            % rho{L} = p1LocalSmoothing(obj, L, residual);
 
             for k = L:-1:3
                 residual = obj.intergridMatrix{k}'*residual;
                 rho{k-1} = p1LocalSmoothing(obj, k-1, residual);
-                % DEBUG: delete some corrections
-                % if k > 5
-                %     rho{k-1} = zeros(size(residual));
-                % end
             end
 
             % exact solve on coarsest level
@@ -137,9 +114,6 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 sigma = sigma + rho{k-1};
                 sigma = obj.intergridMatrix{k}*sigma;
             end
-
-            % Correct interpolation (NOT SYMMETRIC!)
-            % sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
 
             sigma = obj.inclusionMatrix' * sigma;
             sigma = sigma + rho{L};
@@ -223,39 +197,4 @@ function interpolatedData = interpolateData(data, fromFes, toFes)
         wholeData = nodalInterpolation(feFunctionWrapper, toFes);
         interpolatedData(:,k) = wholeData(Dofs);
     end
-end
-
- %% auxiliary functions
-function interpolatedData = interpolateFreeData(data, fromFes, toFes)
-    freeDofs = getFreeDofs(toFes);
-    nComponents = size(data, 2);
-    interpolatedData = zeros(numel(freeDofs), nComponents);
-    feFunctionWrapper = FeFunction(fromFes);
-    for k = 1:nComponents
-        feFunctionWrapper.setFreeData(data(:,k));
-        wholeData = nodalInterpolation(feFunctionWrapper, toFes);
-        interpolatedData(:,k) = wholeData(freeDofs);
-    end
-end
-
-
-%% DEBUG: COPIED FROM MG
-
-function [etaUpdate, sigmaUpdate] = computeOptimalUpdate(A, res, rho)
-    rhoArho = scalarProduct(rho, A*rho);
-    if max(abs(rho)) < eps
-        lambda = 1; 
-    else
-        lambda = scalarProduct(res, rho) ./ rhoArho;
-    end
-    sigmaUpdate = lambda.*rho;
-    etaUpdate = rhoArho.*(lambda.^2);
-
-    if any(lambda > 3)
-       warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
-    end
-end
-
-function a = scalarProduct(x, y)
-    a = sum(x.*y, 1);
 end
