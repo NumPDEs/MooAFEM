@@ -17,6 +17,7 @@ classdef LocalMgHighOrderVcycle < MGSolver
         loFes
         P
         intergridMatrix
+        inclusionMatrix
         freeDofs
         freeDofsOld
         changedPatches
@@ -78,7 +79,8 @@ classdef LocalMgHighOrderVcycle < MGSolver
             if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = freeVertices(obj.changedPatches{L}(freeVertices));
-
+                obj.inclusionMatrix = spaceProlongation(obj.coarseLoFes, obj.coarseHoFes);
+                obj.inclusionMatrix = obj.inclusionMatrix(getFreeDofs(obj.coarseLoFes), getFreeDofs(obj.coarseHoFes));
                 if L == 2
                     obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.hoFes, ':');
                 else
@@ -116,12 +118,12 @@ classdef LocalMgHighOrderVcycle < MGSolver
             end
 
             % coarse level in P1
-            residual{1} = interpolateCoarseFreeData(residual{1}, obj.coarseHoFes, obj.coarseLoFes);
+            residual{1} = obj.inclusionMatrix * residual{1};
             sigma = obj.Acoarse \ residual{1};
             algError2 = algError2 + scalarProduct(sigma, obj.Acoarse*sigma);
             
             % ascending cascade in Pp 
-            sigma = interpolateCoarseFreeData(sigma, obj.coarseLoFes, obj.coarseHoFes);
+            sigma = obj.inclusionMatrix' * sigma;
             
             for k = 2:L
                 sigma = obj.intergridMatrix{k}*sigma;
@@ -153,15 +155,50 @@ classdef LocalMgHighOrderVcycle < MGSolver
 end
 
 %% auxiliary functions
-function interpolatedData = interpolateCoarseFreeData(data, fromFes, toFes)
-    freeDofs = getFreeDofs(toFes);
+function inclusionMatrix = spaceProlongation(fromFes, toFes)
+    %Create the prolongation matrix on the unit triangle
+    unittriangle = Mesh.loadFromGeometry('unittriangle');
+    fromFesUnitTriangle = FeSpace(unittriangle, ...
+        HigherOrderH1Fe(fromFes.finiteElement.order));
+    toFesUnitTriangle = FeSpace(unittriangle, ...
+        HigherOrderH1Fe(toFes.finiteElement.order));
+    Vertices = 1:getDofs(fromFesUnitTriangle).nDofs;
+    unitTriangleInclusionMatrix = ...
+        permute(interpolateData(eye(length(Vertices)),...
+        fromFesUnitTriangle, toFesUnitTriangle), [2 1]);
+    % Get local to global map in unit triangle
+    
+    unitTriangleInclusionMatrix = unitTriangleInclusionMatrix( ...
+        getDofs(fromFesUnitTriangle).element2Dofs, ...
+        getDofs(toFesUnitTriangle).element2Dofs);
+    % Get dofs of the finite element spaces on the meshes
+    fromFesDofs = getDofs(fromFes);
+    toFesDofs = getDofs(toFes);
+    
+    % Copy the matrix from the unit triangle for each element
+    mat = repmat(unitTriangleInclusionMatrix, ...
+        [1, 1, fromFes.mesh.nElements]);
+    
+    % Create index sets for the accumarray
+    temp = fromFesDofs.element2Dofs(:, :);
+    temp2 = toFesDofs.element2Dofs(:, :);
+    I = repmat(permute(temp, [1 3 2]), [1, size(temp2, 1), 1]);
+    J = repmat(permute(temp2, [3 1 2]), [size(temp, 1), 1, 1]);
+    ind = [I(:), J(:)];
+    
+    inclusionMatrix = ...
+        accumarray(ind, mat(:), [], @mean, [], true);
+end
+
+function interpolatedData = interpolateData(data, fromFes, toFes)
+    Dofs = 1:getDofs(toFes).nDofs;
     nComponents = size(data, 2);
-    interpolatedData = zeros(numel(freeDofs), nComponents);
+    interpolatedData = zeros(numel(Dofs), nComponents);
     feFunctionWrapper = FeFunction(fromFes);
     for k = 1:nComponents
-        feFunctionWrapper.setFreeData(data(:,k));
+        feFunctionWrapper.setData(data(:,k));
         wholeData = nodalInterpolation(feFunctionWrapper, toFes);
-        interpolatedData(:,k) = wholeData(freeDofs);
+        interpolatedData(:,k) = wholeData(Dofs);
     end
 end
 
