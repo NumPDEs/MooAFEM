@@ -59,6 +59,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
+            freeVerticesHigher = getFreeDofs(obj.hoFes);
 
             p1Matrix = assemble(obj.blf, obj.loFes);
             p1Matrix = p1Matrix(obj.freeVertices, obj.freeVertices);
@@ -70,8 +71,8 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = obj.changedPatches{L}(obj.freeVertices);
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
-
-                obj.inclusionMatrix = quickSparseInclusionMatrix(obj);
+                obj.inclusionMatrix = spaceProlongation(obj.loFes, obj.hoFes);
+                obj.inclusionMatrix = obj.inclusionMatrix(obj.freeVertices, freeVerticesHigher);
 
                 % Global computation
                 % obj.inclusionMatrix = interpolateFreeData(eye(length(obj.freeVertices)), obj.loFes, obj.hoFes);
@@ -112,7 +113,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % Exact interpolation (NOT SYMMETRIC!)
             % residual = interpolateFreeData(residual, obj.hoFes, obj.loFes);
 
-            residual = obj.inclusionMatrix' * residual;
+            residual = obj.inclusionMatrix * residual;
 
             % DEBUG: p1 smoothing only
             % rho{L} = p1LocalSmoothing(obj, L, residual);
@@ -140,7 +141,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % Correct interpolation (NOT SYMMETRIC!)
             % sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
 
-            sigma = obj.inclusionMatrix * sigma;
+            sigma = obj.inclusionMatrix' * sigma;
             sigma = sigma + rho{L};
 
             Cx = sigma;
@@ -174,24 +175,53 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
         function rho = hoGlobalSmoothing(obj, res)
             rho = obj.patchwiseA \ res;
         end
+    end
+end
 
-        function I = quickSparseInclusionMatrix(obj)
+function inclusionMatrix = spaceProlongation(fromFes, toFes)
+    %Create the prolongation matrix on the unit triangle
+    unittriangle = Mesh.loadFromGeometry('unittriangle');
+    fromFesUnitTriangle = FeSpace(unittriangle, ...
+        HigherOrderH1Fe(fromFes.finiteElement.order));
+    toFesUnitTriangle = FeSpace(unittriangle, ...
+        HigherOrderH1Fe(toFes.finiteElement.order));
+    Vertices = 1:getDofs(fromFesUnitTriangle).nDofs;
+    unitTriangleInclusionMatrix = ...
+        permute(interpolateData(eye(length(Vertices)),...
+        fromFesUnitTriangle, toFesUnitTriangle), [2 1]);
+    % Get local to global map in unit triangle
+    
+    unitTriangleInclusionMatrix = unitTriangleInclusionMatrix( ...
+        getDofs(fromFesUnitTriangle).element2Dofs, ...
+        getDofs(toFesUnitTriangle).element2Dofs);
+    % Get dofs of the finite element spaces on the meshes
+    fromFesDofs = getDofs(fromFes);
+    toFesDofs = getDofs(toFes);
+    
+    % Copy the matrix from the unit triangle for each element
+    mat = repmat(unitTriangleInclusionMatrix, ...
+        [1, 1, fromFes.mesh.nElements]);
+    
+    % Create index sets for the accumarray
+    temp = fromFesDofs.element2Dofs(:, :);
+    temp2 = toFesDofs.element2Dofs(:, :);
+    I = repmat(permute(temp, [1 3 2]), [1, size(temp2, 1), 1]);
+    J = repmat(permute(temp2, [3 1 2]), [size(temp, 1), 1, 1]);
+    ind = [I(:), J(:)];
+    
+    inclusionMatrix = ...
+        accumarray(ind, mat(:), [], @mean, [], true);
+end
 
-            nFreeVertices = length(obj.freeVertices);
-
-            % TODO: setup nnz
-            expectedNNZ = (obj.hoFes.finiteElement.order + 1)^2 * 8 * nFreeVertices;
-            I = spalloc(length(getFreeDofs(obj.hoFes)), nFreeVertices, expectedNNZ);
-
-            for j = 1:nFreeVertices
-                data = zeros(nFreeVertices, 1);
-                data(j) = 1;
-                tmp = interpolateFreeData(data, obj.loFes, obj.hoFes);
-                tmp(abs(tmp) < 1e-10) = 0;
-                I(:,j) = tmp;
-            end
-        end
-
+function interpolatedData = interpolateData(data, fromFes, toFes)
+    Dofs = 1:getDofs(toFes).nDofs;
+    nComponents = size(data, 2);
+    interpolatedData = zeros(numel(Dofs), nComponents);
+    feFunctionWrapper = FeFunction(fromFes);
+    for k = 1:nComponents
+        feFunctionWrapper.setData(data(:,k));
+        wholeData = nodalInterpolation(feFunctionWrapper, toFes);
+        interpolatedData(:,k) = wholeData(Dofs);
     end
 end
 

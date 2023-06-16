@@ -1,16 +1,15 @@
 mesh = Mesh.loadFromGeometry('unitsquare');
-mesh.refineUniform();
-trafo = getAffineTransformation(mesh);
+%mesh.refineUniform();
 
-fes1 = FeSpace(mesh, HigherOrderH1Fe(4), 'dirichlet', ':');
-fes2 = FeSpace(mesh, HigherOrderH1Fe(2), 'dirichlet', ':');
+fes1 = FeSpace(mesh, HigherOrderH1Fe(1), 'dirichlet', ':');
+fes2 = FeSpace(mesh, HigherOrderH1Fe(15), 'dirichlet', ':');
 
 testMatrix = ones(getDofs(fes2).nDofs, 1);
 inclusionMatrix = FeProlongation(fes1, fes2);
 inclusionMatrix = full(inclusionMatrix);
 Vertices = 1:getDofs(fes1).nDofs;
 inclusionMatrix2 = interpolateData(eye(length(Vertices)), fes1, fes2)';
-
+diff = inclusionMatrix - inclusionMatrix2;
 
 function inclusionMatrix = FeProlongation(fromFes, toFes)
     %Create the prolongation matrix on the unit triangle
@@ -23,7 +22,11 @@ function inclusionMatrix = FeProlongation(fromFes, toFes)
     unitTriangleInclusionMatrix = ...
         permute(interpolateData(eye(length(Vertices)),...
                            fromFesUnitTriangle, toFesUnitTriangle), [2 1]);
+    % Get local to global map in unit triangle
 
+    unitTriangleInclusionMatrix = unitTriangleInclusionMatrix( ...
+                             getDofs(fromFesUnitTriangle).element2Dofs, ...
+                             getDofs(toFesUnitTriangle).element2Dofs);
     % Get dofs of the finite element spaces on the meshes
     fromFesDofs = getDofs(fromFes);
     toFesDofs = getDofs(toFes);
@@ -41,11 +44,6 @@ function inclusionMatrix = FeProlongation(fromFes, toFes)
     
     inclusionMatrix = ...
       accumarray(ind, mat(:), [], @mean, [], true);
-end
-
-function [localI, localJ] = getLocalDofs(n)
-    localI = repmat(1:n, 1, n);
-    localJ = repelem(1:n, 1, n);
 end
 
 function interpolatedData = interpolateData(data, fromFes, toFes)

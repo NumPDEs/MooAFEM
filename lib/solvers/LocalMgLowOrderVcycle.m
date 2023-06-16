@@ -19,6 +19,7 @@ classdef LocalMgLowOrderVcycle < MGSolver
         p1Smoother
         P
         intergridMatrix
+        inclusionMatrix
         freeVertices
         freeVerticesOld
         changedPatches
@@ -61,6 +62,7 @@ classdef LocalMgLowOrderVcycle < MGSolver
             L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
+            freeVerticesHigher = getFreeDofs(obj.hoFes);
             
             obj.p1Matrix{L} = assemble(obj.blf, obj.loFes);
             obj.p1Matrix{L} = obj.p1Matrix{L}(obj.freeVertices, obj.freeVertices);
@@ -70,6 +72,8 @@ classdef LocalMgLowOrderVcycle < MGSolver
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
                 obj.patchwiseA = assemblePatchwise(obj.blf, obj.hoFes);
+                obj.inclusionMatrix = spaceProlongation(obj.loFes, obj.hoFes);
+                obj.inclusionMatrix = obj.inclusionMatrix(obj.freeVertices, freeVerticesHigher);
             end
             setupSystemMatrix@MGSolver(obj, A);
         end
@@ -94,7 +98,7 @@ classdef LocalMgLowOrderVcycle < MGSolver
             algError2 = zeros(1, size(res, 2)); % built-in estimator of the algebraic error
             
             % descending cascade in P1: no smoothing
-            residual{L} = interpolateFreeData(res, obj.hoFes, obj.loFes);
+            residual{L} = obj.inclusionMatrix * res; %interpolateFreeData(res, obj.hoFes, obj.loFes);
             for k = L:-1:2
                 residual{k-1}  = obj.intergridMatrix{k}'*residual{k};
             end
@@ -116,7 +120,7 @@ classdef LocalMgLowOrderVcycle < MGSolver
             
             % smoothing on finest level dependent on p
             sigma = obj.intergridMatrix{L}*sigma;
-            sigma = interpolateFreeData(sigma, obj.loFes, obj.hoFes);
+            sigma = obj.inclusionMatrix' * sigma; %interpolateFreeData(sigma, obj.loFes, obj.hoFes);
             uptres = res - obj.A*sigma;
             rho = hoGlobalSmoothing(obj, uptres);
             [aeUpd, sUpd] = computeOptimalUpdate(obj.A, uptres, rho);
@@ -154,15 +158,51 @@ classdef LocalMgLowOrderVcycle < MGSolver
 end
 
 %% auxiliary functions
-function interpolatedData = interpolateFreeData(data, fromFes, toFes)
-    freeDofs = getFreeDofs(toFes);
+
+function inclusionMatrix = spaceProlongation(fromFes, toFes)
+    %Create the prolongation matrix on the unit triangle
+    unittriangle = Mesh.loadFromGeometry('unittriangle');
+    fromFesUnitTriangle = FeSpace(unittriangle, ...
+        HigherOrderH1Fe(fromFes.finiteElement.order));
+    toFesUnitTriangle = FeSpace(unittriangle, ...
+        HigherOrderH1Fe(toFes.finiteElement.order));
+    Vertices = 1:getDofs(fromFesUnitTriangle).nDofs;
+    unitTriangleInclusionMatrix = ...
+        permute(interpolateData(eye(length(Vertices)),...
+        fromFesUnitTriangle, toFesUnitTriangle), [2 1]);
+    % Get local to global map in unit triangle
+    
+    unitTriangleInclusionMatrix = unitTriangleInclusionMatrix( ...
+        getDofs(fromFesUnitTriangle).element2Dofs, ...
+        getDofs(toFesUnitTriangle).element2Dofs);
+    % Get dofs of the finite element spaces on the meshes
+    fromFesDofs = getDofs(fromFes);
+    toFesDofs = getDofs(toFes);
+    
+    % Copy the matrix from the unit triangle for each element
+    mat = repmat(unitTriangleInclusionMatrix, ...
+        [1, 1, fromFes.mesh.nElements]);
+    
+    % Create index sets for the accumarray
+    temp = fromFesDofs.element2Dofs(:, :);
+    temp2 = toFesDofs.element2Dofs(:, :);
+    I = repmat(permute(temp, [1 3 2]), [1, size(temp2, 1), 1]);
+    J = repmat(permute(temp2, [3 1 2]), [size(temp, 1), 1, 1]);
+    ind = [I(:), J(:)];
+    
+    inclusionMatrix = ...
+        accumarray(ind, mat(:), [], @mean, [], true);
+end
+
+function interpolatedData = interpolateData(data, fromFes, toFes)
+    Dofs = 1:getDofs(toFes).nDofs;
     nComponents = size(data, 2);
-    interpolatedData = zeros(numel(freeDofs), nComponents);
+    interpolatedData = zeros(numel(Dofs), nComponents);
     feFunctionWrapper = FeFunction(fromFes);
     for k = 1:nComponents
-        feFunctionWrapper.setFreeData(data(:,k));
+        feFunctionWrapper.setData(data(:,k));
         wholeData = nodalInterpolation(feFunctionWrapper, toFes);
-        interpolatedData(:,k) = wholeData(freeDofs);
+        interpolatedData(:,k) = wholeData(Dofs);
     end
 end
 
