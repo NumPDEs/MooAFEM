@@ -6,7 +6,7 @@ end
 
 methods (TestMethodSetup)
     function createUnitTriangleCoordinates(testCase)
-        mesh = Mesh.loadFromGeometry('unittriangle');
+        mesh = Mesh.unitTriangle();
         testCase.coordinates = mesh.coordinates;
         testCase.fatalAssertNumElements(testCase.coordinates, 6);
     end

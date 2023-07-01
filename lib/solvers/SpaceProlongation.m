@@ -34,7 +34,7 @@ classdef SpaceProlongation
 
     methods (Static, Access=protected)
         function matrix = getUnitTriangleInclusionMatrix(sourceFE, targetFE)
-            unittriangle = Mesh.loadFromGeometry('unittriangle');
+            unittriangle = Mesh.unitTriangle();
             fromFes = FeSpace(unittriangle, sourceFE);
             toFes = FeSpace(unittriangle, targetFE);
             Vertices = 1:getDofs(fromFes).nDofs;
