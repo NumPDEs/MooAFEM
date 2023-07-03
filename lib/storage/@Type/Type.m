@@ -88,4 +88,9 @@ classdef Type < handle
             bool = strcmp(obj.shape, 's');
         end
     end
+
+    % AUXILIARY
+    methods (Static)
+        [type, valueList] = determineTypeValue(nLevel, variableName, value)
+    end
 end

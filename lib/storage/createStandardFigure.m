@@ -1,7 +1,8 @@
-function configureLegend(ax, location)
-%%CONFIGURELEGEND formats the legend of the current axis and displays it in
-%the specified location
-%   CONFIGURELEGEND(ax, location)
+function h = createStandardFigure()
+%%CREATESTANDARDFIGURE creates a new figure object with default choice of
+%size, the modification of this file allows a unified formatting of all
+%figures for the output in the LevelData class
+%   h = CREATESTANDARDFIGURE()
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -19,17 +20,7 @@ function configureLegend(ax, location)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    % Create figure
+    h = figure('Units', 'centimeters', 'Position', 3 + [0 0 32 24]);
 
-    % Create handle to legend in current axis
-    leg = legend(ax);
-
-    % Specify location
-    set(leg, 'Location', location);
-
-    % Set interpreter to latex in Matlab
-    if isOctave()
-        set(leg, 'Interpreter', 'tex');
-    else
-        set(leg, 'Interpreter', 'latex');
-    end
 end

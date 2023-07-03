@@ -26,7 +26,7 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
 
     % Welcome statement
     fprintf('\n#\n# OCTAFEM - TIME MEASUREMENT\n');
-    fprintf('# Current Time: %s\n#\n\n', datetime('now'));
+    fprintf('# Current Time: %s\n#\n\n', datestr(now));
     fprintf('This is TimeIt wrapper for function "%s"\n\n', functionName);
 
     % Initialisation of collection for LevelData objects
@@ -38,11 +38,7 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
         % Run current experiment
         temporaryIdentifier = sprintf('timingRun%04d', j);
         outputList = fevalc(functionName, varargin{:});
-        if isa(outputList, 'LevelData')
-            leveldata = outputList;
-        else
-            leveldata = outputList{1};
-        end
+        leveldata = outputList{1};
         leveldata.identifier = temporaryIdentifier;
         % Remove unused information
         leveldata.removeNonscalar();
@@ -51,9 +47,6 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
         % Save intermediate collection to file
         leveldatacollection.saveToFile();
         % Print information on current run
-        if leveldatacollection.isInitialRun
-            leveldatacollection.printHeader();
-        end
         leveldatacollection.printItem();
     end
 
@@ -62,15 +55,19 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
 end
 
 
-function varargout = fevalc(functionName, varargin) %#ok<INUSD>
-%%FEVALC suppresses output to commandline 
+function output = fevalc(functionName, varargin) %#ok<INUSD>
+%%FEVALC suppresses output to commandline
 
     % Create function call
     functioncall = 'feval(functionName, varargin{:})';
     % Call function
-    [~, varargout] = evalc(functioncall);
+    if isOctave()
+        evalc(['output = ' functioncall]);
+    else
+        [~, output] = evalc(functioncall);
+    end
     % Store output in cell variable
-    if ~iscell(varargout)
-        varargout = {varargout};
+    if ~iscell(output)
+        output = {output};
     end
 end

@@ -1,7 +1,9 @@
-function configureLegend(ax, location)
-%%CONFIGURELEGEND formats the legend of the current axis and displays it in
-%the specified location
-%   CONFIGURELEGEND(ax, location)
+function saveToFile(obj, folder, file)
+%%SAVETOFILE saves this object to a file with automatically
+%generated folder and file names if no optional arguments are
+%specified
+%   obj.SAVETOFILE()
+%   obj.SAVETOFILE(folder, file)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -20,16 +22,22 @@ function configureLegend(ax, location)
 %
 
 
-    % Create handle to legend in current axis
-    leg = legend(ax);
-
-    % Specify location
-    set(leg, 'Location', location);
-
-    % Set interpreter to latex in Matlab
+    % Proceed optional input
+    if nargin < 2
+        folder = obj.foldername;
+    end
+    if nargin < 3
+        file = obj.filename;
+    end
+    % Create problem- and method-specific folder
+    folderExists = makeDirectory(folder);
+    if ~folderExists
+        error('Could not create folder and save to file');
+    end
+    % Save this object to file
     if isOctave()
-        set(leg, 'Interpreter', 'tex');
+        save([folder, '/', file, '.mat'], 'obj', '-v7');
     else
-        set(leg, 'Interpreter', 'latex');
+        save([folder, '/', file, '.mat'], 'obj', '-v7.3');
     end
 end

@@ -1,7 +1,7 @@
-function configureLegend(ax, location)
-%%CONFIGURELEGEND formats the legend of the current axis and displays it in
-%the specified location
-%   CONFIGURELEGEND(ax, location)
+function set(obj, jItem, varargin)
+%%SET stores specified list of LevelData objects to the indices determined
+%in the jItem array
+%   SET(obj, jItem, varargin)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -20,16 +20,16 @@ function configureLegend(ax, location)
 %
 
 
-    % Create handle to legend in current axis
-    leg = legend(ax);
+    % Check type of input
+    assert(all(isa(varargin{:}, 'LevelData')), ...
+           'Arguments must be of class LevelData');
 
-    % Specify location
-    set(leg, 'Location', location);
+    % Number of items and item indices must coincide
+    assert(length(jItem) == length(varargin), ...
+           'Number of indices must equal number of given arguments');
 
-    % Set interpreter to latex in Matlab
-    if isOctave()
-        set(leg, 'Interpreter', 'tex');
-    else
-        set(leg, 'Interpreter', 'latex');
+    % Store items
+    for k = 1:length(jItem)
+        obj.item{jItem(k)} = varargin{k};
     end
 end

@@ -1,7 +1,8 @@
-function configureLegend(ax, location)
-%%CONFIGURELEGEND formats the legend of the current axis and displays it in
-%the specified location
-%   CONFIGURELEGEND(ax, location)
+function printHeader(obj)
+%%PRINTHEADER prints header for output to command line
+%   PRINTHEADER(obj)
+%
+%   See also LevelData/printLevel
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -20,16 +21,15 @@ function configureLegend(ax, location)
 %
 
 
-    % Create handle to legend in current axis
-    leg = legend(ax);
+    % Set separator variable
+    obj.separator = '  ';
 
-    % Specify location
-    set(leg, 'Location', location);
+    % Create header with variable names
+    header = sprintf(obj.headerSpecifier, obj.scalarVariable{:});
 
-    % Set interpreter to latex in Matlab
-    if isOctave()
-        set(leg, 'Interpreter', 'tex');
-    else
-        set(leg, 'Interpreter', 'latex');
-    end
+    % Print header to command line
+    fprintf(header);
+
+    % Print separating horizontal line
+    fprintf([repmat('-', 1, length(header)-1), '\n']);
 end

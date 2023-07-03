@@ -47,6 +47,14 @@ function [COLOURORDER, MARKER] = getPlotStyle()
     COLOURORDER = COLOURORDER(1:end-1,:);
 
     % Define sequence of markers
-    MARKER = {'o', '+', 'x', 'square', 'diamond', '*', '^', 'v', ...
+    MATLAB_MARKER = {'o', '+', 'x', 'square', 'diamond', '*', '^', 'v', ...
               'pentagram', 'hexagram', '<', '>', '.', '_', '|'};
+    OCTAVE_MARKER = {'~o-k', '~x-r', '~s-g', '~d-b', '~p-c', '~^-m', '~v-y'};
+
+    % Choose sequence of markers
+    if isOctave()
+        MARKER = OCTAVE_MARKER;
+    else
+        MARKER = MATLAB_MARKER;
+    end
 end
