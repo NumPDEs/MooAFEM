@@ -5,18 +5,27 @@
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
-%   prolongate(P, u) returns the prolongated data of FeFunction u.
+% See also: Prolongation
 
 classdef FeProlongation < Prolongation
     %% properties
     properties (Access=private)
         postRefineListener
     end
+
+    properties (Access=protected)
+        fes FeSpace
+        listenerHandle
+    end
     
     %% methods
     methods (Access=public)
         function obj = FeProlongation(fes)
-            obj = obj@Prolongation(fes);
+            obj = obj@Prolongation();
+            obj.fes = fes;
+
+            mesh = fes.mesh;
+            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.setupMatrix);
             obj.postRefineListener = fes.mesh.listener('RefineCompleted', @obj.connectDofs);
             
             assert(isa(obj.fes.finiteElement, 'NodalFiniteElement'), ...
@@ -26,10 +35,8 @@ classdef FeProlongation < Prolongation
     
     methods (Access=protected)
         function setupMatrix(obj, ~, data)
-            % general idea: compute *all* dofs for each new element and store
-            % them consecutively
-            % those are connected to the actual new dofs when their numbering
-            % per element is available (-> obj.connectDofs)
+            % general idea: compute *all* dofs for each new element and store them consecutively
+            % those are connected to the actual new dofs when their numbering per element is available (-> obj.connectDofs)
             
             % de-allocate for memory-efficiency
             obj.matrix = [];
@@ -91,7 +98,7 @@ end
 
 %% local functions
 function mesh = getBisectedUnitTriangle(bisecMethod)
-    mesh = Mesh([0,0;1,0;0,1]', [2,3,1]', {[]});
+    mesh = Mesh.unitTriangle();
 
     % bisect unit triangle according to given bisection rule
     % TODO: this should be handled by bisection method itself?

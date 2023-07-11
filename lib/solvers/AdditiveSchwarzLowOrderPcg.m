@@ -59,7 +59,6 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
-            freeVerticesHigher = getFreeDofs(obj.hoFes);
 
             p1Matrix = assemble(obj.blf, obj.loFes);
             p1Matrix = p1Matrix(obj.freeVertices, obj.freeVertices);

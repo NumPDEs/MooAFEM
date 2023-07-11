@@ -1,24 +1,21 @@
 % Prolongation (abstract handle class) Interface for prolongation of FeFunctions
 %   from coarse to fine mesh.
+%
+%   prolongate(P, u) returns the prolongated data of FeFunction u.
+%
+%   restrict(P, u) returns the restricted data of FeFunction u.
 
 classdef Prolongation < handle
     %% properties
     properties (GetAccess=public, SetAccess=protected)
         matrix {mustBeSparse}
-        fes FeSpace
     end
     
-    properties (Access=protected)
-        listenerHandle
-    end
     
     %% methods
     methods (Access=public)
         function obj = Prolongation(fes)
-            obj.fes = fes;
-            mesh = fes.mesh;
             obj.matrix = [];
-            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.setupMatrix);
         end
         
         function newFeData = prolongate(obj, u)
@@ -32,6 +29,18 @@ classdef Prolongation < handle
             end
             newFeData = obj.matrix * u.data';
         end
+
+        function newFeData = restrict(obj, u)
+            arguments
+                obj
+                u FeFunction
+            end
+            
+            if isempty(obj.matrix)
+                error('Prolongation matrix not set. Are you sure there was mesh refinement?')
+            end
+            newFeData = (u.data * obj.matrix)';
+        end
     end
     
     methods (Static, Access=public)
@@ -43,10 +52,6 @@ classdef Prolongation < handle
                 P = FeProlongation(fes);
             end
         end
-    end
-    
-    methods (Abstract, Access=protected)
-        setupMatrix(obj, src, event)
     end
 end
 

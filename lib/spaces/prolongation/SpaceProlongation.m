@@ -38,7 +38,7 @@ classdef SpaceProlongation
             fromFes = FeSpace(unittriangle, sourceFE);
             toFes = FeSpace(unittriangle, targetFE);
             Vertices = 1:getDofs(fromFes).nDofs;
-            matrix = permute(SpaceProlongation.interpolateData(eye(length(Vertices)), fromFes, toFes), [2 1]);
+            matrix = SpaceProlongation.interpolateData(eye(length(Vertices)), fromFes, toFes)';
 
             % Get local to global map in unit triangle
             matrix = matrix(getDofs(fromFes).element2Dofs, getDofs(toFes).element2Dofs);
