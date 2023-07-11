@@ -1,13 +1,13 @@
-% FeProlongation (subclass of Prolongation) Provides prolongation operator for
+% MeshProlongation (subclass of Prolongation) Provides prolongation operator for
 %   general FeFunction to a refined mesh.
 %
-%   P = FeProlongation(fes) returns a handle to the prolongation object
+%   P = MeshProlongation(fes) returns a handle to the prolongation object
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
 % See also: Prolongation
 
-classdef FeProlongation < Prolongation
+classdef MeshProlongation < Prolongation
     %% properties
     properties (Access=private)
         postRefineListener
@@ -20,7 +20,7 @@ classdef FeProlongation < Prolongation
     
     %% methods
     methods (Access=public)
-        function obj = FeProlongation(fes)
+        function obj = MeshProlongation(fes)
             obj = obj@Prolongation();
             obj.fes = fes;
 

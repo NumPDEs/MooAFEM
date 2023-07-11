@@ -24,7 +24,7 @@ eDensity = CompositeFunction(@(t) muIntegral(vectorProduct(t, t),p), Du);
 u.setFreeData(rand(1,length(getFreeDofs(u.fes))));
 
 %% nested iteration
-P = LoFeProlongation(fes);
+P = LoMeshProlongation(fes);
 
 %% adaptive algorithm
 i = 1;

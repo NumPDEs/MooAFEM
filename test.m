@@ -5,13 +5,13 @@ fes1 = FeSpace(mesh, HigherOrderH1Fe(1), 'dirichlet', ':');
 fes2 = FeSpace(mesh, HigherOrderH1Fe(15), 'dirichlet', ':');
 
 testMatrix = ones(getDofs(fes2).nDofs, 1);
-inclusionMatrix = FeProlongation(fes1, fes2);
+inclusionMatrix = MeshProlongation(fes1, fes2);
 inclusionMatrix = full(inclusionMatrix);
 Vertices = 1:getDofs(fes1).nDofs;
 inclusionMatrix2 = interpolateData(eye(length(Vertices)), fes1, fes2)';
 diff = inclusionMatrix - inclusionMatrix2;
 
-function inclusionMatrix = FeProlongation(fromFes, toFes)
+function inclusionMatrix = MeshProlongation(fromFes, toFes)
     %Create the prolongation matrix on the unit triangle
     unittriangle = Mesh.loadFromGeometry('unittriangle');
     fromFesUnitTriangle = FeSpace(unittriangle, ...

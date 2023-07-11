@@ -81,7 +81,7 @@ methods (Test)
         fes = FeSpace(mesh, testCase.u.fes.finiteElement);
         qr = QuadratureRule.ofOrder(max(fes.finiteElement.order,1));
         v = FeFunction(fes);
-        P = FeProlongation(fes);
+        P = MeshProlongation(fes);
         for k = 1:min(5, size(getDofs(fes).element2Dofs, 1))
             testCase.setToElementwiseBasisFunction(v, k);
             before = sum(integrateElement(v, qr));

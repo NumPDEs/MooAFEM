@@ -1,13 +1,13 @@
-% LoFeProlongation (subclass of FeProlongation) Prolongate lowest order L^2/H^1
+% LoMeshProlongation (subclass of MeshProlongation) Prolongate lowest order L^2/H^1
 %   conforming finite element function to refined mesh.
 %
-%   P = LoFeProlongation(fes) returns a handle to the prolongation object
+%   P = LoMeshProlongation(fes) returns a handle to the prolongation object
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
 % See also Prolongation
 
-classdef LoFeProlongation < FeProlongation
+classdef LoMeshProlongation < MeshProlongation
     %% properties
     properties (Access=protected)
         feType
@@ -15,16 +15,16 @@ classdef LoFeProlongation < FeProlongation
 
     %% methods
     methods (Access=public)
-        function obj = LoFeProlongation(fes)
-            obj = obj@FeProlongation(fes);
+        function obj = LoMeshProlongation(fes)
+            obj = obj@MeshProlongation(fes);
             switch class(fes.finiteElement)
                 case 'LowestOrderL2Fe'
                     obj.feType = 'L2';
                 case 'LowestOrderH1Fe'
                     obj.feType = 'H1';
                 otherwise
-                    eid = 'LoFeProlongation:wrongFeType';
-                    msg = 'LoFeProlongation needs a lowest order L2 or H1 finite element space.';
+                    eid = 'LoMeshProlongation:wrongFeType';
+                    msg = 'LoMeshProlongation needs a lowest order L2 or H1 finite element space.';
                     throwAsCaller(MException(eid, msg));
             end
         end
