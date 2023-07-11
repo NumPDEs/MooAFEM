@@ -1,16 +1,13 @@
-% SpaceProlongation (temporary value class) assembles the prolongation
-% operation from S^p to S^q with q > p
+% SpaceProlongation (subclass of Prolongation) Provides prolongation operator
+%   from S^p to S^q with q > p
+%
+%   P = SpaceProlongation(sourceFes, targetFes) returns a handle to the
+%       prolongation object for the prolongation sourceFes -> targetFes. The
+%       prolongation matrix P.matrix is set up at construction.
+%
+% See also: Prolongation
 
-classdef SpaceProlongation
-    
-   properties (GetAccess=public, SetAccess=protected)
-        matrix
-    end
-    
-    properties (Access=protected)
-        listenerHandle
-    end
-    
+classdef SpaceProlongation < Prolongation
     %% methods
     methods (Access=public)
         function obj = SpaceProlongation(sourceFes, targetFes)
