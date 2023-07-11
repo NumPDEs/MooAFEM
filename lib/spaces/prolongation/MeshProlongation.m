@@ -68,8 +68,7 @@ classdef MeshProlongation < Prolongation
             for k = find(data.nRefinedElements ~= 0)'
                 unitTriangle = getBisectedUnitTriangle(class(data.bisection{k}));
                 newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
-                newDofWeights = divideElementwise(...
-                    reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
+                newDofWeights = divideElementwise(evalShapeFunctions(fe, newDofLocations), localMatrix);
 
                 nNewLocs = newDofLocations.nNodes;
                 elems = getRefinedElementIdx(data, k);
@@ -130,10 +129,8 @@ function elementwiseLocations = getNewLocationsElementwise(mesh, locations)
 end
 
 function C = divideElementwise(A, B)
-    % TODO: from 2022a on, this can be replaced by pagemrdivide(A, B)
     n = size(A,1);
-    C = B' \ reshape(permute(A, [2,1,3]), n, []);
-    C = reshape(permute(reshape(C, n, n, []), [2,1,3]), n, []);
+    C = reshape(pagemrdivide(reshape(A, n, n, []), B), n, []);
 end
 
 function idx = getConsecutiveIndices(parents, nIndices)
