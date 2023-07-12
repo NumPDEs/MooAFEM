@@ -1,8 +1,11 @@
 % IterativeSolver (abstract handle class) Interface for iterative solvers.
 %
-% solver.setup(A, b, [x0]) sets up solver for the linear system A*x=b with
-%   initial guess x0 (0 per default). The right-hand side b can have
-%   multiple columns.
+% solver.setupSystemMatrix(A) sets up system Matrix for the linear system
+%   A*x=b. The matrix A must be quadratic.
+%
+% solver.setupRhs(b, [x0]) sets up right-hand side for the linear system A*x=b
+%   and initial guess x0 (0 per default). The right-hand side b can have
+%   multiple columns, but b and x0 must have the same size.
 %
 % solver.solve() performs an automatic loop of solver.step() until
 %   convergence in each column of the right-hand side is reached, checking
@@ -20,8 +23,8 @@
 % solver.computeUpdate() computes the update of active components of the
 %   solution.
 %
-% isConverged(solver) returns state of convergence of the solver for each
-%   column of the right-hand side.
+% tf = solver.isConverged(solver) returns state of convergence of the solver
+%   for each column of the right-hand side.
 
 
 classdef IterativeSolver < handle
@@ -91,8 +94,7 @@ classdef IterativeSolver < handle
         
         function step(obj)
             obj.computeUpdate();
-            obj.iterationCount(obj.activeComponents) = ...
-                obj.iterationCount(obj.activeComponents) + 1;
+            obj.iterationCount(obj.activeComponents) = obj.iterationCount(obj.activeComponents) + 1;
         end
         
         function tf = applyStoppingCriterion(obj)

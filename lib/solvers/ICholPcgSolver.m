@@ -1,6 +1,5 @@
-% ICholPcgSolver (subclass of PcgSolver) Solves linear equations
-%   iteratively using the CG method with incomplete Cholesky decomposition
-%   preconditioner.
+% ICholPcgSolver (subclass of PcgSolver) Solves linear equations iteratively
+%   using the CG method with incomplete Cholesky decomposition preconditioner.
 
 classdef ICholPcgSolver < PcgSolver
     %% properties

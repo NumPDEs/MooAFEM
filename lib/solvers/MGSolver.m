@@ -1,17 +1,11 @@
-% MGSolver (abstract subclass of Solver) Solves linear equations
+% MGSolver (abstract subclass of IterativeSolver) Solves linear equations
 %   iteratively, using a Vcycle geometric multigrid solver.
 %
-% solver.setup(A, b, [x0]) sets up solver for the linear system A*x=b with
-%   initial guess x0 (0 per default). The right-hand side b can have
-%   multiple columns.
+% Abstract methods to be implemented by subclasses:
 %
-% solver.step() performs one MG step.
+%   solver.Vcycle(x) performs one Vcycle iteration.
 %
-% isConverged(solver) returns state of convergence of the solver for each
-%   column of the right-hand side.
-%
-% solver.solve(A, b, [x0]) performs an automatic loop of solver.step()
-%   until convergence in each column of the right-hand side is reached.
+% See also IterativeSolver
 
 classdef MGSolver < IterativeSolver
     %% properties    
