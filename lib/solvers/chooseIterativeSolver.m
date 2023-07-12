@@ -18,7 +18,7 @@ P = Prolongation.chooseFor(fes);
 switch class
     % non-preconditioned CG
     case "cg"
-        solver = CgSolver();
+        solver = PcgSolverTEMP(IdentityPC());
         
     % preconditioned CG family
     case "pcg"
