@@ -18,7 +18,7 @@ P = Prolongation.chooseFor(fes);
 switch class
     % non-preconditioned CG
     case "cg"
-        solver = PcgSolverTEMP(NoPreconditioner());
+        solver = PcgSolver(NoPreconditioner());
         
     % preconditioned CG family
     case "pcg"
@@ -46,7 +46,7 @@ switch class
             otherwise
                 error('No PCG variant %s!', variant)
         end
-        solver = PcgSolverTEMP(preconditioner);
+        solver = PcgSolver(preconditioner);
         
     % geometric multigrid family
     case "multigrid"

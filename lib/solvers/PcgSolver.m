@@ -10,16 +10,30 @@ classdef PcgSolver < IterativeSolver
     end
     
     properties (Access=protected)
+        C
         residual
         Cresidual
         searchDirection
         normb
+    end
+
+    %% constructor
+    methods (Access=public)
+        function obj = PcgSolver(preconditioner)
+            arguments
+                preconditioner (1,1) Preconditioner
+            end
+
+            obj = obj@IterativeSolver();
+            obj.C = preconditioner;
+        end
     end
     
     %% extend superclass methods
     methods (Access=public)
         function setupSystemMatrix(obj, A)
             setupSystemMatrix@IterativeSolver(obj, A);
+            obj.C.setup(A);
         end
         
         function setupRhs(obj, b, varargin)
@@ -27,7 +41,7 @@ classdef PcgSolver < IterativeSolver
             
             % initialize residual & search direction
             obj.residual = b - obj.A*obj.x;
-            obj.Cresidual = obj.preconditionAction(obj.residual);
+            obj.Cresidual = obj.C.apply(obj.residual);
             obj.searchDirection = obj.Cresidual;
             obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
             obj.normb = sqrt(sum(b.^2, 1));
@@ -62,7 +76,7 @@ classdef PcgSolver < IterativeSolver
             
             % update residual
             obj.residual(:,idx) = obj.residual(:,idx) - alpha .* AsearchDirection;
-            obj.Cresidual(:,idx) = obj.preconditionAction(obj.residual(:,idx));
+            obj.Cresidual(:,idx) = obj.C.apply(obj.residual(:,idx));
             residualCNormOld = obj.residualCNorm(:,idx);
             obj.residualCNorm(:,idx) = sum(obj.residual(:,idx).*obj.Cresidual(:,idx), 1);
             
@@ -70,10 +84,5 @@ classdef PcgSolver < IterativeSolver
             beta = obj.residualCNorm(:,idx) ./ residualCNormOld;
             obj.searchDirection(:,idx) = obj.Cresidual(:,idx) + beta .* obj.searchDirection(:,idx);
         end
-    end
-    
-    %% abstract preconditioning
-    methods (Abstract, Access=public)
-        preconditionAction(obj, x)
     end
 end
