@@ -71,7 +71,7 @@ classdef P1AdditiveSchwarz < Preconditioner
             rho = cell(L, 1);
 
             if L == 1
-                Cx = obj.A \ x;
+                Cx = obj.Acoarse \ x;
                 return
             end
 
