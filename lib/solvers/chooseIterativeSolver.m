@@ -18,18 +18,23 @@ P = Prolongation.chooseFor(fes);
 switch class
     % non-preconditioned CG
     case "cg"
-        solver = PcgSolverTEMP(IdentityPC());
+        solver = PcgSolverTEMP(NoPreconditioner());
         
     % preconditioned CG family
     case "pcg"
+        solver = [];
         switch variant
             case "iChol"
-                solver = ICholPcgSolver(fes);
+                preconditioner = IncompleteCholesky();
             case "jacobi"
-                if order == 1, solver = JacobiPcgSolver(fes);
-                else, solver = BlockJacobiPcgSolver(fes, blf); end
+                if order == 1
+                    preconditioner = DiagonalJacobi();
+                else
+                    preconditioner = BlockJacobi(fes, blf);
+                end
             case {"", "additiveSchwarzLowOrder"}
-                if order == 1, solver = LowestOrderAdditiveSchwarzPcg(fes, blf, P);
+                if order == 1
+                    solver = LowestOrderAdditiveSchwarzPcg(fes, blf, P);
                 else
                     solver = AdditiveSchwarzLowOrderPcg(fes, blf);
                 end
@@ -38,16 +43,25 @@ switch class
             otherwise
                 error('No PCG variant %s!', variant)
         end
+        if isempty(solver)
+            solver = PcgSolverTEMP(preconditioner);
+        end
         
     % geometric multigrid family
     case "multigrid"
         switch variant
             case {"", "lowOrderVcycle"}
-                if order == 1, solver = LowestOrderLocalMg(fes, blf, P);
-                else, solver = LocalMgLowOrderVcycle(fes, blf); end
+                if order == 1
+                    solver = LowestOrderLocalMg(fes, blf, P);
+                else
+                    solver = LocalMgLowOrderVcycle(fes, blf);
+                end
             case "highOrderVcycle"
-                if order == 1, solver = LowestOrderLocalMg(fes, blf, P);
-                else, solver = LocalMgHighOrderVcycle(fes, blf, P); end
+                if order == 1
+                    solver = LowestOrderLocalMg(fes, blf, P);
+                else
+                    solver = LocalMgHighOrderVcycle(fes, blf, P);
+                end
             otherwise
                 error('No multigrid variant %s!', variant)
         end
