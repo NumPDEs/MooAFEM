@@ -34,7 +34,7 @@ switch class
                 end
             case {"", "additiveSchwarzLowOrder"}
                 if order == 1
-                    solver = LowestOrderAdditiveSchwarzPcg(fes, blf, P);
+                    preconditioner = P1AdditiveSchwarz(fes, blf, P);
                 else
                     solver = AdditiveSchwarzLowOrderPcg(fes, blf);
                 end

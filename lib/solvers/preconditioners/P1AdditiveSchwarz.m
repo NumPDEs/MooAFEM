@@ -1,19 +1,17 @@
-% LowestOrderAdditiveSchwartzPcg (subclass of PcgSolver) Solves linear
-%   equations iteratively using the CG method with optimal multilevel
-%   additive Schwartz preconditioner for lowest order finite elements.
+% P1AdditiveSchwarz (subclass of Preconditioner) optimal multilevel
+%   additive Schwarz preconditioner for lowest order finite elements.
+%
+% See also: Preconditioner, PcgSolver
 
-classdef LowestOrderAdditiveSchwarzPcg < PcgSolver
+classdef P1AdditiveSchwarz < Preconditioner
     %% properties
-    properties (GetAccess=public,SetAccess=protected)
-        nLevels
-    end
-    
     properties (Access=protected)
-        blf
         fes
-        matrix
-        smoother
+        blf
         P
+        nLevels
+        Acoarse
+        smoother
         intergridMatrix
         freeDofs
         freeDofsOld
@@ -27,66 +25,59 @@ classdef LowestOrderAdditiveSchwarzPcg < PcgSolver
     
     %% methods
     methods (Access=public)
-        function obj = LowestOrderAdditiveSchwarzPcg(fes, blf, P)
+        function obj = P1AdditiveSchwarz(fes, blf, P)
             arguments
                 fes FeSpace
                 blf BilinearForm
                 P Prolongation
             end
-            obj = obj@PcgSolver();
             
             assert(fes.finiteElement.order == 1, ...
-                'LowestOrderAdditiveSchwartzPcg only works for lowest order finite elements.')
+                'P1 Additive Schwarz preconditioner only works for lowest order finite elements.')
             assert(isempty(blf.b), ...
-                'Additive Schwarz PCG solvers only tested for symmetric problems.')
+                'Additive Schwarz preconditioner only tested for symmetric problems.')
             
             obj.nLevels = 0;
             
             mesh = fes.mesh;
             obj.fes = fes;
-            obj.P = P;
             obj.blf = blf;
+            obj.P = P;
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
         
-        function setupSystemMatrix(obj, A)
+        function setup(obj, A)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
             obj.freeDofsOld = obj.freeDofs;
             obj.freeDofs = getFreeDofs(obj.fes);
             
-            obj.matrix{L} = A;
-            obj.smoother{L} = full(diag(obj.matrix{L})).^(-1);
-            
-            if L >= 2
+            if L == 1
+                obj.Acoarse = A;
+            else
+                obj.smoother{L} = full(diag(A)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
             end
-            
-            setupSystemMatrix@PcgSolver(obj, A);
         end
            
-        function setupRhs(obj, b, varargin)
-            setupRhs@PcgSolver(obj, b, varargin{:});
-        end
-        
-        % preconditioner: inverse of diagonal on each level
-        function Cx = preconditionAction(obj, res)
+        % action: inverse of diagonal on each level
+        function Cx = apply(obj, x)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
 
             L = obj.nLevels;
             rho = cell(L, 1);
 
             if L == 1
-                Cx = obj.A \ res;
+                Cx = obj.A \ x;
                 return
             end
 
             % descending cascade
-            rho{L} = localSmoothing(obj, L, res);
-            residual = res;
+            rho{L} = localSmoothing(obj, L, x);
+            residual = x;
             for k = L-1:-1:2
                 residual = obj.intergridMatrix{k+1}'*residual;
                 rho{k} = localSmoothing(obj, k, residual);
@@ -94,7 +85,7 @@ classdef LowestOrderAdditiveSchwarzPcg < PcgSolver
             
             % exact solve on coarsest level
             residual = obj.intergridMatrix{2}'*residual;
-            sigma = obj.matrix{1} \ residual;
+            sigma = obj.Acoarse \ residual;
             
             % ascending cascade
             for k = 2:L-1
