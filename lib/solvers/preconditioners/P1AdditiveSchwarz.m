@@ -1,5 +1,6 @@
 % P1AdditiveSchwarz (subclass of Preconditioner) optimal multilevel
-%   additive Schwarz preconditioner for lowest order finite elements.
+%   additive Schwarz preconditioner for lowest order finite elements:
+%   smooth with inverse diagonal on changed patches on every level.
 %
 % See also: Preconditioner, PcgSolver
 
@@ -79,22 +80,20 @@ classdef P1AdditiveSchwarz < Preconditioner
             rho{L} = localSmoothing(obj, L, x);
             residual = x;
             for k = L-1:-1:2
-                residual = obj.intergridMatrix{k+1}'*residual;
+                residual = obj.intergridMatrix{k+1}' * residual;
                 rho{k} = localSmoothing(obj, k, residual);
             end
             
             % exact solve on coarsest level
-            residual = obj.intergridMatrix{2}'*residual;
-            sigma = obj.Acoarse \ residual;
+            residual = obj.intergridMatrix{2}' * residual;
+            Cx = obj.Acoarse \ residual;
             
             % ascending cascade
             for k = 2:L-1
-                sigma = obj.intergridMatrix{k}*sigma;
-                sigma = sigma + rho{k};
+                Cx = obj.intergridMatrix{k} * Cx;
+                Cx = Cx + rho{k};
             end
-            sigma = obj.intergridMatrix{L}*sigma + rho{L};
-           
-            Cx = sigma;
+            Cx = obj.intergridMatrix{L} * Cx + rho{L};
         end
     end
 

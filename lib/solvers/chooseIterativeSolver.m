@@ -22,7 +22,6 @@ switch class
         
     % preconditioned CG family
     case "pcg"
-        solver = [];
         switch variant
             case "iChol"
                 preconditioner = IncompleteCholesky();
@@ -36,16 +35,18 @@ switch class
                 if order == 1
                     preconditioner = P1AdditiveSchwarz(fes, blf, P);
                 else
-                    solver = AdditiveSchwarzLowOrderPcg(fes, blf);
+                    preconditioner = AdditiveSchwarzLowOrderCascade(fes, blf);
                 end
             case "additiveSchwarzHighOrder"
-                solver = AdditiveSchwarzHighOrderPcg(fes, blf, P);
+                if order == 1
+                    preconditioner = P1AdditiveSchwarz(fes, blf, P);
+                else
+                    preconditioner = AdditiveSchwarzHighOrderCascade(fes, blf, P);
+                end
             otherwise
                 error('No PCG variant %s!', variant)
         end
-        if isempty(solver)
-            solver = PcgSolverTEMP(preconditioner);
-        end
+        solver = PcgSolverTEMP(preconditioner);
         
     % geometric multigrid family
     case "multigrid"

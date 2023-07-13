@@ -1,20 +1,25 @@
-% AdditiveSchwartzPcg (subclass of PcgSolver) Solves linear equations
-%   iteratively using the CG method with optimal multilevel additive
-%   Schwartz preconditioner.
+% AdditiveSchwarzLowOrderCascade (subclass of Preconditioner) optimal multilevel
+%   additive Schwarz preconditioner for arbitrary order finite elements: smooth
+%   with diagonal of P1 matrix on changed patches on every level (local P1
+%   smoothing) and with patchwise higher order matrix on finest level (global
+%   higher order smoothing).
+%
+% See also: Preconditioner, PcgSolver
 
-classdef AdditiveSchwarzLowOrderPcg < PcgSolver
+classdef AdditiveSchwarzLowOrderCascade < Preconditioner
     %% properties
     properties (GetAccess=public,SetAccess=protected)
-        nLevels
     end
     
     properties (Access=protected)
         blf
         hoFes
         loFes
-        p1Acoarse
-        p1Smoother
         P
+        p1Acoarse
+        hoAcoarse
+        p1Smoother
+        nLevels
         inclusionMatrix
         intergridMatrix
         freeVertices
@@ -30,22 +35,21 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
     
     %% methods
     methods (Access=public)
-        function obj = AdditiveSchwarzLowOrderPcg(fes, blf)
+        function obj = AdditiveSchwarzLowOrderCascade(fes, blf)
             arguments
                 fes FeSpace
                 blf BilinearForm
             end
-            obj = obj@PcgSolver();
             
             assert(fes.finiteElement.order > 1, ...
-                'AdditiveSchwartzPcg only works for higher order finite elements.')
+                'Higher order additive Schwarz preconditioner only works for higher order finite elements.')
             assert(isempty(blf.b), ...
-                'Additive Schwarz PCG solvers only tested for symmetric problems.')
+                'Additive Schwarz preconditioner only tested for symmetric problems.')
 
             obj.nLevels = 0;
 
             mesh = fes.mesh;
-            obj.loFes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', ':');
+            obj.loFes = FeSpace(mesh, LowestOrderH1Fe, 'dirichlet', fes.bnd.dirichlet);
             obj.hoFes = fes;
             obj.P = Prolongation.chooseFor(obj.loFes);
             obj.blf = blf;
@@ -53,7 +57,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
         
-        function setupSystemMatrix(obj, A)
+        function setup(obj, A)
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -65,6 +69,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             
             if L == 1
                 obj.p1Acoarse = p1Matrix;
+                obj.hoAcoarse = A;
             else
                 obj.p1Smoother{L} = full(diag(p1Matrix)).^(-1);
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
@@ -73,51 +78,42 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
                 obj.inclusionMatrix = SpaceProlongation(obj.loFes, obj.hoFes) ...
                     .matrix(getFreeDofs(obj.loFes), getFreeDofs(obj.hoFes));
             end
-            
-            setupSystemMatrix@PcgSolver(obj, A);
-        end
-           
-        function setupRhs(obj, b, varargin)
-            setupRhs@PcgSolver(obj, b, varargin{:});
         end
         
         % preconditioner: inverse of diagonal on each level
-        function Cx = preconditionAction(obj, residual)
+        function Cx = apply(obj, x)
             assert(~isempty(obj.nLevels), 'Data for multilevel iteration not given!')
 
             L = obj.nLevels;
             rho = cell(L, 1);
 
             if L == 1
-                Cx = obj.A \ residual;
+                Cx = obj.hoAcoarse \ x;
                 return
             end
 
             % descending cascade
-            rho{L} = hoGlobalSmoothing(obj, residual);
-
-            residual = obj.inclusionMatrix * residual;
+            rho{L} = hoGlobalSmoothing(obj, x);
+            x = obj.inclusionMatrix * x;
 
             for k = L:-1:3
-                residual = obj.intergridMatrix{k}'*residual;
-                rho{k-1} = p1LocalSmoothing(obj, k-1, residual);
+                x = obj.intergridMatrix{k}' * x;
+                rho{k-1} = p1LocalSmoothing(obj, k-1, x);
             end
 
             % exact solve on coarsest level
-            residual = obj.intergridMatrix{2}'*residual;
-            sigma = obj.p1Acoarse \ residual;
-            sigma = obj.intergridMatrix{2}*sigma;
+            x = obj.intergridMatrix{2}' * x;
+            Cx = obj.p1Acoarse \ x;
+            Cx = obj.intergridMatrix{2}*Cx;
 
             % ascending cascade
             for k = 3:L
-                sigma = sigma + rho{k-1};
-                sigma = obj.intergridMatrix{k}*sigma;
+                Cx = Cx + rho{k-1};
+                Cx = obj.intergridMatrix{k} * Cx;
             end
 
-            sigma = obj.inclusionMatrix' * sigma;
-            sigma = sigma + rho{L};
-
-            Cx = sigma;
+            Cx = obj.inclusionMatrix' * Cx;
+            Cx = Cx + rho{L};
         end
     end
 
@@ -130,7 +126,7 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             % vertices
             nCOld = mesh.nCoordinates;
             nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
-                bisecData.nRefinedElements'*bisecData.nInnerNodes;
+                bisecData.nRefinedElements' * bisecData.nInnerNodes;
             bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
             obj.changedPatches{obj.nLevels+1} = false(nCNew, 1);
             idx = [bisectedEdgeNodes; ((nCOld+1):nCNew)'];
@@ -141,8 +137,6 @@ classdef AdditiveSchwarzLowOrderPcg < PcgSolver
             idx = obj.changedPatches{k};
             rho = zeros(size(res));
             rho(idx,:) = obj.p1Smoother{k}(idx).*res(idx,:);
-            % DEBUG: Local patchwise smoothing in P1
-            % rho = obj.patchwiseP1Matrix{k} \ res;
         end
         
         function rho = hoGlobalSmoothing(obj, res)
