@@ -53,13 +53,13 @@ switch class
         switch variant
             case {"", "lowOrderVcycle"}
                 if order == 1
-                    solver = LowestOrderLocalMg(fes, blf, P);
+                    solver = OptimalVcycleMultigridSolver(P1JacobiSmoother(fes, blf, P));
                 else
                     solver = LocalMgLowOrderVcycle(fes, blf);
                 end
             case "highOrderVcycle"
                 if order == 1
-                    solver = LowestOrderLocalMg(fes, blf, P);
+                    solver = OptimalVcycleMultigridSolver(P1JacobiSmoother(fes, blf, P));
                 else
                     solver = LocalMgHighOrderVcycle(fes, blf, P);
                 end
