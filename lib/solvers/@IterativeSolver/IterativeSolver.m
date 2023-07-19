@@ -25,6 +25,10 @@
 %
 % tf = solver.isConverged(solver) returns state of convergence of the solver
 %   for each column of the right-hand side.
+%
+% [solver, P] = IterativeSolver.choose(fes, blf, class, variant) convenience
+%   factory method. Returns instances of IterativeSolver and Prolongation
+%   accoding to the given parameters.
 
 
 classdef IterativeSolver < handle
@@ -101,6 +105,11 @@ classdef IterativeSolver < handle
             tf = isConverged(obj);
             obj.activeComponents = obj.activeComponents & ~tf;
         end
+    end
+
+    %% convenience factory function
+    methods (Static, Access=public)
+        solver = choose(fes, blf, class, variant)
     end
     
     %% validation functions to use within this class

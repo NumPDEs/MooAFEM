@@ -37,7 +37,7 @@ for p = 1:pmax
     lfG.qrf = QuadratureRule.ofOrder(2*p);
 
     %% set up solver and lifting operator for nested iteration
-    [solver, P] = chooseIterativeSolver(fes, blf, 'multigrid', 'lowOrderVcycle');
+    [solver, P] = IterativeSolver.choose(fes, blf, 'multigrid', 'lowOrderVcycle');
     solver.tol = 1e-6;
     solver.maxIter = 1000;
 

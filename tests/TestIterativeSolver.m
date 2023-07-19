@@ -16,7 +16,7 @@ methods (Test)
     function firstStepDecreasesNorm(testCase, p, variant)
         [~, fes, blf, lf] = setupProblem(testCase, p);
         s = variant(1); v = variant(2);
-        solver = chooseIterativeSolver(fes, blf, s, v);
+        solver = IterativeSolver.choose(fes, blf, s, v);
         
         [xstar, A, F] = assembleData(testCase, blf, lf, fes);
         solver.setupSystemMatrix(A);
@@ -32,7 +32,7 @@ methods (Test)
     function laterStepDecreasesNorm(testCase, p, variant)
         [mesh, fes, blf, lf] = setupProblem(testCase, p);
         s = variant(1); v = variant(2);
-        solver = chooseIterativeSolver(fes, blf, s, v);
+        solver = IterativeSolver.choose(fes, blf, s, v);
         
         for k = 1:3
             [xstar, A, F] = assembleData(testCase, blf, lf, fes);
@@ -51,7 +51,7 @@ methods (Test)
     function solverIsLinear(testCase, p, variant)
         [mesh, fes, blf, lf] = setupProblem(testCase, p);
         s = variant(1); v = variant(2);
-        solver = chooseIterativeSolver(fes, blf, s, v);
+        solver = IterativeSolver.choose(fes, blf, s, v);
         
         for k = 1:3
             [xstar, A, F] = assembleData(testCase, blf, lf, fes);

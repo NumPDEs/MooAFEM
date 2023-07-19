@@ -1,7 +1,18 @@
-% chooseIterativeSolver Return suitable solver (instance of subclass of
-%   IterativeSolver) and suitable Prolongation P.
+% choose Return suitable solver (instance of subclass of IterativeSolver) and
+%   suitable Prolongation P.
+%
+%   solver = choose(fes, blf, class) returns a solver of class 'class' for given
+%       finite element space fes and bilinear form blf. For each class, sensible
+%       default variants are chosen.
+%
+%   solver = choose(fes, blf, class, variant) returns a solver of class 'class'
+%       of specific variant 'variant'.
+%
+%   [solver, P] = choose(__) additionally to the solver, returns a suitable
+%       Prolongation P, that can be used to prolongate the solution of the
+%       solver to the next finer mesh.
 
-function [solver, P] = chooseIterativeSolver(fes, blf, class, variant)
+function [solver, P] = choose(fes, blf, class, variant)
 arguments
     fes FeSpace
     blf BilinearForm
@@ -48,7 +59,7 @@ switch class
         end
         solver = PcgSolver(preconditioner);
         
-    % geometric multigrid family
+    % geometric , Pmultigrid family
     case "multigrid"
         switch variant
             case {"", "lowOrderVcycle"}
@@ -78,5 +89,3 @@ switch class
 end
     
 end
-
-
