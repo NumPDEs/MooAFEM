@@ -33,15 +33,15 @@ switch class
                 end
             case {"", "additiveSchwarzLowOrder"}
                 if order == 1
-                    preconditioner = OptimalMLAdditiveSchwarz(P1JacobiSmoother(fes, blf, P));
+                    preconditioner = OptimalMLAdditiveSchwarz(P1JacobiCascade(fes, blf, P));
                 else
-                    preconditioner = OptimalMLAdditiveSchwarz(JacobiLowOrderCascadeSmoother(fes, blf));
+                    preconditioner = OptimalMLAdditiveSchwarz(JacobiLowOrderCascade(fes, blf));
                 end
             case "additiveSchwarzHighOrder"
                 if order == 1
-                    preconditioner = OptimalMLAdditiveSchwarz(P1JacobiSmoother(fes, blf, P));
+                    preconditioner = OptimalMLAdditiveSchwarz(P1JacobiCascade(fes, blf, P));
                 else
-                    preconditioner = OptimalMLAdditiveSchwarz(JacobiHighOrderCascadeSmoother(fes, blf, P));
+                    preconditioner = OptimalMLAdditiveSchwarz(JacobiHighOrderCascade(fes, blf, P));
                 end
             otherwise
                 error('No PCG variant %s!', variant)
@@ -53,15 +53,15 @@ switch class
         switch variant
             case {"", "lowOrderVcycle"}
                 if order == 1
-                    smoother = P1JacobiSmoother(fes, blf, P);
+                    smoother = P1JacobiCascade(fes, blf, P);
                 else
-                    smoother = JacobiLowOrderCascadeSmoother(fes, blf);
+                    smoother = JacobiLowOrderCascade(fes, blf);
                 end
             case "highOrderVcycle"
                 if order == 1
-                    smoother = P1JacobiSmoother(fes, blf, P);
+                    smoother = P1JacobiCascade(fes, blf, P);
                 else
-                    smoother = JacobiHighOrderCascadeSmoother(fes, blf, P);
+                    smoother = JacobiHighOrderCascade(fes, blf, P);
                 end
             otherwise
                 error('No multigrid variant %s!', variant)

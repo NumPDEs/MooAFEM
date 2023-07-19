@@ -1,4 +1,4 @@
-% JacobiHighOrderCascadeSmoother (subclass of MultilevelSmoother) multilevel
+% JacobiHighOrderCascade (subclass of MultilevelSmoother) multilevel
 %   Jacobi smoother for higher order finite elements: smooth locally with
 %   patchwise stiffness matrix on changed patches on every level, except for
 %   coarsest level, where global p1-solving is done. Because of the lifting from
@@ -11,7 +11,7 @@
 % See also: MultilevelSmoother, OptimalVcycleMultigridSolver
 
 
-classdef JacobiHighOrderCascadeSmoother < MultilevelSmoother
+classdef JacobiHighOrderCascade < MultilevelSmoother
     properties (Access=protected)
         P
         loFes
@@ -24,7 +24,7 @@ classdef JacobiHighOrderCascadeSmoother < MultilevelSmoother
 
     %% methods
     methods (Access=public)
-        function obj = JacobiHighOrderCascadeSmoother(fes, blf, P)
+        function obj = JacobiHighOrderCascade(fes, blf, P)
             obj = obj@MultilevelSmoother(fes, blf);
             
             assert(fes.finiteElement.order > 1, ...

@@ -1,11 +1,11 @@
-% P1JacobiSmoother (subclass of MultilevelSmoother) multilevel Jacobi smoother
+% P1JacobiCascade (subclass of MultilevelSmoother) multilevel Jacobi smoother
 %   for lowest order finite elements: smooth with diagonal of stiffness matrix
 %   on changed patches on every level.
 %
 % See also: MultilevelSmoother, OptimalVcycleMultigridSolver
 
 
-classdef P1JacobiSmoother < MultilevelSmoother
+classdef P1JacobiCascade < MultilevelSmoother
     properties (Access=protected)
         P
         inverseDiagonal
@@ -21,7 +21,7 @@ classdef P1JacobiSmoother < MultilevelSmoother
 
     %% methods
     methods (Access=public)
-        function obj = P1JacobiSmoother(fes, blf, P)
+        function obj = P1JacobiCascade(fes, blf, P)
             arguments
                 fes
                 blf
