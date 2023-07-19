@@ -25,6 +25,7 @@ classdef LowestOrderLocalMg < MGSolver
         freeVertices
         freeVerticesOld
         changedPatches
+        otherSolver
     end
     
     %% event data
@@ -55,9 +56,11 @@ classdef LowestOrderLocalMg < MGSolver
             obj.blf = blf;
             
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
+            obj.otherSolver = OptimalVcycleMultigridSolver(P1JacobiSmoother(fes, blf, P));
         end
 
         function setupSystemMatrix(obj, A)
+            obj.otherSolver.setupSystemMatrix(A);
             obj.nLevels = obj.nLevels + 1;
             
             L = obj.nLevels;
@@ -76,6 +79,18 @@ classdef LowestOrderLocalMg < MGSolver
 
         function setupRhs(obj, b, varargin)
             setupRhs@MGSolver(obj, b, varargin{:});
+            obj.otherSolver.setupRhs(b, varargin{:});
+        end
+
+        function step(obj)
+            obj.otherSolver.applyStoppingCriterion();
+            obj.otherSolver.step();
+            step@MGSolver(obj);
+
+            assert(all(abs(obj.Cresidual - obj.otherSolver.Cresidual) < 1e-8, 'all'))
+            assert(all(abs(obj.residualCNorm - obj.otherSolver.residualCNorm.^2) < 1e-8, 'all'))
+            assert(all(abs(obj.iterationCount - obj.otherSolver.iterationCount) < 1e-8, 'all'))
+            assert(all(abs(obj.x - obj.otherSolver.x) < 1e-8, 'all'))
         end
 
         % Geometric MultiGrid
