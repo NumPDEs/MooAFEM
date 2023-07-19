@@ -55,7 +55,7 @@ switch class
                 if order == 1
                     solver = OptimalVcycleMultigridSolver(P1JacobiSmoother(fes, blf, P));
                 else
-                    solver = LocalMgLowOrderVcycle(fes, blf);
+                    solver = OptimalVcycleMultigridSolver(JacobiLowOrderCascadeSmoother(fes, blf));
                 end
             case "highOrderVcycle"
                 if order == 1
