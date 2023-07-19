@@ -48,9 +48,10 @@ classdef JacobiLowOrderCascadeSmoother < MultilevelSmoother
             nonInvertedSmootherMatrix = p1Matrix;
             
             if L >= 2
+                % note: p1 smoother is already indexed by free vertices -> use find here
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
                 % intermediate level smoothers and transfer operators
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
                 obj.p1Smoother{L} = obj.p1Smoother{L}(obj.changedPatches{L});
                 % finest level smoother and transfer operator
                 obj.hoSmoother = assemblePatchwise(obj.blf, obj.fes, ':');
@@ -71,6 +72,7 @@ classdef JacobiLowOrderCascadeSmoother < MultilevelSmoother
             end
         end
 
+        % order of FESpace per level: 1 -> ... -> 1 -> p
         function Px = prolongate(obj, x, k)
             Px = obj.intergridMatrix{k} * x;
             if k == obj.nLevels

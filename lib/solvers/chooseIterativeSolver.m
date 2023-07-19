@@ -53,19 +53,20 @@ switch class
         switch variant
             case {"", "lowOrderVcycle"}
                 if order == 1
-                    solver = OptimalVcycleMultigridSolver(P1JacobiSmoother(fes, blf, P));
+                    smoother = P1JacobiSmoother(fes, blf, P);
                 else
-                    solver = OptimalVcycleMultigridSolver(JacobiLowOrderCascadeSmoother(fes, blf));
+                    smoother = JacobiLowOrderCascadeSmoother(fes, blf);
                 end
             case "highOrderVcycle"
                 if order == 1
-                    solver = OptimalVcycleMultigridSolver(P1JacobiSmoother(fes, blf, P));
+                    smoother = P1JacobiSmoother(fes, blf, P);
                 else
-                    solver = LocalMgHighOrderVcycle(fes, blf, P);
+                    smoother = JacobiHighOrderCascadeSmoother(fes, blf, P);
                 end
             otherwise
                 error('No multigrid variant %s!', variant)
         end
+        solver = OptimalVcycleMultigridSolver(smoother);
         
     % direct solve (for testing purposes)
     case "direct"
