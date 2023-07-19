@@ -7,10 +7,8 @@
 
 classdef P1JacobiSmoother < MultilevelSmoother
     properties (Access=protected)
-        fes
-        blf
-        inverseDiagonal
         P
+        inverseDiagonal
         intergridMatrix
         freeVertices
         freeVerticesOld
@@ -26,30 +24,28 @@ classdef P1JacobiSmoother < MultilevelSmoother
     methods (Access=public)
         function obj = P1JacobiSmoother(fes, blf, P)
             arguments
-                fes FeSpace
-                blf BilinearForm
+                fes
+                blf
                 P Prolongation
             end
-            obj = obj@MultilevelSmoother();
+            obj = obj@MultilevelSmoother(fes, blf);
             
             assert(fes.finiteElement.order == 1, ...
                 'P1JacobiSmoother only works for lowest order finite elements.')
             
-            obj.fes = fes;
             obj.P = P;
-            obj.blf = blf;
-            
             mesh = fes.mesh;
             obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
-        function setup(obj, A)
+        function nonInvertedSmootherMatrix = setup(obj, A)
             setup@MultilevelSmoother(obj, A);
             
             L = obj.nLevels;
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.fes);
             
+            nonInvertedSmootherMatrix = A;
             obj.inverseDiagonal{L} = full(diag(A)).^(-1);
             
             if L >= 2

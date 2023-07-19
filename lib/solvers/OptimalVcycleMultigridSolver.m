@@ -1,6 +1,7 @@
 % OptimalVcycleMultigridSolver (subclass of IterativeSolver) Solves linear
-%   equations iteratively, using a geometric multigrid solver with V-cycle and
-%   specified MultiLevelSmoother.
+%   equations iteratively, using a geometric multigrid solver with specified
+%   MultiLevelSmoother.
+%   One iteration = Vcycle(0,1) (no pre-/one post-smoothing step).
 %
 %   To obtain the solver described in [Innerberger, Miraçi, Praetorius,
 %   Streitberger; Optimal computational costs of AFEM with optimal local
@@ -28,7 +29,7 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
     
     properties (Access=protected)
         smoother
-        matrix
+        projectedMatrix
         lhsNorm
     end
     
@@ -46,8 +47,8 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
             % override superclass method, because ALL matrices are needed
             setupSystemMatrix@IterativeSolver(obj, A, varargin{:});
 
-            obj.smoother.setup(A, varargin{:});
-            obj.matrix{obj.nLevels} = A;
+            projectedA = obj.smoother.setup(A, varargin{:});
+            obj.projectedMatrix{obj.nLevels} = projectedA;
         end
 
         function setupRhs(obj, b, varargin)
@@ -101,20 +102,26 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
             end
 
             % exact solve on coarsest level to compute accumulative lifting of x
-            Cx = obj.matrix{1} \ res{1};
-            eta2 = dot(Cx, obj.matrix{1} * Cx, Dim.Vector);
+            Cx = obj.projectedMatrix{1} \ res{1};
+            eta2 = dot(Cx, obj.projectedMatrix{1} * Cx, Dim.Vector);
 
             % ascending cascade: (local) smoothing and compute error estimator
-            for k = 2:L
+            for k = 2:(L-1)
                 Cx = obj.smoother.prolongate(Cx, k);
-                updatedResidual = res{k} - obj.matrix{k} * Cx;
+                updatedResidual = res{k} - obj.projectedMatrix{k} * Cx;
                 rho = obj.smoother.smooth(updatedResidual, k);
-                [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.matrix{k}, updatedResidual, rho);
+                [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.projectedMatrix{k}, updatedResidual, rho);
                 Cx = Cx + xUpdate;
                 eta2 = eta2 + etaUpdate2;
             end
 
-            algEstimator = sqrt(eta2);
+            % final smoothing and residual update (with non-projected matrix)
+            Cx = obj.smoother.prolongate(Cx, L);
+            updatedResidual = res{L} - obj.A * Cx;
+            rho = obj.smoother.smooth(updatedResidual, L);
+            [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.A, updatedResidual, rho);
+            Cx = Cx + xUpdate;
+            algEstimator = sqrt(eta2 + etaUpdate2);
         end
     end
 end
