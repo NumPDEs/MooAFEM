@@ -26,6 +26,11 @@ classdef MultilevelSmoother < handle
     properties (Access=protected)
         fes
         blf
+        changedPatches
+    end
+    
+    properties (Access=private)
+        listenerHandle
     end
 
     %% methods
@@ -42,6 +47,9 @@ classdef MultilevelSmoother < handle
             obj.nLevels = 0;
             obj.fes = fes;
             obj.blf = blf;
+
+            mesh = fes.mesh;
+            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
         function nonInvertedSmootherMatrix = setup(obj, ~)
@@ -49,6 +57,21 @@ classdef MultilevelSmoother < handle
 
             % should be implemented by subclasses
             nonInvertedSmootherMatrix = [];
+        end
+    end
+    
+    methods (Access=protected)
+        % callback function to be executed before mesh refinement:
+        % -> patches change for all vertices adjacent to refined edges and
+        %    all new vertices
+        function getChangedPatches(obj, mesh, bisecData)
+            nCOld = mesh.nCoordinates;
+            nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
+                bisecData.nRefinedElements' * bisecData.nInnerNodes;
+            bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
+            obj.changedPatches{obj.nLevels+1} = false(nCNew, 1);
+            idx = [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
+            obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
     end
 

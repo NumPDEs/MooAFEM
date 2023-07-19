@@ -12,7 +12,6 @@ classdef P1JacobiSmoother < MultilevelSmoother
         intergridMatrix
         freeVertices
         freeVerticesOld
-        changedPatches
     end
     
     %% event data
@@ -28,14 +27,12 @@ classdef P1JacobiSmoother < MultilevelSmoother
                 blf
                 P Prolongation
             end
-            obj = obj@MultilevelSmoother(fes, blf);
-            
+
             assert(fes.finiteElement.order == 1, ...
                 'P1JacobiSmoother only works for lowest order finite elements.')
             
+            obj = obj@MultilevelSmoother(fes, blf);
             obj.P = P;
-            mesh = fes.mesh;
-            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.getChangedPatches);
         end
 
         function nonInvertedSmootherMatrix = setup(obj, A)
@@ -51,7 +48,7 @@ classdef P1JacobiSmoother < MultilevelSmoother
             if L >= 2
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
-                obj.inverseDiagonal{L} = obj.inverseDiagonal{L}(obj.changedPatches{L},:);
+                obj.inverseDiagonal{L} = obj.inverseDiagonal{L}(obj.changedPatches{L});
             end
         end
 
@@ -67,21 +64,6 @@ classdef P1JacobiSmoother < MultilevelSmoother
 
         function Px = restrict(obj, x, k)
             Px = obj.intergridMatrix{k}' * x;
-        end
-    end
-    
-    methods (Access=protected)
-        % callback function to be executed before mesh refinement:
-        % -> patches change for all vertices adjacent to refined edges and
-        %    all new vertices
-        function getChangedPatches(obj, mesh, bisecData)
-            nCOld = mesh.nCoordinates;
-            nCNew = mesh.nCoordinates + nnz(bisecData.bisectedEdges) + ...
-                bisecData.nRefinedElements'*bisecData.nInnerNodes;
-            bisectedEdgeNodes = unique(mesh.edges(:,bisecData.bisectedEdges));
-            obj.changedPatches{obj.nLevels+1} = false(nCNew, 1);
-            idx = [unique(bisectedEdgeNodes); ((nCOld+1):nCNew)'];
-            obj.changedPatches{obj.nLevels+1}(idx) = true;
         end
     end
 end
