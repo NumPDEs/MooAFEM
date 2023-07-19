@@ -33,15 +33,15 @@ switch class
                 end
             case {"", "additiveSchwarzLowOrder"}
                 if order == 1
-                    preconditioner = P1AdditiveSchwarz(fes, blf, P);
+                    preconditioner = OptimalMLAdditiveSchwarz(P1JacobiSmoother(fes, blf, P));
                 else
-                    preconditioner = AdditiveSchwarzLowOrderCascade(fes, blf);
+                    preconditioner = OptimalMLAdditiveSchwarz(JacobiLowOrderCascadeSmoother(fes, blf));
                 end
             case "additiveSchwarzHighOrder"
                 if order == 1
-                    preconditioner = P1AdditiveSchwarz(fes, blf, P);
+                    preconditioner = OptimalMLAdditiveSchwarz(P1JacobiSmoother(fes, blf, P));
                 else
-                    preconditioner = AdditiveSchwarzHighOrderCascade(fes, blf, P);
+                    preconditioner = OptimalMLAdditiveSchwarz(JacobiHighOrderCascadeSmoother(fes, blf, P));
                 end
             otherwise
                 error('No PCG variant %s!', variant)
