@@ -109,7 +109,7 @@ classdef IterativeSolver < handle
 
     %% convenience factory function
     methods (Static, Access=public)
-        solver = choose(fes, blf, class, variant)
+        [solver, P] = choose(fes, blf, class, variant)
     end
     
     %% validation functions to use within this class
