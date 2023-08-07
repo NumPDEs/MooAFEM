@@ -35,8 +35,8 @@ function saveToTable(obj, separator)
     % Save data for each variable to a separate file
     data = obj.get(':', obj.timeVariable{:});
     for j = 1:obj.nTimeVariable
-        fid = fopen([obj.foldername, '/', obj.filename, '_', ...
-                     obj.timeVariable{j},'.csv'], 'w');
+        fid = fopen(obj.foldername + '/' + obj.filename + '_' + ...
+                     obj.timeVariable{j} + '.csv', 'w');
         obj.printTable(fid, obj.timeVariable{j}, data{j});
         fclose(fid);
     end

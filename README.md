@@ -29,7 +29,7 @@ Advantages:
 
 To get started, run `setup.m` in the root folder. This adds everything to the
 path and compiles .mex files if necessary.
-Note that, at least, Matlab version R2022a is required.
+Note that, at least, Matlab version R2022b is required.
 
 ## First steps
 

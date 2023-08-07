@@ -25,13 +25,13 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
     end
 
     % Welcome statement
-    fprintf('\n#\n# OCTAFEM - TIME MEASUREMENT\n');
+    fprintf('\n#\n# MooAFEM - TIME MEASUREMENT\n');
     fprintf('# Current Time: %s\n#\n\n', datestr(now));
     fprintf('This is TimeIt wrapper for function "%s"\n\n', functionName);
 
     % Initialisation of collection for LevelData objects
     leveldatacollection = LevelDataCollection();
-    leveldatacollection.identifier = identifier;
+    leveldatacollection.metaData("identifier") = identifier;
 
     % Run experiments
     for j = 1:nRun
@@ -39,7 +39,7 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
         temporaryIdentifier = sprintf('timingRun%04d', j);
         outputList = fevalc(functionName, varargin{:});
         leveldata = outputList{1};
-        leveldata.identifier = temporaryIdentifier;
+        leveldata.metaData("identifier") = temporaryIdentifier;
         % Remove unused information
         leveldata.removeNonscalar();
         % Store information

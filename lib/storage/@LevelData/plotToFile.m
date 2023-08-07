@@ -37,7 +37,7 @@ function plotToFile(obj, xVariable, varargin)
     end
 
     % Export plot
-    print(h, '-dpng', '-r600', [obj.foldername, '/', obj.filename, '.png']);
+    print(h, '-dpng', '-r600', obj.foldername + '/' + obj.filename + '.png');
 
     % Close figure
     close(h);

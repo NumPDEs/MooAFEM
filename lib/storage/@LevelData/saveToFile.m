@@ -32,9 +32,10 @@ function saveToFile(obj, folder, file)
     % Create problem- and method-specific folder
     ensureFolderExists(folder);
     % Save this object to file
+    pathToMat = folder + '/' + file + '.mat';
     if isOctave()
-        save([folder, '/', file, '.mat'], 'obj', '-v7');
+        save(pathToMat, 'obj', '-v7');
     else
-        save([folder, '/', file, '.mat'], 'obj', '-v7.3');
+        save(pathToMat, 'obj', '-v7.3');
     end
 end

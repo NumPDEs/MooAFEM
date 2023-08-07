@@ -38,6 +38,6 @@ function saveToFile(obj, folder, file)
         warning(['LevelData not stored. Octave cannot save classdef objects. ', ...
                  'See GNU Octave Bug: #45833']);
     else
-        save([folder, '/', file, '.mat'], 'obj', '-v7.3');
+        save(folder + '/' + file + '.mat', 'obj', '-v7.3');
     end
 end

@@ -18,14 +18,7 @@ classdef LevelData < handle
 %
 
     properties
-        % Name of problem
-        problem = 'problem'
-        % Name of domain
-        domain = 'domain'
-        % Name of method
-        method = 'method'
-        % Identifier for computation
-        identifier = 'main'
+        metaData
         % Root folder for file storage
         root = 'results'
         % Structure array storing string representations of variables
@@ -94,35 +87,30 @@ classdef LevelData < handle
             if nargin >= 1
                 obj.root = rootpath;
             end
+
+            % TODO: set output of hostname to string and remove cast
+            obj.metaData = dictionary(...
+                "problem", "problem", ...
+                "domain", "domain", ...
+                "method", "method", ...
+                "identifier", "main", ...
+                "hostname", string(getHostname()));
+
+            % Save time of creation
+            if isOctave()
+                obj.metaData("timestamp") = datestr(now, 'yyyy-MM-dd_HH:mm:ss'); %#ok<TNOW1,DATST>
+            else
+                obj.metaData("timestamp") = char(datetime('now', 'Format', 'yyyy-MM-dd_HH:mm:ss'));
+            end
+
             ensureFolderExists(obj.root);
             % Set hostname
             obj.hostname = getHostname();
-            % Save time of creation
-            if isOctave()
-                obj.timestamp = datestr(now, 'yyyy-MM-dd_HH:mm:ss'); %#ok<TNOW1,DATST>
-            else
-                obj.timestamp = char(datetime('now', 'Format', 'yyyy-MM-dd_HH:mm:ss'));
-            end
             % Initialise dictionary with some default values
             obj.dictionary = getDefaultDictionary();
         end
 
         %% SET GLOBAL VARIABLES
-        function set.problem(obj, name)
-            assert(ischar(name), 'Insert character array as problem name.');
-            obj.problem = name;
-        end
-
-        function set.domain(obj, name)
-            assert(ischar(name), 'Insert character array as domain name.');
-            obj.domain = name;
-        end
-
-        function set.method(obj, name)
-            assert(ischar(name), 'Insert character array as method name.');
-            obj.method = name;
-        end
-
         function set.root(obj, path)
             assert(ischar(path), 'Insert character array as path name.');
             obj.root = path;
@@ -152,12 +140,12 @@ classdef LevelData < handle
             if numel(rootpath) > 0 && ~strcmp(rootpath(end), '/')
                 rootpath = [rootpath, '/'];
             end
-            path = [rootpath, obj.problem, '_', obj.domain, '_', obj.method];
+            path = rootpath + strjoin([obj.metaData("problem"), obj.metaData("domain"), obj.metaData("method")], '_');
         end
 
         function file = get.filename(obj)
             % Name of file for file storage
-            file = [obj.identifier];
+            file = [obj.metaData("identifier")];
         end
 
         function bool = get.isScalar(obj)

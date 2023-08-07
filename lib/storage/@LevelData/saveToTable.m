@@ -33,7 +33,7 @@ function saveToTable(obj, separator)
     ensureFolderExists(obj.foldername);
 
     % Open file
-    fid = fopen([obj.foldername, '/', obj.filename, '.csv'], 'w');
+    fid = fopen(obj.foldername + '/' + obj.filename + '.csv', 'w');
 
     % Save header to file
     fprintf(fid, obj.headerSpecifier, obj.scalarVariable{:});

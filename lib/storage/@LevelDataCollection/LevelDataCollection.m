@@ -19,8 +19,7 @@ classdef LevelDataCollection < handle
 
 
     properties
-        % Identifier for computation
-        identifier = ''
+        metaData
         % Root folder for file storage
         root = 'results'
         % Cell array of LevelData objects
@@ -28,12 +27,6 @@ classdef LevelDataCollection < handle
     end
 
     properties (Dependent)
-        % Name of problem
-        problem (1,:) char
-        % Name of domain
-        domain (1,:) char
-        % Name of method
-        method (1,:) char
         % Path to folder for file storage
         foldername (1,:) char
         % Name of file for storage
@@ -73,9 +66,25 @@ classdef LevelDataCollection < handle
             end
             ensureFolderExists(obj.root);
 
+            % TODO: set output of hostname to string and remove cast
+            % TODO: does it make sense to store this here? -> see e.g. get.problem before
+            obj.metaData = dictionary(...
+                "problem", "problem", ...
+                "domain", "domain", ...
+                "method", "method", ...
+                "identifier", "main", ...
+                "hostname", string(getHostname()));
+
+            % Save time of creation
+            if isOctave()
+                obj.metaData("timestamp") = datestr(now, 'yyyy-MM-dd_HH:mm:ss'); %#ok<TNOW1,DATST>
+            else
+                obj.metaData("timestamp") = char(datetime('now', 'Format', 'yyyy-MM-dd_HH:mm:ss'));
+            end
+
             % Set identifier
             if nargin >= 2
-                obj.identifier = identifier;
+                obj.metaData("identifier") = identifier;
             end
         end
 
@@ -100,40 +109,16 @@ classdef LevelDataCollection < handle
             bool = (obj.nItem <= 1);
         end
 
-        function name = get.problem(obj)
-            if isempty(obj.item)
-                name = '';
-            else
-                name = [obj.item{1}.problem];
-            end
-        end
-
-        function name = get.domain(obj)
-            if isempty(obj.item)
-                name = '';
-            else
-                name = [obj.item{1}.domain];
-            end
-        end
-
-        function name = get.method(obj)
-            if isempty(obj.item)
-                name = '';
-            else
-                name = [obj.item{1}.method];
-            end
-        end
-
         function path = get.foldername(obj)
             rootpath = obj.root;
             if numel(rootpath) > 0 && ~strcmp(rootpath(end), '/')
                 rootpath = [rootpath, '/'];
             end
-            path = [rootpath, obj.problem, '_', obj.domain, '_', obj.method];
+            path = rootpath + strjoin([obj.metaData("problem"), obj.metaData("domain"), obj.metaData("method")], '_');
         end
 
         function file = get.filename(obj)
-            file = [obj.identifier, '_collection'];
+            file = obj.metaData("identifier") + '_collection';
         end
 
         function spec = get.headerSpecifier(obj)
