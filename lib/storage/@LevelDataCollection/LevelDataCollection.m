@@ -71,7 +71,7 @@ classdef LevelDataCollection < handle
             if nargin >= 1
                 obj.root = rootpath;
             end
-            makeDirectory(obj.root);
+            ensureFolderExists(obj.root);
 
             % Set identifier
             if nargin >= 2

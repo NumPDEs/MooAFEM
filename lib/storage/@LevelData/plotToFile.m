@@ -24,10 +24,7 @@ function plotToFile(obj, xVariable, varargin)
 
 
     % Create problem- and method-specific folder
-    folderExists = makeDirectory(obj.foldername);
-    if ~folderExists
-        error('Could not create folder and save to file');
-    end
+    ensureFolderExists(obj.foldername);
 
     % Create figure object
     h = createStandardFigure();

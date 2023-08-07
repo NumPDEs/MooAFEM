@@ -94,7 +94,7 @@ classdef LevelData < handle
             if nargin >= 1
                 obj.root = rootpath;
             end
-            makeDirectory(obj.root);
+            ensureFolderExists(obj.root);
             % Set hostname
             obj.hostname = getHostname();
             % Save time of creation

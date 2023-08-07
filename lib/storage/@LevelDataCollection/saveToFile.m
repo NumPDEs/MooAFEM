@@ -31,10 +31,7 @@ function saveToFile(obj, folder, file)
     end
 
     % Create problem- and method-specific folder
-    folderExists = makeDirectory(folder);
-    if ~folderExists
-        error('Could not create folder and save to file');
-    end
+    ensureFolderExists(folder);
 
     % Save this object to file
     if isOctave()

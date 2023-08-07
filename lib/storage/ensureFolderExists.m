@@ -1,6 +1,6 @@
-function folderExists = makeDirectory(path)
-%%MAKEDIRECTORY creates a directory if it does not exist yet
-%   folderExists = MAKEDIRECTORY(path)
+function ensureFolderExists(path)
+%%ENSUREFOLDEREXISTS creates a folder if it does not exist yet
+%   ENSUREFOLDEREXISTS(PATH)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -18,16 +18,13 @@ function folderExists = makeDirectory(path)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Create folder
     if isfolder(path)
         folderExists = true;
     else
         folderExists = mkdir(path);
     end
 
-    % Throw warning
     if ~folderExists
-        warning('Error creating folder')
+        error('Could not create folder %s', path);
     end
 end
