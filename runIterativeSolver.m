@@ -28,10 +28,10 @@ function leveldata = runIterativeSolver(maxNiter)
     lf.f = Constant(mesh, 1);
 
     % Choose iterative solver
-    solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzLowOrder");
-    % solver = chooseIterativeSolver(fes, blf, "pcg", "additiveSchwarzHighOrder");
-    % solver = chooseIterativeSolver(fes, blf, "pcg", "iChol");
-    % solver = chooseIterativeSolver(fes, blf, "multigrid", "lowOrderVcycle");
+    solver = IterativeSolver.choose(fes, blf, "pcg", "additiveSchwarzLowOrder");
+    % solver = IterativeSolver.choose(fes, blf, "pcg", "additiveSchwarzHighOrder");
+    % solver = IterativeSolver.choose(fes, blf, "pcg", "iChol");
+    % solver = IterativeSolver.choose(fes, blf, "multigrid", "lowOrderVcycle");
 
     % Initialize LevelData
     leveldata = LevelData('results');

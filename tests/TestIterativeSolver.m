@@ -6,16 +6,33 @@ properties (TestParameter)
         'direct', ["direct", ""], ...
         'jacobiPCG', ["pcg", "jacobi"], ...
         'iChol', ["pcg", "iChol"], ...
-        'additiveSchwarzPCG', ["pcg", "additiveSchwarzLowOrder"], ...
+        'loAdditiveSchwarzPCG', ["pcg", "additiveSchwarzLowOrder"], ...
+        'hoAdditiveSchwarzPCG', ["pcg", "additiveSchwarzHighOrder"], ...
         'lowMG', ["multigrid", "lowOrderVcycle"], ...
         'highMG', ["multigrid", "highOrderVcycle"]);
 end
 
 methods (Test)
-    function oneStepDecreasesNorm(testCase, p, variant)
+    function firstStepDecreasesNorm(testCase, p, variant)
+        [~, fes, blf, lf] = setupProblem(testCase, p);
+        s = variant(1); v = variant(2);
+        solver = IterativeSolver.choose(fes, blf, s, v);
+        
+        [xstar, A, F] = assembleData(testCase, blf, lf, fes);
+        solver.setupSystemMatrix(A);
+        solver.setupRhs(F);
+
+        normBefore = sqrt((xstar - solver.x)' * A * (xstar - solver.x));
+        solver.step();
+        normAfterwards = sqrt((xstar - solver.x)' * A * (xstar - solver.x));
+        
+        testCase.verifyGreaterThan(normBefore, normAfterwards);
+    end
+
+    function laterStepDecreasesNorm(testCase, p, variant)
         [mesh, fes, blf, lf] = setupProblem(testCase, p);
         s = variant(1); v = variant(2);
-        solver = chooseIterativeSolver(fes, blf, s, v);
+        solver = IterativeSolver.choose(fes, blf, s, v);
         
         for k = 1:3
             [xstar, A, F] = assembleData(testCase, blf, lf, fes);
@@ -30,11 +47,11 @@ methods (Test)
         
         testCase.verifyGreaterThan(normBefore, normAfterwards);
     end
-    
+
     function solverIsLinear(testCase, p, variant)
         [mesh, fes, blf, lf] = setupProblem(testCase, p);
         s = variant(1); v = variant(2);
-        solver = chooseIterativeSolver(fes, blf, s, v);
+        solver = IterativeSolver.choose(fes, blf, s, v);
         
         for k = 1:3
             [xstar, A, F] = assembleData(testCase, blf, lf, fes);
@@ -44,15 +61,9 @@ methods (Test)
         
         solver.setupRhs([F, -pi*F], 0*[F, F]);
         solver.solve();
-%         for i = 1:60
-%             solver.step();
-%         end
-        %xmat = cgs(A, F, 1e-16, 100);
-        
-         testCase.verifyEqual(-pi*solver.x(:,1), solver.x(:,2), 'RelTol', 2e-5);
-         testCase.verifyEqual(solver.x(:,1), xstar, 'RelTol', 2e-5);
-         %testCase.verifyEqual(solver.x(:, 1), xmat(:, 1), 'RelTol', 2e-5)
-        %testCase.verifyEqual(xmat(:,1), xstar, 'RelTol', 2e-5);
+
+        testCase.verifyEqual(-pi*solver.x(:,1), solver.x(:,2), 'RelTol', 2e-5);
+        testCase.verifyEqual(solver.x(:,1), xstar, 'RelTol', 2e-5);
     end
 end
 

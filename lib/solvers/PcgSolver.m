@@ -10,27 +10,41 @@ classdef PcgSolver < IterativeSolver
     end
     
     properties (Access=protected)
+        C
         residual
         Cresidual
         searchDirection
         normb
+    end
+
+    %% constructor
+    methods (Access=public)
+        function obj = PcgSolver(preconditioner)
+            arguments
+                preconditioner (1,1) Preconditioner
+            end
+
+            obj = obj@IterativeSolver();
+            obj.C = preconditioner;
+        end
     end
     
     %% extend superclass methods
     methods (Access=public)
         function setupSystemMatrix(obj, A)
             setupSystemMatrix@IterativeSolver(obj, A);
+            obj.C.setup(A);
         end
         
         function setupRhs(obj, b, varargin)
             setupRhs@IterativeSolver(obj, b, varargin{:});
             
             % initialize residual & search direction
-            obj.residual = b - obj.A*obj.x;
-            obj.Cresidual = obj.preconditionAction(obj.residual);
+            obj.residual = b - obj.A * obj.x;
+            obj.Cresidual = obj.C.apply(obj.residual);
             obj.searchDirection = obj.Cresidual;
-            obj.residualCNorm = sum(obj.residual.*obj.Cresidual, 1);
-            obj.normb = sqrt(sum(b.^2, 1));
+            obj.residualCNorm = sqrt(dot(obj.residual, obj.Cresidual, 1));
+            obj.normb = vecnorm(b, 2, 1);
         end
     end
     
@@ -38,8 +52,8 @@ classdef PcgSolver < IterativeSolver
     methods (Access=public)
         function tf = isConverged(obj)
             tf = ((obj.iterationCount >= obj.maxIter) ...
-                        | (sqrt(obj.residualCNorm) < obj.tol) ...
-                        | (sqrt(obj.residualCNorm)./obj.normb < obj.tol));
+                | (obj.residualCNorm < obj.tol) ...
+                | (obj.residualCNorm ./ obj.normb < obj.tol));
         end
     end
     
@@ -50,30 +64,23 @@ classdef PcgSolver < IterativeSolver
             
             % update solution
             AsearchDirection = obj.A * obj.searchDirection(:,idx);
-            if sum(obj.searchDirection(:,idx).*AsearchDirection, 1) < eps
+            dAd = dot(obj.searchDirection(:,idx), AsearchDirection, 1);
+            if dAd < eps
                 alpha = 1;
             else
-                alpha = obj.residualCNorm(:,idx) ./ sum(obj.searchDirection(:,idx).*AsearchDirection, 1);
+                alpha = obj.residualCNorm(:,idx).^2 ./ dAd;
             end
             obj.x(:,idx) = obj.x(:,idx) + alpha .* obj.searchDirection(:,idx);
 
-            % DEBUG:
-            % disp(['alpha = ', num2str(alpha)])
-            
             % update residual
             obj.residual(:,idx) = obj.residual(:,idx) - alpha .* AsearchDirection;
-            obj.Cresidual(:,idx) = obj.preconditionAction(obj.residual(:,idx));
+            obj.Cresidual(:,idx) = obj.C.apply(obj.residual(:,idx));
             residualCNormOld = obj.residualCNorm(:,idx);
-            obj.residualCNorm(:,idx) = sum(obj.residual(:,idx).*obj.Cresidual(:,idx), 1);
+            obj.residualCNorm(:,idx) = sqrt(dot(obj.residual(:,idx), obj.Cresidual(:,idx), 1));
             
             % update search direction
-            beta = obj.residualCNorm(:,idx) ./ residualCNormOld;
+            beta = (obj.residualCNorm(:,idx) ./ residualCNormOld).^2;
             obj.searchDirection(:,idx) = obj.Cresidual(:,idx) + beta .* obj.searchDirection(:,idx);
         end
-    end
-    
-    %% abstract preconditioning
-    methods (Abstract, Access=public)
-        preconditionAction(obj, x)
     end
 end
