@@ -8,7 +8,7 @@ nRuns = 10;
 
 %% run time measurements
 leveldatacollection = ...
-    TimeIt('debugTiming', nRuns, 'storingLevelOrientedData', false);
+    TimeIt('debugTiming', nRuns, 'storingLevelOrientedData', false, false);
 
 %% print statistical analysis of timing results
 leveldatacollection.printStatistics();
