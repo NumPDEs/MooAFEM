@@ -1,11 +1,11 @@
-function ax = plotTriangulation(obj, jLevel)
+function ax = plotTriangulation(obj, jLevel, opt)
 %%PLOTTRIANGULATION creates (a series of) plots for triangulations (must be
 %stored as pair c4n (double: nNodes x 2) and n4e (int: nElem x 3) or as
 %pair coordinates (double: 2 x nNodes) and elements (int: 3 x nElem)
 %   ax = PLOTTRIANGULATION(obj) plots all levels
-%   ax = PLOTTRIANGULATION(obj, ':')
-%   ax = PLOTTRIANGULATION(obj, jLevel)
-%   ax = PLOTTRIANGULATION(obj, 'end')
+%   ax = PLOTTRIANGULATION(obj, jLevel) plots levels specified in jLevel
+%   ax = PLOTTRIANGULATION(obj, jLevel, opt) additionally specifies options:
+%      - timePerLevel (default 1s)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -23,26 +23,26 @@ function ax = plotTriangulation(obj, jLevel)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Proceed input
-    if nargin < 2
-        jLevel = 1:obj.nLevel;
-    elseif strcmp(jLevel, ':')
-        jLevel = 1:obj.nLevel;
-    elseif strcmp(jLevel, 'end')
-        jLevel = obj.nLevel;
+    arguments
+        obj
+        jLevel (1,:) {mustBeIndexVector} = ':'
+        opt.timePerLevel {mustBeNumeric} = 1
     end
 
-    % Compute time per frame to obtain an overall duration of 20 seconds
-    DURATION = 20;
-    timePerLevel = DURATION / length(jLevel);
+    if strcmp(jLevel, ':')
+        jLevel = 1:obj.nLevel;
+    end
 
     % Create axes object
     ax = gca;
 
     % Plot every frame
-    for k = 1:length(jLevel)
-        obj.plotLevelTriangulation(ax, jLevel(k));
-        pause(timePerLevel);
+    % TODO: store whole mesh such that also boundary can be plotted?
+    for k = jLevel
+        coordinates = obj.level(k).coordinates;
+        elements = obj.level(k).elements;
+        mesh = Mesh(coordinates, elements, {});
+        plot(mesh, 'FaceAlpha', 0.0);
+        pause(opt.timePerLevel);
     end
 end

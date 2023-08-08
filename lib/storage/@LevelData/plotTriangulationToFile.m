@@ -1,11 +1,11 @@
-function plotTriangulationToFile(obj, jLevel)
+function plotTriangulationToFile(obj, jLevel, opt)
 %%PLOTTRIANGULATIONTOFILE creates (a series of) plots for triangulations
 %and stores it to a file, filename is generated automatically from
 %information in LevelData object
 %   ax = PLOTTRIANGULATIONTOFILE(obj) plots all levels
-%   ax = PLOTTRIANGULATIONTOFILE(obj, ':')
-%   ax = PLOTTRIANGULATIONTOFILE(obj, jLevel)
-%   ax = PLOTTRIANGULATIONTOFILE(obj, 'end')
+%   ax = PLOTTRIANGULATIONTOFILE(obj, jLevel) plots levels specified in jLevel
+%   ax = PLOTTRIANGULATIONTOFILE(obj, jLevel, opt) additionally specifies options:
+%      - timePerLevel (default 1s)
 %
 %   See also LevelData/plotTriangulation
 
@@ -25,115 +25,55 @@ function plotTriangulationToFile(obj, jLevel)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Proceed input
-    if nargin < 2
-        jLevel = 1:obj.nLevel;
-    elseif strcmp(jLevel, ':')
-        jLevel = 1:obj.nLevel;
-    elseif strcmp(jLevel, 'end')
-        jLevel = obj.nLevel;
+    arguments
+        obj
+        jLevel (1,:) {mustBeIndexVector} = ':'
+        opt.timePerLevel {mustBeNumeric} = 1
     end
 
-    % Create problem- and method-specific folder
-    ensureFolderExists(obj.foldername);
+    if strcmp(jLevel, ':')
+        jLevel = 1:obj.nLevel;
+    end
 
-    % Create new figure
+    ensureFolderExists(obj.foldername);
     h = createStandardFigure();
 
     if length(jLevel) == 1
         % Create single image
-        h = createStandardisedFigure();
-        obj.plotLevelTriangulation(gca(), jLevel);
-        % Export plot
-        print(h, '-dpng', '-r600', [obj.foldername, '/', obj.filename, '.png']);
+        coordinates = obj.level(jLevel).coordinates;
+        elements = obj.level(jLevel).elements;
+        mesh = Mesh(coordinates, elements, {});
+        plot(mesh);
+        print(h, '-dpng', '-r600', obj.foldername + '/' + obj.filename + '.png');
     else
-        % Set duration of video in seconds
-        DURATION = 20;
         % Create video as series of images
-        if isOctave()
-            createTriangulationGIF(obj, h, jLevel, DURATION);
-        else
-            createTriangulationAVI(obj, h, jLevel, DURATION);
-        end
+        createTriangulationAVI(obj, h, jLevel, opt.timePerLevel);
     end
 
-    % Close figure
     close(h);
 end
 
 
-function createTriangulationAVI(obj, h, jLevel, duration)
-%%CREATETRIANGULATIONAVI creates a video of the mesh refinement in AVI format
-
-    % Set video quality parameter
-    FPS = 30;
+function createTriangulationAVI(obj, h, jLevel, secondsPerFrame)
+    % video quality parameter
+    FPS = 1 / secondsPerFrame;
 
     % Create video writer
-    videowriter = VideoWriter([obj.foldername, '/', obj.filename, '.avi']);
+    videowriter = VideoWriter(obj.foldername + '/' + obj.filename + '.avi');
     set(videowriter, 'FrameRate', FPS);
     open(videowriter);
 
-    % Compute time per frame to obtain a fixed overall duration
-    framesPerLevel = fix(FPS * duration / length(jLevel));
     ax = gca();
     set(ax, 'NextPlot', 'replaceChildren');
 
     % Plot every frame
-    for k = 1:length(jLevel)
-        obj.plotLevelTriangulation(ax, jLevel(k));
-        for l = 1:framesPerLevel
-            writeVideo(videowriter, getframe(h));
-        end
+    for k = jLevel
+        coordinates = obj.level(k).coordinates;
+        elements = obj.level(k).elements;
+        mesh = Mesh(coordinates, elements, {});
+        plot(mesh, 'FaceAlpha', 0.0);
+        writeVideo(videowriter, getframe(h));
     end
 
-    % Close video writer
     close(videowriter);
-end
-
-
-function createTriangulationGIF(obj, h, jLevel, duration)
-%%CREATETRIANGULATIONGIF creates a video of the mesh refinement in GIF format
-
-    error('not working yet')
-
-    ax = gca();
-
-    % Determine time for delay in GIF
-    delayTime = duration / length(jLevel);
-
-    % Define path
-    filepath = [obj.foldername, '/', obj.filename, '.gif'];
-
-    % Assign plot to a frame
-    frame = getframe(h);
-
-    % Convert frame to RGB image (3 dimensional)
-    im = frame2im(frame);
-
-    % Transform RGB samples to 1 dimension with a color map "cm".
-    [imind, cm] = rgb2ind(im);
-
-    % Compute time per frame to obtain a fixed overall duration
-    imwrite(imind, cm, filepath, 'gif', ...
-            'DelayTime', delayTime, 'Compression' , 'lzw');
-
-    % Plot every frame
-    for k = 1:length(jLevel)
-        obj.plotLevelTriangulation(ax, jLevel(k));
-            % Assign plot to a frame
-    frame = getframe(h);
-
-    % Convert frame to RGB image (3 dimensional)
-    im = frame2im(frame);
-
-    % Transform RGB samples to 1 dimension with a color map "cm".
-    [imind, cm] = rgb2ind(im);
-
-        % Create GIF file
-        % Add each new plot to GIF
-        imwrite(imind, cm, filepath, 'gif', ...
-                'WriteMode', 'append', 'DelayTime', delayTime, ...
-                'Compression', 'lzw');
-    end
 end

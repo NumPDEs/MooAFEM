@@ -123,7 +123,7 @@ function leveldata = storingLevelOrientedData(doPlots, doStore)
         figure();
         leveldata.plotTriangulation();
     
-        % export refinement video (generates video of about 110 MB)
+        % export refinement video (generates video of about 2MB)
         leveldata.plotTriangulationToFile();
     end
 end
