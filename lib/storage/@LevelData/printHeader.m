@@ -20,12 +20,9 @@ function printHeader(obj)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Set separator variable
-    obj.separator = '  ';
-
     % Create header with variable names
-    header = sprintf(obj.headerSpecifier, obj.scalarVariable{:});
+    specifier = obj.getHeaderSpecifier('  ');
+    header = sprintf(specifier, obj.scalarVariable{:});
 
     % Print header to command line
     fprintf(header);

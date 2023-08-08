@@ -21,32 +21,28 @@ function saveToTable(obj, separator)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Proceed optional input
-    if nargin < 2
-        obj.separator = ',';
-    else
-        obj.separator = separator;
+    arguments
+        obj
+        separator {mustBeTextScalar} = ','
     end
 
-    % Create problem- and method-specific folder
-    ensureFolderExists(obj.foldername);
-
     % Open file
+    ensureFolderExists(obj.foldername);
     fid = fopen(obj.foldername + '/' + obj.filename + '.csv', 'w');
 
     % Save header to file
-    fprintf(fid, obj.headerSpecifier, obj.scalarVariable{:});
+    specifier = obj.getHeaderSpecifier(separator);
+    fprintf(fid, specifier, obj.scalarVariable{:});
 
     % Save information on each level to file
+    specifier = obj.getFormatSpecifier(separator);
     for k = 1:obj.nLevel
         data = cell(obj.nScalarVariable, 1);
         for j = 1:obj.nScalarVariable
             data{j} = obj.level(k).(obj.scalarVariable{j});
         end
-        fprintf(fid, obj.formatSpecifier, data{:});
+        fprintf(fid, specifier, data{:});
     end
 
-    % Close file
     fclose(fid);
 end

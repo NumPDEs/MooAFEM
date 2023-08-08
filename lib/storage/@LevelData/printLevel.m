@@ -21,9 +21,9 @@ function printLevel(obj, jLevel)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-    % Print current level by default
-    if nargin < 2
-        jLevel = obj.nLevel;
+    arguments
+        obj
+        jLevel (1,:) double = obj.nLevel
     end
 
     % Print header in case of plotting the first level
@@ -31,10 +31,8 @@ function printLevel(obj, jLevel)
         obj.printHeader();
     end
 
-    % Set separator variable
-    obj.separator = '  ';
-
     % Iterate over given list of levels
+    specifier = obj.getFormatSpecifier('  ');
     for k = 1:length(jLevel)
         % Extract data of all variables
         data = cell(obj.nVariable, 1);
@@ -46,6 +44,6 @@ function printLevel(obj, jLevel)
             end
         end
         % Print information on current level to command line
-        fprintf(obj.formatSpecifier, data{1:ind});
+        fprintf(specifier, data{1:ind});
     end
 end

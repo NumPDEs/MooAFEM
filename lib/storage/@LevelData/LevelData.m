@@ -34,13 +34,6 @@ classdef LevelData < handle
         timeVariable (1,:) cell
     end
 
-    properties (Access=private)
-        % Separator for printing to command line
-        separator
-        % Minimal width of variables for printing in command line
-        minimalWidth = 8;
-    end
-
     properties (Dependent)
         % Path to folder for file storage
         foldername (1,:) char
@@ -67,10 +60,6 @@ classdef LevelData < handle
     properties (Dependent, Access=private)
         % Boolean vector determining whether variable is a scalar value
         isScalar (1,:) logical
-        % String specifying output format in printLevel
-        formatSpecifier (1,:) char
-        % String specifying header format in printLevel
-        headerSpecifier (1,:) char
     end
 
     methods
@@ -197,32 +186,6 @@ classdef LevelData < handle
             bool = (obj.nLevel <= 1);
         end
 
-        function spec = get.headerSpecifier(obj)
-            % Creates formatting string for the header of the output
-            % to command line
-            spec = '';
-            for j = 1:obj.nScalarVariable
-                t = obj.type.(obj.scalarVariable{j});
-                if j < obj.nScalarVariable
-                    spec = [spec, '%', obj.getWidth(t), 's', obj.separator]; %#ok<*AGROW>
-                else
-                    spec = [spec, '%', obj.getWidth(t), 's\n'];
-                end
-            end
-        end
-
-        function spec = get.formatSpecifier(obj)
-            % Creates formatting string for printing to command line
-            spec = '';
-            for j = 1:obj.nScalarVariable
-                t = obj.type.(obj.scalarVariable{j});
-                if j < obj.nScalarVariable
-                    spec = [spec, '%', obj.getWidth(t), t.type, obj.separator];
-                else
-                    spec = [spec, '%', obj.getWidth(t), t.type, '\n'];
-                end
-            end
-        end
 
         %% READ LEVEL DATA
         data = get(obj, jLevel, variableName)
@@ -307,8 +270,33 @@ classdef LevelData < handle
             [~, idx] = ismember(variableName, obj.label);
         end
 
-        function width = getWidth(obj, type)
-            width = num2str(max(type.width, obj.minimalWidth));
+        function width = getWidth(~, type)
+            minimalWidth = 8;
+            width = num2str(max(type.width, minimalWidth));
+        end
+
+        function spec = getHeaderSpecifier(obj, separator)
+            % Creates formatting string for the header of the output to command line
+            spec = '';
+            for j = 1:obj.nScalarVariable
+                if j == obj.nScalarVariable
+                    separator = '\n';
+                end
+                t = obj.type.(obj.scalarVariable{j});
+                spec = [spec, '%', obj.getWidth(t), 's', separator];
+            end
+        end
+
+        function spec = getFormatSpecifier(obj, separator)
+            % Creates formatting string for printing to command line
+            spec = '';
+            for j = 1:obj.nScalarVariable
+                if j == obj.nScalarVariable
+                    separator = '\n';
+                end
+                t = obj.type.(obj.scalarVariable{j});
+                spec = [spec, '%', obj.getWidth(t), t.type, separator];
+            end
         end
 
         ax = plotLevel(obj, plotFunction, xVariable, variableName)
