@@ -19,10 +19,10 @@ function leveldata = storingLevelOrientedData(doPlots)
     %% initialize output data structure
     pathToStorage = 'results';
     leveldata = LevelData(pathToStorage);
-    leveldata.problem = 'Poisson';
-    leveldata.domain = 'Lshape';
-    leveldata.method = 'S1';
-    leveldata.identifier = 'example';
+    leveldata.metaData('problem') = 'Poisson';
+    leveldata.metaData('domain') = 'Lshape';
+    leveldata.metaData('method') = 'S1';
+    leveldata.metaData('identifier') = 'example';
 
     %% problem data
     blf = BilinearForm();
@@ -112,8 +112,8 @@ function leveldata = storingLevelOrientedData(doPlots)
         leveldata.plotAbsolute('ndof');
     
         % plot of all triangulations
-        figure();
-        leveldata.plotTriangulation();
+        % figure();
+        % leveldata.plotTriangulation();
     
         %% export error plot to file
         leveldata.plotToFile('ndof');
