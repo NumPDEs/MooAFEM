@@ -23,10 +23,6 @@ classdef LevelData < handle
         root = 'results'
         % Structure array storing string representations of variables
         dictionary
-        % Time stamp of creation
-        timestamp
-        % Hostname of computing machine
-        hostname
         % Cell array of level data
         level (1,:) struct
         % Structure array of data types
@@ -104,8 +100,6 @@ classdef LevelData < handle
             end
 
             ensureFolderExists(obj.root);
-            % Set hostname
-            obj.hostname = getHostname();
             % Initialise dictionary with some default values
             obj.dictionary = getDefaultDictionary();
         end
