@@ -1,9 +1,9 @@
-function ax = plotLevel(obj, plotFunction, xVariable, variableName)
+function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
 %%PLOTLEVEL auxiliary private function for creation of plots for usage in
 %LevelData/plot, LevelData/plotTime, and LevelData/plotAbsolute, calls the
-%specified plotFunction for the plot of variables in variableName with
+%specified plotFunction for the plot of variables in yVariable with
 %respect to xVariable, returns handle to axis object
-%   ax = PLOTLEVEL(obj, plotFunction, xVariable, variableName)
+%   ax = PLOTLEVEL(obj, plotFunction, xVariable, yVariable, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -21,6 +21,12 @@ function ax = plotLevel(obj, plotFunction, xVariable, variableName)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        plotFunction function_handle
+        xVariable {mustBeTextScalar}
+        yVariable cell
+    end
 
     % Create handle to currently active axis object
     ax = gca;
@@ -32,25 +38,27 @@ function ax = plotLevel(obj, plotFunction, xVariable, variableName)
     [COLOURORDER, MARKER] = getPlotStyle();
 
     % Iterate over given variables
-    for j = 1:length(variableName)
-        if obj.type.(variableName{j}).isFloat
-            % Extract value for y-axis
-            yValue = obj.get(1:obj.nLevel, variableName{j});
-            % Extract label for legend from dictionary
-            if isfield(obj.dictionary, variableName{j})
-                variableLabel = obj.dictionary.(variableName{j});
-            else
-                variableLabel = variableName{j};
-            end
-            % Create plot
-            feval(plotFunction, ...
-                  ax, xValue, yValue, '-', ...
-                  'Marker', MARKER{mod(j, length(MARKER))}, ...
-                  'Color', COLOURORDER(j, :), ...
-                  'LineWidth', 1.5, ...
-                  'DisplayName', variableLabel);
-            % Add new line into the current figure when calling plotConvergence again
-            hold(ax, 'on');
+    for j = 1:length(yVariable)
+        if ~obj.type.(yVariable{j}).isFloat
+            continue
         end
+
+        % Extract value for y-axis
+        yValue = obj.get(1:obj.nLevel, yVariable{j});
+        % Extract label for legend from dictionary
+        if isfield(obj.dictionary, yVariable{j})
+            variableLabel = obj.dictionary.(yVariable{j});
+        else
+            variableLabel = yVariable{j};
+        end
+        % Create plot
+        plotFunction( ...
+                ax, xValue, yValue, '-', ...
+                'Marker', MARKER{mod(j, length(MARKER))}, ...
+                'Color', COLOURORDER(j, :), ...
+                'LineWidth', 1.5, ...
+                'DisplayName', variableLabel);
+        % Add new line into the current figure when calling plotConvergence again
+        hold(ax, 'on');
     end
 end

@@ -1,8 +1,8 @@
-function ax = plotAbsolute(obj, xVariable, varargin)
+function ax = plotAbsolute(obj, xVariable, yVariable)
 %%PLOTABSOLUTE plots various scalar absolute variables (specified in
-%varargin) with respect to the variable xVariable, returns handle to axis
+%yVariable) with respect to the variable xVariable, returns handle to axis
 %object
-%   ax = PLOTABSOLUTE(obj, xVariable, varargin)
+%   ax = PLOTABSOLUTE(obj, xVariable, yVariable, ...)
 %
 %   See also LevelData/plot, LevelData/plotTime
 
@@ -22,20 +22,25 @@ function ax = plotAbsolute(obj, xVariable, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        xVariable {mustBeTextScalar}
+    end
 
-    % Proceed input
-    if nargin >= 3
-        variableName = setdiff(varargin, xVariable);
-    else
-        variableName = setdiff(obj.label, xVariable);
+    arguments (Repeating)
+        yVariable {mustBeTextScalar}
+    end
+
+    if isempty(yVariable)
+        yVariable = setdiff(obj.label, xVariable);
     end
 
     % Plot only scalar variables that do belong to absolute variables
-    variableName = intersect(variableName, obj.scalarVariable);
-    variableName = intersect(variableName, obj.absoluteVariable);
+    yVariable = intersect(yVariable, obj.scalarVariable);
+    yVariable = intersect(yVariable, obj.absoluteVariable);
 
     % Creates semilogx plot 
-    ax = obj.plotLevel('semilogx', xVariable, variableName);
+    ax = obj.plotLevel(@semilogx, xVariable, yVariable);
 
     % Add title
     title(ax, 'Value plot');

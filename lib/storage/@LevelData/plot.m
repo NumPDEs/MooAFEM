@@ -1,7 +1,7 @@
-function ax = plot(obj, xVariable, varargin)
-%%PLOT plots various scalar variables (specified in varargin) with respect
+function ax = plot(obj, xVariable, yVariable)
+%%PLOT plots various scalar variables (specified in yVariable) with respect
 %to the variable xVariable, returns handle to axis object
-%   ax = PLOT(obj, xVariable, varargin)
+%   ax = PLOT(obj, xVariable, yVariable, ...)
 %
 %   See also LevelData/plotTime, LevelData/plotAbsolute
 
@@ -21,22 +21,29 @@ function ax = plot(obj, xVariable, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Proceed input
-    if nargin >= 3
-        variableName = setdiff(varargin, xVariable);
-    else
-        variableName = setdiff(obj.label, xVariable);
+    arguments
+        obj
+        xVariable {mustBeTextScalar}
     end
+
+    arguments (Repeating)
+        yVariable {mustBeTextScalar}
+    end
+
+    if isempty(yVariable)
+        yVariable = setdiff(obj.label, xVariable);
+    end
+
+    % TODO: introduce plot specification to allow for different plot types (time, absolute, level)
 
     % Plot only scalar variables that do not belong to time or absolute
     % variables
-    variableName = intersect(variableName, obj.scalarVariable);
-    variableName = setdiff(variableName, obj.absoluteVariable);
-    variableName = setdiff(variableName, obj.timeVariable);
+    yVariable = intersect(yVariable, obj.scalarVariable);
+    yVariable = setdiff(yVariable, obj.absoluteVariable);
+    yVariable = setdiff(yVariable, obj.timeVariable);
 
     % Creates double logarithmic splot 
-    ax = obj.plotLevel('loglog', xVariable, variableName);
+    ax = obj.plotLevel(@loglog, xVariable, yVariable);
 
     % Add title
     title(ax, 'Convergence history plot');

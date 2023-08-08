@@ -1,8 +1,8 @@
-function plotToFile(obj, xVariable, varargin)
+function plotToFile(obj, xVariable, yVariable)
 %%PLOTTOFILE creates plots of various scalar variables (specified in 
-%varargin) with respect %to the variable xVariable and stores it to a file,
+%yVariable) with respect %to the variable xVariable and stores it to a file,
 %filename is generated automatically from information in LevelData object
-%   PLOTTOFILE(obj, xVariable, varargin)
+%   PLOTTOFILE(obj, xVariable, yVariable)
 %
 %   See also LevelData/plot
 
@@ -22,23 +22,24 @@ function plotToFile(obj, xVariable, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Create problem- and method-specific folder
-    ensureFolderExists(obj.foldername);
-
-    % Create figure object
-    h = createStandardFigure();
-
-    % Create plot
-    if nargin < 3
-        obj.plot(xVariable);
-    else
-        obj.plot(xVariable, varargin);
+    arguments
+        obj
+        xVariable {mustBeTextScalar}
     end
+
+    arguments (Repeating)
+        yVariable {mustBeTextScalar}
+    end
+
+    if isempty(yVariable)
+        yVariable = setdiff(obj.label, xVariable);
+    end
+
+    ensureFolderExists(obj.foldername);
+    h = createStandardFigure();
+    obj.plot(xVariable, yVariable{:});
 
     % Export plot
     print(h, '-dpng', '-r600', obj.foldername + '/' + obj.filename + '.png');
-
-    % Close figure
     close(h);
 end

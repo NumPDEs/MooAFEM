@@ -1,7 +1,7 @@
-function ax = plotTime(obj, xVariable, varargin)
-%%PLOTTIME plots various scalar time variables (specified in varargin) with
+function ax = plotTime(obj, xVariable, yVariable)
+%%PLOTTIME plots various scalar time variables (specified in yVariable) with
 %respect to the variable xVariable, returns handle to axis object
-%   ax = PLOTTIME(obj, xVariable, varargin)
+%   ax = PLOTTIME(obj, xVariable, yVariable, ...)
 %
 %   See also LevelData/plot, LevelData/plotAbsolute
 
@@ -21,20 +21,25 @@ function ax = plotTime(obj, xVariable, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        xVariable {mustBeTextScalar}
+    end
 
-    % Proceed input
-    if nargin >= 3
-        variableName = setdiff(varargin, xVariable);
-    else
-        variableName = setdiff(obj.label, xVariable);
+    arguments (Repeating)
+        yVariable {mustBeTextScalar}
+    end
+
+    if isempty(yVariable)
+        yVariable = setdiff(obj.label, xVariable);
     end
 
     % Plot only scalar variables that do belong to time variables
-    variableName = intersect(variableName, obj.scalarVariable);
-    variableName = intersect(variableName, obj.timeVariable);
+    yVariable = intersect(yVariable, obj.scalarVariable);
+    yVariable = intersect(yVariable, obj.timeVariable);
 
     % Creates double logarithmic splot 
-    ax = obj.plotLevel('loglog', xVariable, variableName);
+    ax = obj.plotLevel(@loglog, xVariable, yVariable);
 
     % Add title
     title(ax, 'Time plot');
