@@ -228,27 +228,45 @@ classdef LevelData < handle
         data = get(obj, jLevel, variableName)
 
         %% MODIFY LEVEL DATA
-        set(obj, jLevel, varargin)
-        setTime(obj, jLevel, varargin)
-        setAbsolute(obj, jLevel, varargin)
+        set(obj, jLevel, variableName, value)
+        setTime(obj, jLevel, variableName, value)
+        setAbsolute(obj, jLevel, variableName, value)
 
         function append(obj, varargin)
             %%APPEND simplified addition of specified data for the
-            %subsequent level, the cell array varargin must contain
+            %subsequent level, the arguments must be specified as
             %pairs of variable names and data (numeric or string /
             %characters)
-            %   APPEND(obj, varargin)
-            assert(mod(length(varargin), 2) == 0, ...
+            %   APPEND(obj, variableName, value, ...)
+
+            arguments
+                obj
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            assert(mod(length(varargin), 2) == 0, ... 
                    'Invalid number of arguments');
             nlvl = obj.nLevel + 1;
             obj.set(nlvl, varargin{:});
         end
 
-        function remove(obj, varargin)
+        function remove(obj, variableName)
             %%REMOVE removes the specified list of variables
-            %   REMOVE(obj, varargin)
-            obj.level = rmfield(obj.level, varargin{:});
-            obj.type = rmfield(obj.type, varargin{:});
+            %   REMOVE(obj, variableName, ...)
+
+            arguments
+                obj
+            end
+
+            arguments (Repeating)
+                variableName
+            end
+
+            obj.level = rmfield(obj.level, variableName{:});
+            obj.type = rmfield(obj.type, variableName{:});
         end
 
         function removeLevel(obj, jLevel)
@@ -271,15 +289,15 @@ classdef LevelData < handle
         %% OUTPUT LEVEL DATA
         printHeader(obj)
         printLevel(obj, jLevel)
-        ax = plot(obj, xVariable, varargin)
-        ax = plotTime(obj, xVariable, varargin)
-        ax = plotAbsolute(obj, xVariable, varargin)
+        ax = plot(obj, xVariable, yVariable)
+        ax = plotTime(obj, xVariable, yVariable)
+        ax = plotAbsolute(obj, xVariable, yVariable)
         ax = plotTriangulation(obj, jLevel)
 
         %% EXPORT LEVEL DATA
         saveToFile(obj, folder, file)
         saveToTable(obj, separator)
-        plotToFile(obj, xVariable, varargin)
+        plotToFile(obj, xVariable, yVariable)
         plotTriangulationToFile(obj, jLevel)
     end
 
