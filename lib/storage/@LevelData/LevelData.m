@@ -18,9 +18,10 @@ classdef LevelData < handle
 %
 
     properties
+        % map for general metadata
         metaData
         % Root folder for file storage
-        root = 'results'
+        root
         % Structure array storing string representations of variables
         dictionary
         % Cell array of level data
@@ -79,10 +80,10 @@ classdef LevelData < handle
             %file storage is initialised in the specified optional path
             %   leveldata = LEVELDATA(rootpath)
 
-            % Set root path for file storage
-            if nargin >= 1
-                obj.root = rootpath;
+            arguments
+                rootpath {mustBeTextScalar} = 'results'
             end
+            obj.root = rootpath;
 
             % TODO: set output of hostname to string and remove cast
             obj.metaData = dictionary(...
@@ -106,7 +107,10 @@ classdef LevelData < handle
 
         %% SET GLOBAL VARIABLES
         function set.root(obj, path)
-            assert(ischar(path), 'Insert character array as path name.');
+            arguments
+                obj
+                path {mustBeTextScalar}
+            end
             obj.root = path;
         end
 
@@ -221,7 +225,7 @@ classdef LevelData < handle
         end
 
         %% READ LEVEL DATA
-        data = get(obj, jLevel, varargin)
+        data = get(obj, jLevel, variableName)
 
         %% MODIFY LEVEL DATA
         set(obj, jLevel, varargin)

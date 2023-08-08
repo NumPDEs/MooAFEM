@@ -1,10 +1,9 @@
-function set(obj, jLevel, varargin)
+function set(obj, jLevel, variableName, value)
 %%SET stores specified data to this LevelData object for the specified list
-%jLevel of levels, the cell array varargin must contain pairs of variable
-%names and data (numeric or string/characters), dimension one of data must
-%correspond to number of levels
-%   SET(obj, jLevel, varargin)
-%   SET(obj, ':', varargin)
+%jLevel of levels. The variableName/value pairs can be repeating, their first
+%dimension must correspond to number of levels
+%   SET(obj, jLevel, variableName, value, ...)
+%   SET(obj, ':', variableName, value, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -22,41 +21,44 @@ function set(obj, jLevel, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        jLevel {mustBeIndexVector} = ':'
+    end
 
-    % Proceed input
+    arguments (Repeating)
+        variableName {mustBeTextScalar}
+        value
+    end
+
     if strcmp(jLevel, ':')
         jLevel = 1:obj.nLevel;
     end
 
-    % Check number of variable input
-    assert(mod(length(varargin), 2) == 0, ...
-           'Invalid number of arguments');
-
     % Determine number of arguments
-    nArgument = length(varargin) / 2;
+    nArgument = length(variableName);
 
     % Store data to LevelData object
     for j = 1:nArgument
-        variableName = varargin{2*j-1};
+        name = variableName{j};
+        val = value{j};
         % Determine type of data
-        if isa(varargin{2*j}, 'Type')
+        if isa(val, 'Type')
             % Copy type argument
-            currentType = varargin{2*j};
+            currentType = val;
             valueList = repmat({nan}, length(jLevel), 1);
         else
             % Determine type by example data
             [currentType, valueList] = ...
-                Type.determineTypeValue(length(jLevel), ...
-                                        variableName, ...
-                                        varargin{2*j});
+                Type.determineTypeValue(length(jLevel), name, val);
         end
         % Store type
-        if ~ismember(variableName, obj.label)
-            obj.type.(variableName) = currentType;
+        if ~ismember(name, obj.label)
+            obj.type.(name) = currentType;
         end
         % Store level-oriented data
         for k = 1:length(jLevel)
-            obj.level(jLevel(k)).(variableName) = valueList{k};
+            obj.level(jLevel(k)).(name) = valueList{k};
         end
     end
 end

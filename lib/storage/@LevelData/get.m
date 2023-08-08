@@ -1,9 +1,9 @@
-function data = get(obj, jLevel, varargin)
+function data = get(obj, jLevel, variableName)
 %%GET extracts data from this LevelData object on a given list jLevel of 
-%level numbers, the cell array varargin must contain the names of the
-%variables to return
-%   data = GET(obj, jLevel, varargin)
-%   data = GET(obj, ':', varargin)
+%level numbers. One or more variables to be returned can be specified by their
+%names.
+%   data = GET(obj, jLevel, variableName, ...)
+%   data = GET(obj, ':', variableName, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -21,48 +21,58 @@ function data = get(obj, jLevel, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        jLevel {mustBeIndexVector} = ':'
+    end
 
-    % Proceed input
+    arguments (Repeating)
+        variableName {mustBeTextScalar}
+    end
+
     if strcmp(jLevel, ':')
         jLevel = 1:obj.nLevel;
     end
 
     % Initialise return variable
-    data = nan(length(jLevel), length(varargin));
+    data = nan(length(jLevel), length(variableName));
     containsCharOnly = true;
 
+    % filter non-existing variables
+    existingVariables = ismember(variableName, obj.label);
+    if any(~existingVariables)
+        warning(['Variable(s) ', strjoin(variableName(~existingVariables), ', '), ' not found']);
+    end
+    variableName = variableName(existingVariables);
+
     % Iterate over all variables
-    for jVariable = 1:length(varargin)
-        variableName = varargin{jVariable};
-        % Check for existence of specified variable
-        if ~ismember(variableName, obj.label)
-            warning(['Variable ', variableName, ' not found']);
-            value = [];
-        else
-            % Check for strings/character arrays
-            if ~strcmp(obj.type.(variableName).type, 'c') && ...
-                    ~strcmp(obj.type.(variableName).type, 's')
-                containsCharOnly = false;
+    for jVariable = 1:length(variableName)
+        name = variableName{jVariable};
+
+        % Check for strings/character arrays
+        if ~strcmp(obj.type.(name).type, 'c') && ...
+                ~strcmp(obj.type.(name).type, 's')
+            containsCharOnly = false;
+        end
+        % Determine index of current variable
+        idx = obj.getIndex(name);
+        if obj.isScalar(idx)
+            % Extract scalar variables for each level
+            value = zeros(length(jLevel), 1);
+            for k = 1:length(jLevel)
+                value(k) = obj.level(jLevel(k)).(name);
             end
-            % Determine index of current variable
-            idx = obj.getIndex(variableName);
-            if obj.isScalar(idx)
-                % Extract scalar variables for each level
-                value = zeros(length(jLevel), 1);
-                for k = 1:length(jLevel)
-                    value(k) = obj.level(jLevel(k)).(variableName);
-                end
+        else
+            % Extract non-scalar variables only in case of a single level
+            if length(jLevel) > 1
+                warning('Export of level-oriented scalar variables only');
+                value = [];
             else
-                % Extract non-scalar variables only in case of a single level
-                if length(jLevel) > 1
-                    warning('Export of level-oriented scalar variables only');
-                    value = [];
-                else
-                    data(1,jVariable) = obj.level(jLevel).(variableName);
-                    return
-                end
+                data(1,jVariable) = obj.level(jLevel).(name);
+                return
             end
         end
+
         % Save extracted data to return variable
         data(:,jVariable) = value;
         % Post-process character arrays
