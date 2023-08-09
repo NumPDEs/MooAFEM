@@ -1,9 +1,9 @@
-function output = get(obj, jItem, varargin)
+function output = get(obj, jItem, variableName)
 %%GET extracts data from this LevelDataCollection object for a given list
-%jItem of item numbers, the cell array varargin must contain the names of 
-%the variables to return
-%   output = GET(obj, jItem, varargin)
-%   output = GET(obj, ':', varargin)
+%jItem of item numbers. One or more variables to be returned can be specified by
+%their names.
+%   output = GET(obj, jItem, variableName, ...)
+%   output = GET(obj, ':', variableName, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -21,30 +21,37 @@ function output = get(obj, jItem, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        jItem {mustBeIndexVector} = ':'
+    end
 
-    % Proceed input
+    arguments (Repeating)
+        variableName {mustBeTextScalar}
+    end
+
     if strcmp(jItem, ':')
         jItem = 1:obj.nItem;
     end
 
     % Initialise output variable
-    output = cell(1, length(varargin));
+    output = cell(1, length(variableName));
 
     % Determine number of levels (uses first item!)
     nLevel = obj.item{1}.nLevel;
 
     % Iterate over variables
-    for jVariable = 1:length(varargin)
-        variableName = varargin{jVariable};
+    for jVariable = 1:length(variableName)
+        name = variableName{jVariable};
         % Check for presence of variable
-        if ~ismember(variableName, obj.timeVariable)
-            warning(['Variable ', variableName, ' not found']);
+        if ~ismember(name, obj.timeVariable)
+            warning(['Variable ', name, ' not found']);
             data = [];
         else
             data = zeros(nLevel, length(jItem));
             % Iterate over items
             for k = 1:length(jItem)
-                data(:,k) = obj.item{jItem(k)}.get(':', variableName);
+                data(:,k) = obj.item{jItem(k)}.get(':', name);
             end
         end
         % Store to return variable

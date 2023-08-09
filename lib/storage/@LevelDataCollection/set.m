@@ -1,7 +1,7 @@
-function set(obj, jItem, varargin)
+function set(obj, jItem, data)
 %%SET stores specified list of LevelData objects to the indices determined
 %in the jItem array
-%   SET(obj, jItem, varargin)
+%   SET(obj, jItem, data)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -19,17 +19,21 @@ function set(obj, jItem, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
+    arguments
+        obj
+        jItem
+    end
 
-    % Check type of input
-    assert(all(isa(varargin{:}, 'LevelData')), ...
-           'Arguments must be of class LevelData');
+    arguments (Repeating)
+        data LevelData
+    end
 
     % Number of items and item indices must coincide
-    assert(length(jItem) == length(varargin), ...
+    assert(length(jItem) == length(data), ...
            'Number of indices must equal number of given arguments');
 
     % Store items
     for k = 1:length(jItem)
-        obj.item{jItem(k)} = varargin{k};
+        obj.item{jItem(k)} = data{k};
     end
 end

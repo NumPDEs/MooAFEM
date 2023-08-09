@@ -1,7 +1,7 @@
-function printStatistics(obj, varargin)
+function printStatistics(obj, variable)
 %%PRINTSTATISTICS prints statististical information of scalar time
-%variables (specified in varargin)
-%   PRINTSTATISTICS(obj, varargin)
+%variables (specified in variable)
+%   PRINTSTATISTICS(obj, variable, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -19,26 +19,30 @@ function printStatistics(obj, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Choose time variables for plotting
-    if nargin < 2
-        varargin = obj.timeVariable;
-    else
-        varargin = intersect(varargin, obj.timeVariable);
+    arguments
+        obj
     end
 
-    % Specify separator for table
-    obj.separator = '  ';
+    arguments (Repeating)
+        variable {mustBeTextScalar}
+    end
+
+    % Choose time variables for plotting
+    if isempty(variable)
+        variable = obj.timeVariable;
+    else
+        variable = intersect(variable, obj.timeVariable);
+    end
 
     % Extract data from each item and on each level
-    data = obj.get(':', varargin{:});
+    data = obj.get(':', variable{:});
 
     % Print separator between tables
     fprintf('\n');
 
     % Print table for each given variable
-    for j = 1:length(varargin)
-        obj.printTable(1, varargin{j}, data{j});
+    for j = 1:length(variable)
+        obj.printTable(1, variable{j}, data{j}, '  ');
         fprintf('\n\n');
     end
 end

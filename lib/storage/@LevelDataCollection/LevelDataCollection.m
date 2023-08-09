@@ -41,13 +41,6 @@ classdef LevelDataCollection < handle
         isInitialRun (1,1) boolean
     end
 
-    properties (Dependent, Access=private)
-        % String specifying output format in printItem
-        formatSpecifier (1,:) char
-        % String specifying header format in prinItem
-        headerSpecifier (1,:) char
-    end
-
     properties (Access=protected)
         % Separator for printing to command line
         separator
@@ -66,8 +59,6 @@ classdef LevelDataCollection < handle
             end
             ensureFolderExists(obj.root);
 
-            % TODO: set output of hostname to string and remove cast
-            % TODO: does it make sense to store this here? -> see e.g. get.problem before
             obj.metaData = dictionary(...
                 "problem", "problem", ...
                 "domain", "domain", ...
@@ -115,37 +106,26 @@ classdef LevelDataCollection < handle
             file = obj.metaData("identifier") + '_collection';
         end
 
-        function spec = get.headerSpecifier(obj)
-            % Creates formatting string for the header of the output 
-            % to command line
-            spec = [' run', obj.separator];
+        function spec = getHeaderSpecifier(obj, separator)
+            % Creates formatting string for the header of the output to command line
+            spec = cell(1, obj.nTimeVariable+1);
+            spec{1} = ' run';
             for j = 1:obj.nTimeVariable
                 t = obj.item{1}.type(obj.timeVariable{j});
-                if j < obj.nTimeVariable
-                    spec = [spec, '%', obj.getWidth(t), 's', obj.separator]; %#ok<*AGROW>
-                else
-                    spec = [spec, '%', obj.getWidth(t), 's\n'];
-                end
+                spec{j+1} = assembleSpecifier(obj.getWidth(t), 's');
             end
-            if obj.nTimeVariable == 0
-                spec = [spec, '\n'];
-            end
+            spec = strjoin(spec, separator) + "\n";
         end
 
-        function spec = get.formatSpecifier(obj)
+        function spec = getFormatSpecifier(obj, separator)
             % Creates formatting string for printing to command line
-            spec = ['%4d', obj.separator];
+            spec = cell(1, obj.nTimeVariable+1);
+            spec{1} = '%4d';
             for j = 1:obj.nTimeVariable
                 t = obj.item{1}.type(obj.timeVariable{j});
-                if j < obj.nTimeVariable
-                    spec = [spec, '%', obj.getWidth(t), t.formatSpec, obj.separator];
-                else
-                    spec = [spec, '%', obj.getWidth(t), t.formatSpec, '\n'];
-                end
+                spec{j+1} = assembleSpecifier(obj.getWidth(t), t.formatSpec);
             end
-            if obj.nTimeVariable == 0
-                spec = [spec, '\n'];
-            end
+            spec = strjoin(spec, separator) + "\n";
         end
 
         %% READ ITEM DATA
@@ -154,14 +134,21 @@ classdef LevelDataCollection < handle
         %% MODIFY ITEMS
         set(obj, jItem, varargin)
 
-        function append(obj, varargin)
-            %%APPEND simplified addition specified data to this list, the
-            %cell array varargin must contain LevelData objects
-            %   APPEND(obj, varargin)
-            assert(all(isa(varargin{:}, 'LevelData')), ...
-                   'Arguments must be of class LevelData');
-            indices = obj.nItem + (1:length(varargin));
-            obj.set(indices, varargin{:});
+        function append(obj, data)
+            %%APPEND simplified addition specified of data to this list, one or
+            %more LevelData objects
+            %   APPEND(obj, data)
+
+            arguments
+                obj
+            end
+
+            arguments (Repeating)
+                data LevelData
+            end
+
+            indices = obj.nItem + (1:length(data));
+            obj.set(indices, data{:});
         end
 
         function remove(obj, indices)
@@ -187,6 +174,10 @@ classdef LevelDataCollection < handle
             width = num2str(max(type.printWidth, obj.minimalWidth));
         end
 
-        printTable(obj, fid, variableName, data)
+        printTable(obj, fid, variableName, data, separator)
     end
+end
+
+function spec = assembleSpecifier(width, format)
+    spec = ['%', num2str(width), format];
 end

@@ -21,11 +21,8 @@ function printHeader(obj)
 %
 
 
-    % Set separator variable
-    obj.separator = '  ';
-
     % Create header with variable names
-    header = sprintf(obj.headerSpecifier, obj.timeVariable{:});
+    header = sprintf(obj.getHeaderSpecifier('  '), obj.timeVariable{:});
 
     % Print header to command line
     fprintf(header);

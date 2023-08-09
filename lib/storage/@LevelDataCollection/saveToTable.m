@@ -21,12 +21,9 @@ function saveToTable(obj, separator)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Proceed optional input
-    if nargin < 2
-        obj.separator = ',';
-    else
-        obj.separator = separator;
+    arguments
+        obj
+        separator {mustBeTextScalar} = ','
     end
 
     % Create problem- and method-specific folder
@@ -37,7 +34,7 @@ function saveToTable(obj, separator)
     for j = 1:obj.nTimeVariable
         fid = fopen(obj.foldername + '/' + obj.filename + '_' + ...
                      obj.timeVariable{j} + '.csv', 'w');
-        obj.printTable(fid, obj.timeVariable{j}, data{j});
+        obj.printTable(fid, obj.timeVariable{j}, data{j}, separator);
         fclose(fid);
     end
 end

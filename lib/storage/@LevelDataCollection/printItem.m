@@ -22,19 +22,15 @@ function printItem(obj, jItem)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Print final item by default
-    if nargin < 2
-        jItem = obj.nItem;
+    arguments
+        obj
+        jItem = obj.nItem
     end
 
     % Print header in case of plotting the first level
     if obj.isInitialRun()
         obj.printHeader();
     end
-
-    % Set separator variable
-    obj.separator = '  ';
 
     % Iterate over given list of item indices
     for k = 1:length(jItem)
@@ -47,6 +43,6 @@ function printItem(obj, jItem)
             data{ind} = obj.item{jItem(k)}.level.(obj.timeVariable{l});
         end
         % Print information on current item to command line
-        fprintf(obj.formatSpecifier, data{1:ind});
+        fprintf(obj.getFormatSpecifier('  '), data{1:ind});
     end
 end

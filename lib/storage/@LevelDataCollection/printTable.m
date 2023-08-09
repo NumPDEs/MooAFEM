@@ -1,4 +1,4 @@
-function printTable(obj, fid, variableName, data)
+function printTable(obj, fid, variableName, data, separator)
 %%PRINTTABLE auxiliary private function for printing statististical
 %information for data of scalar time variables variableName to command
 %line (fid=1) or file (specified by file identifier fid)
@@ -23,7 +23,7 @@ function printTable(obj, fid, variableName, data)
 
     % Define formatting strings for title and headline
     TITLE = ['# TIME STATISTICS - ', variableName];
-    HEADLINE = sprintf(['%5s', repmat([obj.separator, '%11s'], 1, 5)],...
+    HEADLINE = sprintf(['%5s', repmat([separator, '%11s'], 1, 5)],...
                         'level', 'mean', 'median', 'std', 'min', 'max');
 
     if fid == 1
@@ -43,6 +43,6 @@ function printTable(obj, fid, variableName, data)
                        max(data, [], 2)];
 
     % Print information
-    fprintf(fid, ['%5d', repmat([obj.separator, '%8.5e'], 1, 5), '\n'],...
+    fprintf(fid, ['%5d', repmat([separator, '%8.5e'], 1, 5), '\n'],...
             [1:size(data, 1); permute(statisticalData, [2 1])]);
 end

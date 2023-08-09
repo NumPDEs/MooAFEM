@@ -1,8 +1,8 @@
-function ax = plotStatistics(obj, xVariable, varargin)
+function ax = plotStatistics(obj, xVariable, yVariable)
 %%PLOTSTATISTICS plots with statistical information (mean value with min
-%and max value) of scalar time variables (specified in varargin) with
+%and max value) of scalar time variables (specified in yVariable) with
 %respect to the variable xVariable, returns handle to axis object
-%   PLOTSTATISTICS(obj, xVariable, varargin)
+%   PLOTSTATISTICS(obj, xVariable, yVariable, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -20,25 +20,30 @@ function ax = plotStatistics(obj, xVariable, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Choose time variables for plotting
-    if nargin < 3
-        varargin = obj.timeVariable;
-    else
-        varargin = intersect(varargin, obj.timeVariable);
+    arguments
+        obj
+        xVariable {mustBeTextScalar}
     end
 
-    % Specify separator for table
-    obj.separator = '  ';
+    arguments (Repeating)
+        yVariable
+    end
+
+    % Choose time variables for plotting
+    if isempty(yVariable)
+        yVariable = obj.timeVariable;
+    else
+        yVariable = intersect(yVariable, obj.timeVariable);
+    end
 
     % Extract data for x-axis
     xData = obj.item{1}.get(':', xVariable);
 
     % Extract data from each item and on each level
-    data = obj.get(':', varargin{:});
+    data = obj.get(':', yVariable{:});
 
     % Create plot
-    ax = plotData(xData, varargin, data);
+    ax = plotData(xData, yVariable, data);
 
     % Add title
     title(ax, 'Runtime plot');

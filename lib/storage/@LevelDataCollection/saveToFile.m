@@ -21,13 +21,10 @@ function saveToFile(obj, folder, file)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-
-    % Proceed optional input
-    if nargin < 2
-        folder = obj.foldername;
-    end
-    if nargin < 3
-        file = obj.filename;
+    arguments
+        obj
+        folder = obj.foldername
+        file = obj.filename
     end
 
     % Create problem- and method-specific folder

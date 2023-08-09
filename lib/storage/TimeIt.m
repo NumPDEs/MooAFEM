@@ -1,7 +1,7 @@
-function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
+function leveldatacollection = TimeIt(identifier, nRun, functionName, arguments)
 %%TIMEIT function wrapper for multiple runs of functions storing timing
 %data in LevelData objects
-%   leveldatacollection = TIMEIT(identifier, nRun, functionName, varargin)
+%   leveldatacollection = TIMEIT(identifier, nRun, functionName, arguments, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -19,9 +19,14 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
 % along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 
-    % Proceed input
-    if nargin < 4
-        varargin = cell(0);
+    arguments
+        identifier
+        nRun
+        functionName
+    end
+
+    arguments (Repeating)
+        arguments
     end
 
     % Welcome statement
@@ -37,7 +42,7 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
     for j = 1:nRun
         % Run current experiment
         temporaryIdentifier = sprintf('timingRun%04d', j);
-        outputList = fevalc(functionName, varargin{:});
+        outputList = fevalc(functionName, arguments);
         leveldata = outputList{1};
         leveldata.metaData("identifier") = temporaryIdentifier;
         % Remove unused information
@@ -55,11 +60,11 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, varargin)
 end
 
 
-function output = fevalc(functionName, varargin) %#ok<INUSD>
+function output = fevalc(functionName, arguments) %#ok<INUSD>
 %%FEVALC suppresses output to commandline
 
     % Create function call
-    functioncall = 'feval(functionName, varargin{:})';
+    functioncall = 'feval(functionName, arguments{:})';
     % Call function
 	[~, output] = evalc(functioncall);
     % Store output in cell variable
