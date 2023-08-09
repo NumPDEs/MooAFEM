@@ -53,7 +53,7 @@ function set(obj, jLevel, variableName, value)
         end
         % Store type
         if ~ismember(name, obj.label)
-            obj.type.(name) = currentType.adaptPrintWidthTo(name);
+            obj.type(name) = currentType.adaptPrintWidthTo(name);
         end
         % Store level-oriented data
         for k = 1:length(jLevel)

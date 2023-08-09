@@ -71,7 +71,7 @@ function data = get(obj, jLevel, variableName)
         % Save extracted data to return variable
         data(:,jVariable) = value;
         % Post-process character arrays
-        if obj.type.(name).rawType == RawType.TEXT
+        if obj.type(name).rawType == RawType.TEXT
             data = mat2cell(char(data), ones(length(data), 1));
         end
     end

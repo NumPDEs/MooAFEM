@@ -19,19 +19,24 @@ classdef LevelData < handle
 
     properties
         % map for general metadata
-        metaData
+        metaData (1,1) dictionary
         % Root folder for file storage
         root
         % Structure array storing string representations of variables
         dictionary
-        % Cell array of level data
+        % Array of level data
         level (1,:) struct
-        % Structure array of data types
-        type (1,1) struct
+        % Dictionary of data types
+        type (1,1) dictionary
         % Cell array of names of absolute value variables
         absoluteVariable (1,:) cell
         % Cell array of names of timing variables
         timeVariable (1,:) cell
+    end
+
+    properties (Access=private)
+        % Dictionary of categories for cataloguing and plotting
+        category (1,1) dictionary
     end
 
     properties (Dependent)
@@ -89,6 +94,8 @@ classdef LevelData < handle
                 obj.metaData("timestamp") = char(datetime('now', 'Format', 'yyyy-MM-dd_HH:mm:ss'));
             end
 
+            obj.category = dictionary();
+
             ensureFolderExists(obj.root);
             % Initialise dictionary with some default values
             obj.dictionary = getDefaultDictionary();
@@ -140,7 +147,7 @@ classdef LevelData < handle
             % contains a scalar value per level only
             bool = false(1, obj.nVariable);
             for j = 1:obj.nVariable
-                t = obj.type.(obj.label{j});
+                t = obj.type(obj.label{j});
                 if strcmp(t.shape, 's')
                     bool(j) = true;
                 end
@@ -225,11 +232,11 @@ classdef LevelData < handle
             end
 
             arguments (Repeating)
-                variableName
+                variableName {mustBeTextScalar}
             end
 
-            obj.level = rmfield(obj.level, variableName{:});
-            obj.type = rmfield(obj.type, variableName{:});
+            obj.level = rmfield(obj.level, variableName);
+            obj.type(variableName) = [];
         end
 
         function removeLevel(obj, jLevel)
@@ -246,7 +253,7 @@ classdef LevelData < handle
             %e.g., to reduce storage size
             %   REMOVENONSCALAR(obj)
             variableNonScalar = setdiff(obj.label, obj.scalarVariable);
-            obj.remove(variableNonScalar);
+            obj.remove(variableNonScalar{:});
         end
 
         %% OUTPUT LEVEL DATA
@@ -279,7 +286,7 @@ classdef LevelData < handle
             % Creates formatting string for the header of the output to command line
             spec = cell(1, obj.nScalarVariable);
             for j = 1:obj.nScalarVariable
-                t = obj.type.(obj.scalarVariable{j});
+                t = obj.type(obj.scalarVariable{j});
                 spec{j} = assembleSpecifier(obj.getWidth(t), 's');
             end
             spec = strjoin(spec, separator) + "\n";
@@ -289,7 +296,7 @@ classdef LevelData < handle
             % Creates formatting string for printing to command line
             spec = cell(1, obj.nScalarVariable);
             for j = 1:obj.nScalarVariable
-                t = obj.type.(obj.scalarVariable{j});
+                t = obj.type(obj.scalarVariable{j});
                 spec{j} = assembleSpecifier(obj.getWidth(t), t.formatSpec);
             end
             spec = strjoin(spec, separator) + "\n";

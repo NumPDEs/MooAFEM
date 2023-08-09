@@ -56,7 +56,7 @@ function setTime(obj, jLevel, variableName, value)
         end
         % Store type
         if ~ismember(name, obj.label)
-            obj.type.(name) = currentType.adaptPrintWidthTo(name);
+            obj.type(name) = currentType.adaptPrintWidthTo(name);
         end
         % Store variable as absolute variable
         if ~ismember(name, obj.timeVariable)

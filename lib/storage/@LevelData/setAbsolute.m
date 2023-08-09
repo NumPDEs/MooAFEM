@@ -57,7 +57,7 @@ function setAbsolute(obj, jLevel, variableName, value)
 
         if ~ismember(name, obj.absoluteVariable)
             % Store type
-            obj.type.(name) = currentType.adaptPrintWidthTo(name);
+            obj.type(name) = currentType.adaptPrintWidthTo(name);
             % Store variable as absolute variable
             obj.absoluteVariable{end+1} = name;
         end

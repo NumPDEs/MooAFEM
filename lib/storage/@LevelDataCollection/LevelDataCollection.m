@@ -126,7 +126,7 @@ classdef LevelDataCollection < handle
             % to command line
             spec = [' run', obj.separator];
             for j = 1:obj.nTimeVariable
-                t = obj.item{1}.type.(obj.timeVariable{j});
+                t = obj.item{1}.type(obj.timeVariable{j});
                 if j < obj.nTimeVariable
                     spec = [spec, '%', obj.getWidth(t), 's', obj.separator]; %#ok<*AGROW>
                 else
@@ -142,7 +142,7 @@ classdef LevelDataCollection < handle
             % Creates formatting string for printing to command line
             spec = ['%4d', obj.separator];
             for j = 1:obj.nTimeVariable
-                t = obj.item{1}.type.(obj.timeVariable{j});
+                t = obj.item{1}.type(obj.timeVariable{j});
                 if j < obj.nTimeVariable
                     spec = [spec, '%', obj.getWidth(t), t.formatSpec, obj.separator];
                 else
