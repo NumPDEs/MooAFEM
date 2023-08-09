@@ -277,29 +277,29 @@ classdef LevelData < handle
 
         function spec = getHeaderSpecifier(obj, separator)
             % Creates formatting string for the header of the output to command line
-            spec = '';
+            spec = cell(1, obj.nScalarVariable);
             for j = 1:obj.nScalarVariable
-                if j == obj.nScalarVariable
-                    separator = '\n';
-                end
                 t = obj.type.(obj.scalarVariable{j});
-                spec = [spec, '%', obj.getWidth(t), 's', separator];
+                spec{j} = assembleSpecifier(obj.getWidth(t), 's');
             end
+            spec = strjoin(spec, separator) + "\n";
         end
 
         function spec = getFormatSpecifier(obj, separator)
             % Creates formatting string for printing to command line
-            spec = '';
+            spec = cell(1, obj.nScalarVariable);
             for j = 1:obj.nScalarVariable
-                if j == obj.nScalarVariable
-                    separator = '\n';
-                end
                 t = obj.type.(obj.scalarVariable{j});
-                spec = [spec, '%', obj.getWidth(t), t.formatSpec, separator];
+                spec{j} = assembleSpecifier(obj.getWidth(t), t.formatSpec);
             end
+            spec = strjoin(spec, separator) + "\n";
         end
 
         ax = plotLevel(obj, plotFunction, xVariable, variableName)
         plotLevelTriangulation(obj, ax, jLevel)
     end
+end
+
+function spec = assembleSpecifier(width, format)
+    spec = ['%', num2str(width), format];
 end
