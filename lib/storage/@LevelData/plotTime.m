@@ -39,15 +39,5 @@ function ax = plotTime(obj, xVariable, yVariable)
     yVariable = intersect(yVariable, obj.timeVariable);
 
     % Creates double logarithmic splot 
-    ax = obj.plotLevel(@loglog, xVariable, yVariable);
-
-    % Add title
-    title(ax, 'Time plot');
-
-    % Add axes labels
-    xlabel(ax, xVariable);
-    ylabel(ax, 'runtime');
-
-    % Update legend
-    configureLegend(ax, 'northwest');
+    ax = obj.plotLevel(DataCategory.TIME, xVariable, yVariable);
 end

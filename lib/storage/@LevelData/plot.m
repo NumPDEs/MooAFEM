@@ -43,15 +43,5 @@ function ax = plot(obj, xVariable, yVariable)
     yVariable = setdiff(yVariable, obj.timeVariable);
 
     % Creates double logarithmic splot 
-    ax = obj.plotLevel(@loglog, xVariable, yVariable);
-
-    % Add title
-    title(ax, 'Convergence history plot');
-
-    % Add axes labels
-    xlabel(ax, xVariable);
-    ylabel(ax, 'error');
-
-    % Update legend
-    configureLegend(ax, 'northeast');
+    ax = obj.plotLevel(DataCategory.ERROR, xVariable, yVariable);
 end

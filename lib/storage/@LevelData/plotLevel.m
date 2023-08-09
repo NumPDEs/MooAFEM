@@ -1,9 +1,9 @@
-function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
+function ax = plotLevel(obj, category, xVariable, yVariable)
 %%PLOTLEVEL auxiliary private function for creation of plots for usage in
-%LevelData/plot, LevelData/plotTime, and LevelData/plotAbsolute, calls the
-%specified plotFunction for the plot of variables in yVariable with
+%LevelData/plot, LevelData/plotTime, and LevelData/plotAbsolute, uses the
+%specified DataCategory for the plot of variables in yVariable with
 %respect to xVariable, returns handle to axis object
-%   ax = PLOTLEVEL(obj, plotFunction, xVariable, yVariable, ...)
+%   ax = PLOTLEVEL(obj, category, xVariable, yVariable, ...)
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -23,7 +23,7 @@ function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
 
     arguments
         obj
-        plotFunction function_handle
+        category DataCategory
         xVariable {mustBeTextScalar}
         yVariable cell
     end
@@ -39,7 +39,7 @@ function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
 
     % Iterate over given variables
     for j = 1:length(yVariable)
-        if obj.type.(yVariable{j}).rawType ~= RawType.FLOAT
+        if obj.type(yVariable{j}).rawType ~= RawType.FLOAT
             continue
         end
 
@@ -52,7 +52,7 @@ function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
             variableLabel = yVariable{j};
         end
         % Create plot
-        plotFunction( ...
+        category.plotFunction( ...
                 ax, xValue, yValue, '-', ...
                 'Marker', MARKER{mod(j, length(MARKER))}, ...
                 'Color', COLOURORDER(j, :), ...
@@ -61,4 +61,10 @@ function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
         % Add new line into the current figure when calling plotConvergence again
         hold(ax, 'on');
     end
+
+    % Set plot appearance
+    title(ax, category.title);
+    xlabel(ax, xVariable);
+    ylabel(ax, category.yLabel);
+    configureLegend(ax, category.legendLocation);
 end

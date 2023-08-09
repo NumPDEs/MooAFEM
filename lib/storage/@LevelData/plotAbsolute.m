@@ -40,15 +40,5 @@ function ax = plotAbsolute(obj, xVariable, yVariable)
     yVariable = intersect(yVariable, obj.absoluteVariable);
 
     % Creates semilogx plot 
-    ax = obj.plotLevel(@semilogx, xVariable, yVariable);
-
-    % Add title
-    title(ax, 'Value plot');
-
-    % Add axes labels
-    xlabel(ax, xVariable);
-    ylabel(ax, 'value');
-
-    % Update legend
-    configureLegend(ax, 'northeast');
+    ax = obj.plotLevel(DataCategory.ABSOLUTE, xVariable, yVariable);
 end
