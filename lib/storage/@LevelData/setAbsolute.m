@@ -46,19 +46,18 @@ function setAbsolute(obj, jLevel, variableName, value)
         name = variableName{j};
         val = value{j};
         % Determine type of data
-        if isa(val, 'Type')
+        if isa(val, 'ValueDetails')
             % Copy type argument
             currentType = val;
             valueList = repmat({nan}, length(jLevel), 1);
         else
             % Determine type by example data
-            [currentType, valueList] = ...
-                ValueDetails.determineTypeValue(length(jLevel), name, val);
+            [valueList, currentType] = splitIntoLevelWiseData(length(jLevel), val);
         end
 
         if ~ismember(name, obj.absoluteVariable)
             % Store type
-            obj.type.(name) = currentType;
+            obj.type.(name) = currentType.adaptPrintWidthTo(name);
             % Store variable as absolute variable
             obj.absoluteVariable{end+1} = name;
         end

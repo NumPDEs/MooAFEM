@@ -144,9 +144,9 @@ classdef LevelDataCollection < handle
             for j = 1:obj.nTimeVariable
                 t = obj.item{1}.type.(obj.timeVariable{j});
                 if j < obj.nTimeVariable
-                    spec = [spec, '%', obj.getWidth(t), t.rawType.formatSpec, obj.separator];
+                    spec = [spec, '%', obj.getWidth(t), t.formatSpec, obj.separator];
                 else
-                    spec = [spec, '%', obj.getWidth(t), t.rawType.formatSpec, '\n'];
+                    spec = [spec, '%', obj.getWidth(t), t.formatSpec, '\n'];
                 end
             end
             if obj.nTimeVariable == 0

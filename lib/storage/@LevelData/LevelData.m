@@ -295,7 +295,7 @@ classdef LevelData < handle
                     separator = '\n';
                 end
                 t = obj.type.(obj.scalarVariable{j});
-                spec = [spec, '%', obj.getWidth(t), t.rawType.formatSpec, separator];
+                spec = [spec, '%', obj.getWidth(t), t.formatSpec, separator];
             end
         end
 

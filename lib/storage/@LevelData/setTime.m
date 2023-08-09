@@ -46,18 +46,17 @@ function setTime(obj, jLevel, variableName, value)
         name = variableName{j};
         val = value{j};
         % Determine type of data
-        if isa(val, 'Type')
+        if isa(val, 'ValueDetails')
             % Copy type argument
             currentType = val;
             valueList = repmat({nan}, length(jLevel), 1);
         else
             % Determine type by example data
-            [currentType, valueList] = ...
-                ValueDetails.determineTypeValue(length(jLevel), name, val);
+            [valueList, currentType] = splitIntoLevelWiseData(length(jLevel), val);
         end
         % Store type
         if ~ismember(name, obj.label)
-            obj.type.(name) = currentType;
+            obj.type.(name) = currentType.adaptPrintWidthTo(name);
         end
         % Store variable as absolute variable
         if ~ismember(name, obj.timeVariable)
