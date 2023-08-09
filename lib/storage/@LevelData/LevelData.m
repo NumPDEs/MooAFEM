@@ -1,4 +1,4 @@
-classdef LevelData < handle
+classdef LevelData < handle & matlab.mixin.CustomDisplay
 %%LEVELDATA class representing results from level-oriented computations
 
 % Copyright 2023 Philipp Bringmann
@@ -252,6 +252,11 @@ classdef LevelData < handle
         saveToTable(obj, separator)
         plotToFile(obj, xVariable, yVariable)
         plotTriangulationToFile(obj, jLevel)
+    end
+
+    methods (Access=protected)
+        %% CUSTOM DISPLAY
+        propgrp = getPropertyGroups(obj)
     end
 
     %% AUXILIARY FUNCTIONS
