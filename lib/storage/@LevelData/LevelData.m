@@ -90,7 +90,6 @@ classdef LevelData < handle & matlab.mixin.CustomDisplay
 
             obj.category = dictionary();
 
-            ensureFolderExists(obj.root);
             % Initialise dictionary with some default values
             obj.dictionary = getDefaultDictionary();
         end

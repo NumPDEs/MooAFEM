@@ -1,4 +1,4 @@
-function leveldatacollection = TimeIt(identifier, nRun, functionName, arguments)
+function leveldatacollection = TimeIt(identifier, nRun, storeResults, functionName, arguments)
 %%TIMEIT function wrapper for multiple runs of functions storing timing
 %data in LevelData objects
 %   leveldatacollection = TIMEIT(identifier, nRun, functionName, arguments, ...)
@@ -20,9 +20,10 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, arguments)
 %
 
     arguments
-        identifier
-        nRun
-        functionName
+        identifier {mustBeTextScalar}
+        nRun (1,1) double
+        storeResults (1,1) logical
+        functionName {mustBeTextScalar}
     end
 
     arguments (Repeating)
@@ -49,8 +50,10 @@ function leveldatacollection = TimeIt(identifier, nRun, functionName, arguments)
         leveldata.removeNonscalar();
         % Store information
         leveldatacollection.append(leveldata);
-        % Save intermediate collection to file
-        leveldatacollection.saveToFile();
+        if storeResults
+            % Save intermediate collection to file
+            leveldatacollection.saveToFile();
+        end
         % Print information on current run
         leveldatacollection.printItem();
     end

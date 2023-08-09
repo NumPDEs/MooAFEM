@@ -25,13 +25,13 @@ function ax = plotLevel(obj, category, xVariable, yVariable)
         obj
         category DataCategory
         xVariable {mustBeTextScalar}
-        yVariable cell
+        yVariable (1,:) cell
     end
 
     % Extract variables with correct category, type, and shape for y-axis
     idx = (obj.category(yVariable) == category) ...
-        & ([obj.type(yVariable).rawType]' == RawType.FLOAT) ...
-        & [obj.type(yVariable).isScalar]';
+        & ([obj.type(yVariable).rawType] == RawType.FLOAT) ...
+        & [obj.type(yVariable).isScalar];
     yVariable = yVariable(idx); 
 
     % Create handle to currently active axis object

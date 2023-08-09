@@ -7,8 +7,9 @@
 nRuns = 10;
 
 %% run time measurements
+storeResults = false;
 leveldatacollection = ...
-    TimeIt('debugTiming', nRuns, 'storingLevelOrientedData', false, false);
+    TimeIt('debugTiming', nRuns, storeResults, 'storingLevelOrientedData', false, false);
 
 %% print statistical analysis of timing results
 leveldatacollection.printStatistics();
@@ -18,4 +19,4 @@ figure();
 leveldatacollection.plotStatistics('ndof');
 
 %% save results to comma-separated file
-leveldatacollection.saveToTable();
+% leveldatacollection.saveToTable();
