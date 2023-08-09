@@ -272,7 +272,7 @@ classdef LevelData < handle
 
         function width = getWidth(~, type)
             minimalWidth = 8;
-            width = num2str(max(type.width, minimalWidth));
+            width = num2str(max(type.printWidth, minimalWidth));
         end
 
         function spec = getHeaderSpecifier(obj, separator)
@@ -295,7 +295,7 @@ classdef LevelData < handle
                     separator = '\n';
                 end
                 t = obj.type.(obj.scalarVariable{j});
-                spec = [spec, '%', obj.getWidth(t), t.type, separator];
+                spec = [spec, '%', obj.getWidth(t), t.rawType.formatSpec, separator];
             end
         end
 

@@ -39,7 +39,7 @@ function ax = plotLevel(obj, plotFunction, xVariable, yVariable)
 
     % Iterate over given variables
     for j = 1:length(yVariable)
-        if ~obj.type.(yVariable{j}).isFloat
+        if obj.type.(yVariable{j}).rawType ~= RawType.FLOAT
             continue
         end
 

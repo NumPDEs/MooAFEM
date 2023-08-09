@@ -53,7 +53,7 @@ function setTime(obj, jLevel, variableName, value)
         else
             % Determine type by example data
             [currentType, valueList] = ...
-                Type.determineTypeValue(length(jLevel), name, val);
+                ValueDetails.determineTypeValue(length(jLevel), name, val);
         end
         % Store type
         if ~ismember(name, obj.label)

@@ -144,9 +144,9 @@ classdef LevelDataCollection < handle
             for j = 1:obj.nTimeVariable
                 t = obj.item{1}.type.(obj.timeVariable{j});
                 if j < obj.nTimeVariable
-                    spec = [spec, '%', obj.getWidth(t), t.type, obj.separator];
+                    spec = [spec, '%', obj.getWidth(t), t.rawType.formatSpec, obj.separator];
                 else
-                    spec = [spec, '%', obj.getWidth(t), t.type, '\n'];
+                    spec = [spec, '%', obj.getWidth(t), t.rawType.formatSpec, '\n'];
                 end
             end
             if obj.nTimeVariable == 0
@@ -190,7 +190,7 @@ classdef LevelDataCollection < handle
 
     methods (Access = private)
         function width = getWidth(obj, type)
-            width = num2str(max(type.width, obj.minimalWidth));
+            width = num2str(max(type.printWidth, obj.minimalWidth));
         end
 
         printTable(obj, fid, variableName, data)

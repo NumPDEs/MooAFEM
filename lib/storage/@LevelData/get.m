@@ -49,11 +49,6 @@ function data = get(obj, jLevel, variableName)
     for jVariable = 1:length(variableName)
         name = variableName{jVariable};
 
-        % Check for strings/character arrays
-        if ~strcmp(obj.type.(name).type, 'c') && ...
-                ~strcmp(obj.type.(name).type, 's')
-            containsCharOnly = false;
-        end
         % Determine index of current variable
         idx = obj.getIndex(name);
         if obj.isScalar(idx)
@@ -76,7 +71,7 @@ function data = get(obj, jLevel, variableName)
         % Save extracted data to return variable
         data(:,jVariable) = value;
         % Post-process character arrays
-        if containsCharOnly
+        if obj.type.(name).rawType == RawType.TEXT
             data = mat2cell(char(data), ones(length(data), 1));
         end
     end
