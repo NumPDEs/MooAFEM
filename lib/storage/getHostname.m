@@ -19,19 +19,19 @@ function hostname = getHostname()
 %
 
 
-    % Read hostname
-    if isunix()
-        [~, hostname] = system('cat /etc/hostname');
-        hostname = hostname(1:end-1);
-    elseif ispc()
+    %% READ HOSTNAME
+    if ispc()
         hostname = 'win';
     elseif ismac()
         hostname = 'mac';
+    elseif isunix()
+        [~, hostname] = system('cat /etc/hostname');
+        hostname = hostname(1:end-1);
     else
         hostname = 'unknown';
     end
 
-    % Check result
+    %% CHECK RESULT
     if isempty(hostname)
         hostname = 'no_hostname';
     end
