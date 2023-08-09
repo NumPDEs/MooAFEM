@@ -49,8 +49,8 @@ function ax = plotLevel(obj, category, xVariable, yVariable)
         yValue = obj.get(1:obj.nLevel, yVariable{j});
 
         % Extract label for legend from dictionary
-        if isfield(obj.dictionary, yVariable{j})
-            variableLabel = obj.dictionary.(yVariable{j});
+        if obj.dictionary.isKey(yVariable{j})
+            variableLabel = obj.dictionary(yVariable{j});
         else
             variableLabel = yVariable{j};
         end

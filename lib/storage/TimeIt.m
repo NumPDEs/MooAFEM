@@ -61,11 +61,7 @@ function output = fevalc(functionName, varargin) %#ok<INUSD>
     % Create function call
     functioncall = 'feval(functionName, varargin{:})';
     % Call function
-    if isOctave()
-        evalc(['output = ' functioncall]);
-    else
-        [~, output] = evalc(functioncall);
-    end
+	[~, output] = evalc(functioncall);
     % Store output in cell variable
     if ~iscell(output)
         output = {output};

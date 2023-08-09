@@ -73,14 +73,8 @@ classdef LevelDataCollection < handle
                 "domain", "domain", ...
                 "method", "method", ...
                 "identifier", "main", ...
-                "hostname", string(getHostname()));
-
-            % Save time of creation
-            if isOctave()
-                obj.metaData("timestamp") = datestr(now, 'yyyy-MM-dd_HH:mm:ss'); %#ok<TNOW1,DATST>
-            else
-                obj.metaData("timestamp") = char(datetime('now', 'Format', 'yyyy-MM-dd_HH:mm:ss'));
-            end
+                "hostname", string(getHostname()), ...
+                "timestamp", string(datetime('now', 'Format', 'yyyy-MM-dd_HH:mm:ss')));
 
             % Set identifier
             if nargin >= 2

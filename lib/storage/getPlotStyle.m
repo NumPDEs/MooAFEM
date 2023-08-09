@@ -1,6 +1,6 @@
-function [COLOURORDER, MARKER] = getPlotStyle()
+function [colorOrder, marker] = getPlotStyle()
 %%GETPLOTSTYLE creates lists of default colours and markers for plotting
-%   [COLOURORDER, MARKER] = GETPLOTSTYLE()
+%   [colorOrder, marker] = GETPLOTSTYLE()
 
 % Copyright 2023 Philipp Bringmann
 %
@@ -21,40 +21,32 @@ function [COLOURORDER, MARKER] = getPlotStyle()
 
     % Generate a sequence of colours for the graphs
     % Matlab default
-    COLOURORDER = [0      0.4470 0.7410;
-                   0.8500 0.3250 0.0980;
-                   0.9290 0.6940 0.1250;
-                   0.4940 0.1840 0.5560;
-                   0.4660 0.6740 0.1880;
-                   0.3010 0.7450 0.9330;
-                   0.6350 0.0780 0.1840];
+    colorOrder = [0      0.4470 0.7410;
+                  0.8500 0.3250 0.0980;
+                  0.9290 0.6940 0.1250;
+                  0.4940 0.1840 0.5560;
+                  0.4660 0.6740 0.1880;
+                  0.3010 0.7450 0.9330;
+                  0.6350 0.0780 0.1840];
 
     % ALTERNATIVE: TU corporate design colours
-    % COLOURORDER = [0      0.4    0.6;
-    %                0.3922 0.3882 0.3882;
-    %                0      0.4941 0.4431;
-    %                0.7294 0.2745 0.5098;
-    %                0.8824 0.5373 0.1333];
+    % colorOrder = [0      0.4    0.6;
+    %               0.3922 0.3882 0.3882;
+    %               0      0.4941 0.4431;
+    %               0.7294 0.2745 0.5098;
+    %               0.8824 0.5373 0.1333];
 
     % ALTERNATIVE: variable length colour sequence
-    % nColour = max(ceil(nVariable^(1/3)), 2);
-    nColour = 3;
-    [red, green, blue] = meshgrid(linspace(0, 1, nColour));
-    % COLOURORDER = [red(:), green(:), blue(:)];
+    % nColor = max(ceil(nVariable^(1/3)), 2);
+    nColor = 3;
+    [red, green, blue] = meshgrid(linspace(0, 1, nColor));
+    % colorOrder = [red(:), green(:), blue(:)];
     % Append
-    COLOURORDER = [COLOURORDER; red(:), green(:), blue(:)];
+    colorOrder = [colorOrder; red(:), green(:), blue(:)];
     % Remove white as line colour
-    COLOURORDER = COLOURORDER(1:end-1,:);
+    colorOrder = colorOrder(1:end-1,:);
 
     % Define sequence of markers
-    MATLAB_MARKER = {'o', '+', 'x', 'square', 'diamond', '*', '^', 'v', ...
+    marker = {'o', '+', 'x', 'square', 'diamond', '*', '^', 'v', ...
               'pentagram', 'hexagram', '<', '>', '.', '_', '|'};
-    OCTAVE_MARKER = {'~o-k', '~x-r', '~s-g', '~d-b', '~p-c', '~^-m', '~v-y'};
-
-    % Choose sequence of markers
-    if isOctave()
-        MARKER = OCTAVE_MARKER;
-    else
-        MARKER = MATLAB_MARKER;
-    end
 end

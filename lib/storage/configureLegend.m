@@ -26,10 +26,6 @@ function configureLegend(ax, location)
     % Specify location
     set(leg, 'Location', location);
 
-    % Set interpreter to latex in Matlab
-    if isOctave()
-        set(leg, 'Interpreter', 'tex');
-    else
-        set(leg, 'Interpreter', 'latex');
-    end
+    % Set interpreter to latex
+	set(leg, 'Interpreter', 'latex');
 end
