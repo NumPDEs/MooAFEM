@@ -34,10 +34,5 @@ function ax = plotTime(obj, xVariable, yVariable)
         yVariable = setdiff(obj.label, xVariable);
     end
 
-    % Plot only scalar variables that do belong to time variables
-    yVariable = intersect(yVariable, obj.scalarVariable);
-    yVariable = intersect(yVariable, obj.timeVariable);
-
-    % Creates double logarithmic splot 
     ax = obj.plotLevel(DataCategory.TIME, xVariable, yVariable);
 end

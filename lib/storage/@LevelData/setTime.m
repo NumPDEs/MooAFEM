@@ -45,23 +45,21 @@ function setTime(obj, jLevel, variableName, value)
     for j = 1:nArgument
         name = variableName{j};
         val = value{j};
-        % Determine type of data
+
         if isa(val, 'ValueDetails')
             % Copy type argument
             currentType = val;
             valueList = repmat({nan}, length(jLevel), 1);
         else
-            % Determine type by example data
             [valueList, currentType] = splitIntoLevelWiseData(length(jLevel), val);
         end
-        % Store type
+
+        % Store type and category
         if ~ismember(name, obj.label)
             obj.type(name) = currentType.adaptPrintWidthTo(name);
+            obj.category(name) = DataCategory.TIME;
         end
-        % Store variable as absolute variable
-        if ~ismember(name, obj.timeVariable)
-            obj.timeVariable{end+1} = name;
-        end
+
         % Store level-oriented data
         for k = 1:length(jLevel)
             obj.level(jLevel(k)).(name) = valueList{k};

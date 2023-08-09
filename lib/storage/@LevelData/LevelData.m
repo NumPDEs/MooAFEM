@@ -28,10 +28,6 @@ classdef LevelData < handle
         level (1,:) struct
         % Dictionary of data types
         type (1,1) dictionary
-        % Cell array of names of absolute value variables
-        absoluteVariable (1,:) cell
-        % Cell array of names of timing variables
-        timeVariable (1,:) cell
     end
 
     properties (Access=private)
@@ -60,6 +56,10 @@ classdef LevelData < handle
         nTimeVariable (1,1) int32
         % Boolean indicating whether data has been stored for a single level
         isInitialRun (1,1) logical
+        % Cell array of names of absolute value variables
+        absoluteVariable (1,:) cell
+        % Cell array of names of timing variables
+        timeVariable (1,:) cell
     end
 
     properties (Dependent, Access=private)
@@ -145,25 +145,12 @@ classdef LevelData < handle
         function bool = get.isScalar(obj)
             % Creates boolean vector determining whether a variable
             % contains a scalar value per level only
-            bool = false(1, obj.nVariable);
-            for j = 1:obj.nVariable
-                t = obj.type(obj.label{j});
-                if strcmp(t.shape, 's')
-                    bool(j) = true;
-                end
-            end
+            bool = [obj.type(obj.label).isScalar]';
         end
 
         function variables = get.scalarVariable(obj)
             % Returns list of names of all scalar variables
-            variables = cell(obj.nScalarVariable, 1);
-            k = 1;
-            for j = 1:obj.nVariable
-                if obj.isScalar(j)
-                    variables{k} = obj.label{j};
-                    k = k + 1;
-                end
-            end
+            variables = obj.label(obj.isScalar);
         end
 
         function nVariable = get.nScalarVariable(obj)
@@ -172,20 +159,22 @@ classdef LevelData < handle
 
         function variables = get.timeVariable(obj)
             % Returns list of names of all time variables
-            variables = obj.timeVariable;
+            idx = (obj.category(obj.label) == DataCategory.TIME);
+            variables = obj.label(idx);
         end
 
         function nVariable = get.nTimeVariable(obj)
-            nVariable = length(obj.timeVariable);
+            nVariable = nnz(obj.category.values() == DataCategory.TIME);
         end
 
         function variables = get.absoluteVariable(obj)
             % Returns list of names of all absolute variables
-            variables = obj.absoluteVariable;
+            idx = (obj.category(obj.label) == DataCategory.ABSOLUTE);
+            variables = obj.label(idx);
         end
 
         function nVariable = get.nAbsoluteVariable(obj)
-            nVariable = length(obj.absoluteVariable);
+            nVariable = nnz(obj.category.values() == DataCategory.ABSOLUTE);
         end
 
         function bool = get.isInitialRun(obj)

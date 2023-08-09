@@ -28,6 +28,12 @@ function ax = plotLevel(obj, category, xVariable, yVariable)
         yVariable cell
     end
 
+    % Extract variables with correct category, type, and shape for y-axis
+    idx = (obj.category(yVariable) == category) ...
+        & ([obj.type(yVariable).rawType]' == RawType.FLOAT) ...
+        & [obj.type(yVariable).isScalar]';
+    yVariable = yVariable(idx); 
+
     % Create handle to currently active axis object
     ax = gca;
 
@@ -39,18 +45,16 @@ function ax = plotLevel(obj, category, xVariable, yVariable)
 
     % Iterate over given variables
     for j = 1:length(yVariable)
-        if obj.type(yVariable{j}).rawType ~= RawType.FLOAT
-            continue
-        end
-
         % Extract value for y-axis
         yValue = obj.get(1:obj.nLevel, yVariable{j});
+
         % Extract label for legend from dictionary
         if isfield(obj.dictionary, yVariable{j})
             variableLabel = obj.dictionary.(yVariable{j});
         else
             variableLabel = yVariable{j};
         end
+
         % Create plot
         category.plotFunction( ...
                 ax, xValue, yValue, '-', ...

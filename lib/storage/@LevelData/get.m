@@ -36,7 +36,6 @@ function data = get(obj, jLevel, variableName)
 
     % Initialise return variable
     data = nan(length(jLevel), length(variableName));
-    containsCharOnly = true;
 
     % filter non-existing variables
     existingVariables = ismember(variableName, obj.label);
@@ -53,10 +52,7 @@ function data = get(obj, jLevel, variableName)
         idx = obj.getIndex(name);
         if obj.isScalar(idx)
             % Extract scalar variables for each level
-            value = zeros(length(jLevel), 1);
-            for k = 1:length(jLevel)
-                value(k) = obj.level(jLevel(k)).(name);
-            end
+            value = [obj.level.(name)];
         else
             % Extract non-scalar variables only in case of a single level
             if length(jLevel) > 1

@@ -35,10 +35,5 @@ function ax = plotAbsolute(obj, xVariable, yVariable)
         yVariable = setdiff(obj.label, xVariable);
     end
 
-    % Plot only scalar variables that do belong to absolute variables
-    yVariable = intersect(yVariable, obj.scalarVariable);
-    yVariable = intersect(yVariable, obj.absoluteVariable);
-
-    % Creates semilogx plot 
     ax = obj.plotLevel(DataCategory.ABSOLUTE, xVariable, yVariable);
 end

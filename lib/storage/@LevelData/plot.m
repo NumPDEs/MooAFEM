@@ -34,14 +34,5 @@ function ax = plot(obj, xVariable, yVariable)
         yVariable = setdiff(obj.label, xVariable);
     end
 
-    % TODO: introduce plot specification to allow for different plot types (time, absolute, level)
-
-    % Plot only scalar variables that do not belong to time or absolute
-    % variables
-    yVariable = intersect(yVariable, obj.scalarVariable);
-    yVariable = setdiff(yVariable, obj.absoluteVariable);
-    yVariable = setdiff(yVariable, obj.timeVariable);
-
-    % Creates double logarithmic splot 
     ax = obj.plotLevel(DataCategory.ERROR, xVariable, yVariable);
 end
