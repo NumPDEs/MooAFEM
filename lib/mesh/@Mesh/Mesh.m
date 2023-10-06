@@ -100,6 +100,7 @@ classdef Mesh < handle
     %% static methods
     methods (Static)
         obj = loadFromGeometry(geometryIdentifier)
+        obj = unitTriangle()
         [edges, element2edges, flipEdges, boundary2edges] = computeEdgeInformation(elements, boundaries)
     end
 end

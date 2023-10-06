@@ -27,7 +27,7 @@ for k = 1:length(linearizations)
     u.setData(0);    
 
     %% nested iteration
-    P = LoFeProlongation(fes);
+    P = LoMeshProlongation(fes);
 
     %% adaptive algorithm
     ell = 0;

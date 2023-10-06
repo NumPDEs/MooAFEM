@@ -1,0 +1,32 @@
+function printHeader(obj)
+%%PRINTHEADER prints header for output to command line
+%   PRINTHEADER(obj)
+%
+%   See also LevelData/printLevel
+
+% Copyright 2023 Philipp Bringmann
+%
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+%
+% This program is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+
+    % Create header with variable names
+    specifier = obj.getHeaderSpecifier('  ');
+    header = sprintf(specifier, obj.scalarVariable{:});
+
+    % Print header to command line
+    fprintf(header);
+
+    % Print separating horizontal line
+    fprintf([repmat('-', 1, length(header)-1), '\n']);
+end

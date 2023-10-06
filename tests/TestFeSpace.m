@@ -56,7 +56,7 @@ methods (Test, ParameterCombination='sequential')
     end
     
     function dofDataIsComputedCorrectly(testCase, fe, nDof, nFreeDof)
-        mesh = Mesh.loadFromGeometry('unittriangle');
+        mesh = Mesh.unitTriangle();
         fes = FeSpace(mesh, fe);
         testCase.verifyEqual(getDofs(fes).nDofs, nDof)
         testCase.verifyEqual(nnz(getFreeDofs(fes)), nFreeDof)

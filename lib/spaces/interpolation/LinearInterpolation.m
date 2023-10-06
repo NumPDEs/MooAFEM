@@ -1,7 +1,5 @@
 % LinearInterpolation (subclass of Evaluable) Provide piecewise linear
-%   interpolant of function. This is used mainly internally for prolongation.
-%
-%   See also: LinearFeProlongation
+%   interpolant of function. This can be used for approximate prolongation.
 
 classdef LinearInterpolation < Evaluable
     %% properties

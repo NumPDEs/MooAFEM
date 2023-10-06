@@ -18,6 +18,11 @@ classdef BilinearForm < handle
     %% methods
     methods (Access=public)
         mat = assemble(obj, fes);
+        mat = assemblePatchwise(obj, fes);
+    end
+    
+    methods (Access=protected)
+        data = computeVolumeData(obj, fes);
     end
     
     methods (Static, Access=protected)
