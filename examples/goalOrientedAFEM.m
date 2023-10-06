@@ -95,9 +95,10 @@ title(['goal error estimator over number of dofs'])
 %% local function for residual a posteriori error estimation
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
-function indicators = estimate(blf, lf, u)
-    p = u.fes.finiteElement.order;
-    mesh =  u.fes.mesh;
+function indicators = estimate(~, lf, u)
+    fes = u.fes;
+    p = fes.finiteElement.order;
+    mesh =  fes.mesh;
     trafo = getAffineTransformation(mesh);
     
     % compute volume residual element-wise
@@ -113,9 +114,10 @@ function indicators = estimate(blf, lf, u)
     % compute edge residual edge-wise
     qr = QuadratureRule.ofOrder(max(p-1, 1), '1D');
     f = CompositeFunction(@(p,fvec) p-fvec, Gradient(u), lf.fvec);
+    dirichletBnd = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
     edgeResidual = integrateNormalJump(f, qr, ...
-        @(j) zeros(size(j)), {}, mesh.boundaries{1}, ...    % no jump on dirichlet edges
-        @(j) j.^2, {}, ':');                                % normal jump on inner edges
+        @(j) zeros(size(j)), {}, dirichletBnd, ...    % no jump on dirichlet edges
+        @(j) j.^2, {}, ':');                          % normal jump on inner edges
     
     % combine the resdiuals suitably
     hT = sqrt(trafo.area);

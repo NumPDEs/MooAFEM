@@ -115,7 +115,7 @@ title('error estimator over number of total computational cost')
 %% local function for residual a posteriori error estimation
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
-function indicators = estimate(blf, lf, u)
+function indicators = estimate(~, lf, u)
 p = u.fes.finiteElement.order;
 mesh =  u.fes.mesh;
 trafo = getAffineTransformation(mesh);

@@ -87,9 +87,10 @@ end
 % \eta(T)^2 = h_T^2 * || \Delta u + f ||_{L^2(T)}^2
 %               + h_T * || [[Du * n]] ||_{L^2(E) \cap \Omega}^2
 %               + h_T * || Du * n - phi ||_{L^2(E) \cap \Gamma_N}^2
-function indicators = estimate(blf, lf, u)
-    p = u.fes.finiteElement.order;
-    mesh =  u.fes.mesh;
+function indicators = estimate(~, lf, u)
+    fes = u.fes;
+    p = fes.finiteElement.order;
+    mesh =  fes.mesh;
     
     % compute volume residual element-wise
     % For p=1, the diffusion term vanishes in the residual.
@@ -103,9 +104,11 @@ function indicators = estimate(blf, lf, u)
     
     % compute edge residual edge-wise
     qr = QuadratureRule.ofOrder(p, '1D');
+    dirichletBnd = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
+    neumannBnd = getCombinedBndEdges(mesh, fes.bnd.neumann);
     edgeRes = integrateNormalJump(Gradient(u), qr, ...
-        @(j) zeros(size(j)), {}, mesh.boundaries{1}, ...    % no jump on dirichlet edges
-        @(j,phi) j-phi, {lf.neumann}, mesh.boundaries{2},...% neumann jump on neumann edges
+        @(j) zeros(size(j)), {}, dirichletBnd, ...          % no jump on dirichlet edges
+        @(j,phi) j-phi, {lf.neumann}, neumannBnd,...        % neumann jump on neumann edges
         @(j) j.^2, {}, ':');                                % normal jump on inner edges
     
     % combine the resdiuals suitably
