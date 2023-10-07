@@ -22,9 +22,9 @@ for p = 1:pmax
     blf = BilinearForm();
     lf = LinearForm();
     
+	% quadrature rules are set automatically based on order of FeSpace
     blf.a = Constant(mesh, 1);
-    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
-    
+    % ... but can also be set manually if required
     lf.neumann = MeshFunction(mesh, @exactSolutionNeumannData);
     lf.qrNeumann = QuadratureRule.ofOrder(2*p, '1D');
 

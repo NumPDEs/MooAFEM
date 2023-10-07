@@ -74,9 +74,7 @@ methods (Access=private)
         blf = BilinearForm();
         lf = LinearForm();
         blf.a = Constant(mesh, 1);
-        blf.qra = QuadratureRule.ofOrder(max(2*(p-1), 1));
         blf.c = Constant(mesh, 1);
-        blf.qrc = QuadratureRule.ofOrder(2*p);
         lf.f = Constant(mesh, 1);
     end
     

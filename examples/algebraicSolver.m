@@ -24,10 +24,7 @@ for p = 1:pmax
     lf = LinearForm();
 
     blf.a = Constant(mesh, 1);
-    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
-
     lf.f = Constant(mesh, 1);
-    lf.qrf = QuadratureRule.ofOrder(2*p);
 
     %% set up solver and operator for nested iteration
     % choose the iterative solver of choice: multigrid (with the variants

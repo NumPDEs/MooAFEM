@@ -22,21 +22,19 @@ for p = 1:pmax
     z = FeFunction(fes);
     
     %% set problem data given in [Mommer, Stevenson; 2009]
+	% quadrature orders are set automatically based on order of FeSpace
     blf = BilinearForm();
     blf.a = Constant(mesh, 1);
-    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
     
     chiT1 = MeshFunction(mesh, @(x) sum(x, Dim.Vector) < 1/2);
     v.setData(nodalInterpolation(chiT1, ncFes));
     lfF = LinearForm();
     lfF.fvec = CompositeFunction(@(v) [v;zeros(size(v))], v);
-    lfF.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     chiT2 = MeshFunction(mesh, @(x) sum(x, Dim.Vector) > 3/2);
     w.setData(nodalInterpolation(chiT2, ncFes));
     lfG = LinearForm();
     lfG.fvec = CompositeFunction(@(w) [-w;zeros(size(w))], w);
-    lfG.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     %% set up lifting operators for rhs FEM-data
     P = LoMeshProlongation(ncFes);

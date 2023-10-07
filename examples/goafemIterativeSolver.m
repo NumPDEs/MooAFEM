@@ -26,7 +26,6 @@ for p = 1:pmax
     % dual:   -\Delta z = "lorentzian peak 2"
     blf = BilinearForm();
     blf.a = Constant(mesh, 1);
-    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
 
     lfF = LinearForm();
     lfF.f = MeshFunction(mesh, @(x) lorentzian(x, [0.7;0.7], 1e-1));

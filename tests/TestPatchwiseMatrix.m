@@ -49,7 +49,6 @@ methods (Test)
         fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', [], 'neumann', ':');
         blf = BilinearForm();
         blf.a = Constant(mesh, 1);
-        blf.qra = QuadratureRule.ofOrder(max(2*(p-1),1));
         blf.c = MeshFunction(mesh, @(x) 1+x(1,:,:));
         blf.qrc = QuadratureRule.ofOrder(2*p+1);
         A = assemble(blf, fes);

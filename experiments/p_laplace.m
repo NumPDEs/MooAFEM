@@ -113,8 +113,6 @@ function [blf, lf] = setProblemData(mesh, fes, Du, g, linearization, p)
             lf.f = g;
             lf.fvec = CompositeFunction(@(t) -mu(vectorProduct(t, t),p) .* t, Du);
     end
-
-    [blf.qra, lf.qrf, lf.qrfvec] = deal(QuadratureRule.ofOrder(1));
 end
 
 function updateDataU(u, deltaZ, A, F, linearization)
