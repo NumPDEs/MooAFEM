@@ -9,10 +9,10 @@ classdef BilinearForm < handle
         b {mustBeEvaluableOrEmpty} = []     % Convection vector field
         c {mustBeEvaluableOrEmpty} = []     % Reaction coefficient
         robin {mustBeEvaluableOrEmpty} = [] % Robin coefficient
-        qra (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrb (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrc (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrRobin (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
+        qra (1,1) QuadratureRule = UnspecifiedQR
+        qrb (1,1) QuadratureRule = UnspecifiedQR
+        qrc (1,1) QuadratureRule = UnspecifiedQR
+        qrRobin (1,1) QuadratureRule = UnspecifiedQR
     end
     
     %% methods

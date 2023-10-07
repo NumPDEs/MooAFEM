@@ -25,12 +25,13 @@ end
 %% integrate and add boundary data
 % Robin data
 if ~isempty(obj.robin)
+    qrRobin = QuadratureRule.ifEmptyOfOrder(obj.qrRobin, 2*fes.finiteElement.order, "1D");
     phi = TestFunction(fes);
     f = CompositeFunction(@BilinearForm.robinPart, obj.robin, phi);
     idx = getCombinedBndEdges(fes.mesh, fes.bnd.robin);
     [I, J] = getLocalDofs(size(dofs.edge2Dofs, Dim.Vector));
     mat = mat + sparse(dofs.edge2Dofs(I,idx), dofs.edge2Dofs(J,idx), ...
-        integrateEdge(f, obj.qrRobin, idx), dofs.nDofs, dofs.nDofs);
+        integrateEdge(f, qrRobin, idx), dofs.nDofs, dofs.nDofs);
 end
 
 end

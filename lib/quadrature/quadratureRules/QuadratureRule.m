@@ -39,6 +39,7 @@ classdef QuadratureRule
     end
     
     methods(Static)
+        % Return quadrature rule of specified order and dimension
         function obj = ofOrder(order, dim)
             arguments
                 order {mustBePositive(order)}
@@ -55,6 +56,23 @@ classdef QuadratureRule
             end
             
             obj = QuadratureRule(bary, weights);
+        end
+
+        % Return given quadrature rule or create new one if given rule is
+        % an UnspecifiedQR
+        function qr = ifEmptyOfOrder(qrOrUnspecified, order, dim)
+            arguments
+                qrOrUnspecified (1,1) QuadratureRule
+                order (1,1) double
+                dim {mustBeTextScalar, mustBeMember(dim, {'1D', '2D'})} = '2D'
+            end
+
+            if isa(qrOrUnspecified, 'UnspecifiedQR')
+                order = max(order, 1);
+                qr = QuadratureRule.ofOrder(order, dim);
+            else
+                qr = qrOrUnspecified;
+            end
         end
     end
 end

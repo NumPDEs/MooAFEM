@@ -19,23 +19,27 @@ end
 data = 0;
 phi = TestFunction(fes);
 Dphi = TestFunctionGradient(fes);
+p = fes.finiteElement.order;
 
 % diffusion
 if ~isempty(obj.a)
+    qr = QuadratureRule.ifEmptyOfOrder(obj.qra, 2*(p-1));
     f = CompositeFunction(@BilinearForm.diffusionPart, obj.a, Dphi);
-    data = data + integrateElement(f, obj.qra);
+    data = data + integrateElement(f, qr);
 end
 
 % convection
 if ~isempty(obj.b)
+    qr = QuadratureRule.ifEmptyOfOrder(obj.qrb, 2*p-1);
     f = CompositeFunction(@BilinearForm.convectionPart, obj.b, Dphi, phi);
-    data = data + integrateElement(f, obj.qrb);
+    data = data + integrateElement(f, qr);
 end
 
 % reaction
 if ~isempty(obj.c)
+    qr = QuadratureRule.ifEmptyOfOrder(obj.qrc, 2*p);
     f = CompositeFunction(@BilinearForm.reactionPart, obj.c, phi);
-    data = data + integrateElement(f, obj.qrc);
+    data = data + integrateElement(f, qr);
 end
 
 end
