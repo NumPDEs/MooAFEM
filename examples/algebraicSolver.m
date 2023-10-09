@@ -30,7 +30,9 @@ for p = 1:pmax
     % choose the iterative solver of choice: multigrid (with the variants
     % lowOrderVcycle and highOrderVcycle), pcg (with jacobi and additive
     % Schwarz preconditioner), and the cg solver
-    [solver, P] = IterativeSolver.choose(fes, blf, 'multigrid', 'lowOrderVcycle');
+    %[solver, P] = IterativeSolver.choose(fes, blf, "pcg", "iChol");
+    %[solver, P] = IterativeSolver.choose(fes, blf, "pcg", "additiveSchwarzHighOrder");
+    [solver, P] = IterativeSolver.choose(fes, blf, "multigrid", "lowOrderVcycle");
     solver.tol = 1e-6;
     solver.maxIter = 100;
 
