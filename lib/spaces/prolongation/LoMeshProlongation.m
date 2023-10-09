@@ -1,29 +1,30 @@
-% LoFeProlongation (subclass of Prolongation) Prolongate lowest order L^2/H^1
+% LoMeshProlongation (subclass of MeshProlongation) Prolongate lowest order L^2/H^1
 %   conforming finite element function to refined mesh.
 %
-%   P = LoFeProlongation(fes) returns a handle to the prolongation object
+%   P = LoMeshProlongation(fes) returns a handle to the prolongation object
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
-%   prolongate(P, u) returns the prolongated data of FeFunction u.
+% See also Prolongation
 
-classdef LoFeProlongation < Prolongation
+classdef LoMeshProlongation < MeshProlongation
     %% properties
     properties (Access=protected)
         feType
     end
+
     %% methods
     methods (Access=public)
-        function obj = LoFeProlongation(fes)
-            obj = obj@Prolongation(fes);
+        function obj = LoMeshProlongation(fes)
+            obj = obj@MeshProlongation(fes);
             switch class(fes.finiteElement)
                 case 'LowestOrderL2Fe'
                     obj.feType = 'L2';
                 case 'LowestOrderH1Fe'
                     obj.feType = 'H1';
                 otherwise
-                    eid = 'LoFeProlongation:wrongFeType';
-                    msg = 'LoFeProlongation needs a lowest order L2 or H1 finite element space.';
+                    eid = 'LoMeshProlongation:wrongFeType';
+                    msg = 'LoMeshProlongation needs a lowest order L2 or H1 finite element space.';
                     throwAsCaller(MException(eid, msg));
             end
         end
@@ -86,6 +87,10 @@ classdef LoFeProlongation < Prolongation
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
                 sum(data.nInnerNodes.*data.nRefinedElements);
             obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
+        end
+
+        % no-op override to avoid wrong call to superclass method
+        function connectDofs(~, ~, ~)
         end
     end
 end

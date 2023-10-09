@@ -21,7 +21,7 @@ end
 %% open file
 fileID = fopen(fileName, 'a');
 assert(fileID ~= -1, 'Cannot open file %s.', fileName)
-fprintf(fileID, '\\tikzset{meshStyle/.style={very thin, black, fill=none}}\n\n');
+fprintf(fileID, '\\tikzset{meshStyle/.style={very thin, black, fill=none, line join=bevel}}\n\n');
 
 %% define coordinates in tikz
 fprintf(fileID, '\\coordinate (P%d) at (%.4g,%.4g);\n', [1:obj.nCoordinates; obj.coordinates]);

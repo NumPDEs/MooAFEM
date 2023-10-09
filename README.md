@@ -23,13 +23,14 @@ Advantages:
 - Easy to use and modify
 - Covers a wide range of equations
 - Efficient implementation of general polynomial orders
+- Integrated algebraic multilevel solvers
 - A lot of built-in convenience functions
 
 ## Installation
 
 To get started, run `setup.m` in the root folder. This adds everything to the
 path and compiles .mex files if necessary.
-Note that, at least, Matlab version R2020b is required.
+Note that, at least, Matlab version R2022b is required.
 
 ## First steps
 
@@ -55,13 +56,15 @@ runtests('tests/', ['IncludeSubfolders', true,] 'ReportCoverageFor', 'lib/')
 
 ## Citation
 
-If you use the MooAFEM package in your own research, please acknowledge this by citing the accompanying [documentation paper](https://arxiv.org/abs/2203.01845):
+If you use the MooAFEM package in your own research, please acknowledge this by citing the accompanying [documentation paper](https://doi.org/10.1016/j.amc.2022.127731):
 ```
 @Article{MooAFEM,
-  author        = {Michael Innerberger and Dirk Praetorius},
-  title         = {{MooAFEM}: An object oriented {Matlab} code for higher-order (nonlinear) adaptive {FEM}},
-  year          = {2022},
-  archiveprefix = {arXiv},
-  eprint        = {2203.01845},
+  author    = {Michael Innerberger and Dirk Praetorius},
+  journal   = {Applied Mathematics and Computation},
+  title     = {{MooAFEM}: An object oriented {Matlab} code for higher-order adaptive {FEM} for (nonlinear) elliptic {PDEs}},
+  year      = {2023},
+  pages     = {127731},
+  volume    = {442},
+  doi       = {10.1016/j.amc.2022.127731},
 }
-``` 
+```

@@ -4,37 +4,20 @@
 
 classdef LinearForm < handle
     %% properties
-    properties (GetAccess=public, SetAccess=protected)
-        fes
-    end
-    
     properties (Access=public)
         f {mustBeEvaluableOrEmpty} = []         % Volume load
         fvec {mustBeEvaluableOrEmpty} = []      % Generalized volume load
         robin {mustBeEvaluableOrEmpty} = []     % Robin boundary load
         neumann {mustBeEvaluableOrEmpty} = []   % Neumann boundary load
-        qrf (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrfvec (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrRobin (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
-        qrNeumann (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
-        bndRobin {mustBeIndexVector} = []
-        bndNeumann {mustBeIndexVector} = []
+        qrf (1,1) QuadratureRule = UnspecifiedQR
+        qrfvec (1,1) QuadratureRule = UnspecifiedQR
+        qrRobin (1,1) QuadratureRule = UnspecifiedQR
+        qrNeumann (1,1) QuadratureRule = UnspecifiedQR
     end
     
     %% methods
-    methods
-        function obj = LinearForm(fes)
-        % LinearForm Construct bilinear form from FeSpace.
-            arguments
-                fes (1,1) FeSpace
-            end
-            
-            obj.fes = fes;
-        end
-    end
-    
     methods (Access=public)
-        vec = assemble(obj);
+        vec = assemble(obj, fes);
     end
     
     methods (Static, Access=protected)

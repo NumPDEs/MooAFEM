@@ -81,7 +81,7 @@ methods (Test)
         fes = FeSpace(mesh, testCase.u.fes.finiteElement);
         qr = QuadratureRule.ofOrder(max(fes.finiteElement.order,1));
         v = FeFunction(fes);
-        P = FeProlongation(fes);
+        P = MeshProlongation(fes);
         for k = 1:min(5, size(getDofs(fes).element2Dofs, 1))
             testCase.setToElementwiseBasisFunction(v, k);
             before = sum(integrateElement(v, qr));
@@ -96,12 +96,7 @@ end
 methods (Access=private)
     function refineAndInterpolate(~, mesh, fes, v, val)
         v.setData(val);
-        if isa(fes.finiteElement, 'LowestOrderH1Fe') ...
-            || isa(fes.finiteElement, 'LowestOrderL2Fe')
-            P = LoFeProlongation(fes);
-        else
-            P = FeProlongation(fes);
-        end
+        P = Prolongation.chooseFor(fes);
         mesh.refineUniform();
         v.setData(prolongate(P, v));
     end

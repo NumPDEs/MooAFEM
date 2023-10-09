@@ -1,22 +1,31 @@
-% FeProlongation (subclass of Prolongation) Provides prolongation operator for
+% MeshProlongation (subclass of Prolongation) Provides prolongation operator for
 %   general FeFunction to a refined mesh.
 %
-%   P = FeProlongation(fes) returns a handle to the prolongation object
+%   P = MeshProlongation(fes) returns a handle to the prolongation object
 %       associated to the finite element space fes. The prolongation matrix
 %       P.matrix is set automatically at mesh refinement.
 %
-%   prolongate(P, u) returns the prolongated data of FeFunction u.
+% See also: Prolongation
 
-classdef FeProlongation < Prolongation
+classdef MeshProlongation < Prolongation
     %% properties
     properties (Access=private)
         postRefineListener
     end
+
+    properties (Access=protected)
+        fes FeSpace
+        listenerHandle
+    end
     
     %% methods
     methods (Access=public)
-        function obj = FeProlongation(fes)
-            obj = obj@Prolongation(fes);
+        function obj = MeshProlongation(fes)
+            obj = obj@Prolongation();
+            obj.fes = fes;
+
+            mesh = fes.mesh;
+            obj.listenerHandle = mesh.listener('IsAboutToRefine', @obj.setupMatrix);
             obj.postRefineListener = fes.mesh.listener('RefineCompleted', @obj.connectDofs);
             
             assert(isa(obj.fes.finiteElement, 'NodalFiniteElement'), ...
@@ -26,10 +35,8 @@ classdef FeProlongation < Prolongation
     
     methods (Access=protected)
         function setupMatrix(obj, ~, data)
-            % general idea: compute *all* dofs for each new element and store
-            % them consecutively
-            % those are connected to the actual new dofs when their numbering
-            % per element is available (-> obj.connectDofs)
+            % general idea: compute *all* dofs for each new element and store them consecutively
+            % those are connected to the actual new dofs when their numbering per element is available (-> obj.connectDofs)
             
             % de-allocate for memory-efficiency
             obj.matrix = [];
@@ -61,8 +68,7 @@ classdef FeProlongation < Prolongation
             for k = find(data.nRefinedElements ~= 0)'
                 unitTriangle = getBisectedUnitTriangle(class(data.bisection{k}));
                 newDofLocations = getNewLocationsElementwise(unitTriangle, dofLocations);
-                newDofWeights = divideElementwise(...
-                    reshape(evalShapeFunctions(fe, newDofLocations), nLocalDofs, nLocalDofs, []), localMatrix);
+                newDofWeights = divideElementwise(evalShapeFunctions(fe, newDofLocations), localMatrix);
 
                 nNewLocs = newDofLocations.nNodes;
                 elems = getRefinedElementIdx(data, k);
@@ -91,7 +97,7 @@ end
 
 %% local functions
 function mesh = getBisectedUnitTriangle(bisecMethod)
-    mesh = Mesh.loadFromGeometry('unittriangle');
+    mesh = Mesh.unitTriangle();
 
     % bisect unit triangle according to given bisection rule
     % TODO: this should be handled by bisection method itself?
@@ -123,10 +129,8 @@ function elementwiseLocations = getNewLocationsElementwise(mesh, locations)
 end
 
 function C = divideElementwise(A, B)
-    % TODO: from 2022a on, this can be replaced by pagemrdivide(A, B)
     n = size(A,1);
-    C = B' \ reshape(permute(A, [2,1,3]), n, []);
-    C = reshape(permute(reshape(C, n, n, []), [2,1,3]), n, []);
+    C = reshape(pagemrdivide(reshape(A, n, n, []), B), n, []);
 end
 
 function idx = getConsecutiveIndices(parents, nIndices)

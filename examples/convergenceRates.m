@@ -14,49 +14,49 @@ for p = 1:pmax
     %% setup geometry & spaces
     printLogMessage('*** p = %d (of %d) ***', p, pmax)
     mesh = Mesh.loadFromGeometry('Lshape');
-    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1);
+    fes = FeSpace(mesh, HigherOrderH1Fe(p), 'dirichlet', 1, 'neumann', 2);
     u = FeFunction(fes);
     uex = FeFunction(fes);
     
     %% set problem data for -\Delta u = 1 on L-shape
-    blf = BilinearForm(fes);
-    lf = LinearForm(fes);
+    blf = BilinearForm();
+    lf = LinearForm();
     
+	% quadrature rules are set automatically based on order of FeSpace
     blf.a = Constant(mesh, 1);
-    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
-    
+    % ... but can also be set manually if required
     lf.neumann = MeshFunction(mesh, @exactSolutionNeumannData);
     lf.qrNeumann = QuadratureRule.ofOrder(2*p, '1D');
-    lf.bndNeumann = 2;
 
     %% adaptive loop
-    i = 1;
-    while 1
+    ell = 1;
+    meshSufficientlyFine = false;
+    while ~meshSufficientlyFine
         %% assemble & solve FEM system
-        A = assemble(blf);
-        F = assemble(lf);
+        ell = ell + 1;
+        A = assemble(blf, fes);
+        F = assemble(lf, fes);
         free = getFreeDofs(fes);
         u.setFreeData(A(free,free) \ F(free));
         uex.setData(nodalInterpolation(MeshFunction(mesh, @exactSolution), fes));
 
         %% estimate error and store data
         eta2 = estimate(blf, lf, u);
-        nDofs(p,i) = getDofs(fes).nDofs;
-        errEst(p,i) = sqrt(sum(eta2));
+        nDofs(p,ell) = getDofs(fes).nDofs;
+        errEst(p,ell) = sqrt(sum(eta2));
         deltaU = u.data - uex.data;
-        h1Err(p,i) = sqrt(deltaU * A * deltaU');
-        nElem(p,i) = mesh.nElements;
-        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,i), errEst(p,i));
+        h1Err(p,ell) = sqrt(deltaU * A * deltaU');
+        nElem(p,ell) = mesh.nElements;
+        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,ell), errEst(p,ell));
 
         %% stoping criterion
-        if nDofs(p,i) > nDofsMax
-            break
-        end
+        meshSufficientlyFine = (nDofs(p,ell) > nDofsMax);
 
         %% refine mesh
-        marked = markDoerflerSorting(eta2, theta);
-        mesh.refineLocally(marked, 'NVB');
-        i = i+1;
+        if ~meshSufficientlyFine
+            marked = markDoerflerSorting(eta2, theta);
+            mesh.refineLocally(marked, 'NVB');
+        end
     end
 end
 
@@ -87,9 +87,10 @@ end
 % \eta(T)^2 = h_T^2 * || \Delta u + f ||_{L^2(T)}^2
 %               + h_T * || [[Du * n]] ||_{L^2(E) \cap \Omega}^2
 %               + h_T * || Du * n - phi ||_{L^2(E) \cap \Gamma_N}^2
-function indicators = estimate(blf, lf, u)
-    p = blf.fes.finiteElement.order;
-    mesh =  blf.fes.mesh;
+function indicators = estimate(~, lf, u)
+    fes = u.fes;
+    p = fes.finiteElement.order;
+    mesh =  fes.mesh;
     
     % compute volume residual element-wise
     % For p=1, the diffusion term vanishes in the residual.
@@ -103,9 +104,11 @@ function indicators = estimate(blf, lf, u)
     
     % compute edge residual edge-wise
     qr = QuadratureRule.ofOrder(p, '1D');
+    dirichletBnd = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
+    neumannBnd = getCombinedBndEdges(mesh, fes.bnd.neumann);
     edgeRes = integrateNormalJump(Gradient(u), qr, ...
-        @(j) zeros(size(j)), {}, mesh.boundaries{1}, ...    % no jump on dirichlet edges
-        @(j,phi) j-phi, {lf.neumann}, mesh.boundaries{2},...% neumann jump on neumann edges
+        @(j) zeros(size(j)), {}, dirichletBnd, ...          % no jump on dirichlet edges
+        @(j,phi) j-phi, {lf.neumann}, neumannBnd,...        % neumann jump on neumann edges
         @(j) j.^2, {}, ':');                                % normal jump on inner edges
     
     % combine the resdiuals suitably

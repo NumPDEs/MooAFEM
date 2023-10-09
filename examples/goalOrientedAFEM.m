@@ -22,31 +22,31 @@ for p = 1:pmax
     z = FeFunction(fes);
     
     %% set problem data given in [Mommer, Stevenson; 2009]
-    blf = BilinearForm(fes);
+	% quadrature orders are set automatically based on order of FeSpace
+    blf = BilinearForm();
     blf.a = Constant(mesh, 1);
-    blf.qra = QuadratureRule.ofOrder(max(2*p-2, 1));
     
     chiT1 = MeshFunction(mesh, @(x) sum(x, Dim.Vector) < 1/2);
     v.setData(nodalInterpolation(chiT1, ncFes));
-    lfF = LinearForm(fes);
+    lfF = LinearForm();
     lfF.fvec = CompositeFunction(@(v) [v;zeros(size(v))], v);
-    lfF.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     chiT2 = MeshFunction(mesh, @(x) sum(x, Dim.Vector) > 3/2);
     w.setData(nodalInterpolation(chiT2, ncFes));
-    lfG = LinearForm(fes);
+    lfG = LinearForm();
     lfG.fvec = CompositeFunction(@(w) [-w;zeros(size(w))], w);
-    lfG.qrfvec = QuadratureRule.ofOrder(max(p-1, 1));
     
     %% set up lifting operators for rhs FEM-data
-    P = LoFeProlongation(ncFes);
+    P = LoMeshProlongation(ncFes);
 
     %% adaptive loop
-    i = 1;
-    while 1
+    ell = 1;
+    meshSufficientlyFine = false;
+    while ~meshSufficientlyFine
         %% assemble & solve FEM system
-        A = assemble(blf);
-        rhs = [assemble(lfF), assemble(lfG)];
+        ell = ell + 1;
+        A = assemble(blf, fes);
+        rhs = [assemble(lfF, fes), assemble(lfG, fes)];
         freeDofs = getFreeDofs(fes);
         uz = A(freeDofs,freeDofs) \ rhs(freeDofs,:);
         u.setFreeData(uz(:,1));
@@ -55,22 +55,21 @@ for p = 1:pmax
         %% estimate error and store data
         eta2 = estimate(blf, lfF, u);
         zeta2 = estimate(blf, lfG, z);
-        nDofs(p,i) = getDofs(fes).nDofs;
-        nElem(p,i) = mesh.nElements;
-        goalErrEst(p,i) = sqrt(sum(eta2)*sum(zeta2));
-        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,i), goalErrEst(p,i));
+        nDofs(p,ell) = getDofs(fes).nDofs;
+        nElem(p,ell) = mesh.nElements;
+        goalErrEst(p,ell) = sqrt(sum(eta2)*sum(zeta2));
+        printLogMessage('number of dofs: %d, estimator: %.2e', nDofs(p,ell), goalErrEst(p,ell));
 
         %% stoping criterion
-        if nDofs(p,i) > nDofsMax
-            break
-        end
+        meshSufficientlyFine = (nDofs(p,ell) > nDofsMax);
 
         %% refine mesh
-        marked = markGoafemMS(eta2, zeta2, theta);
-        mesh.refineLocally(marked, 'NVB');
-        i = i+1;
-        v.setData(prolongate(P, v));
-        w.setData(prolongate(P, w));
+        if ~meshSufficientlyFine
+            marked = markGoafemMS(eta2, zeta2, theta);
+            mesh.refineLocally(marked, 'NVB');
+            v.setData(prolongate(P, v));
+            w.setData(prolongate(P, w));
+        end
     end
 end
 
@@ -94,9 +93,10 @@ title(['goal error estimator over number of dofs'])
 %% local function for residual a posteriori error estimation
 % \eta(T)^2 = h_T^2 * || \Delta u ||_{L^2(T)}^2
 %               + h_T * || [[(Du - fvec) * n]] ||_{L^2(E) \cap \Omega}^2
-function indicators = estimate(blf, lf, u)
-    p = blf.fes.finiteElement.order;
-    mesh =  blf.fes.mesh;
+function indicators = estimate(~, lf, u)
+    fes = u.fes;
+    p = fes.finiteElement.order;
+    mesh =  fes.mesh;
     trafo = getAffineTransformation(mesh);
     
     % compute volume residual element-wise
@@ -112,9 +112,10 @@ function indicators = estimate(blf, lf, u)
     % compute edge residual edge-wise
     qr = QuadratureRule.ofOrder(max(p-1, 1), '1D');
     f = CompositeFunction(@(p,fvec) p-fvec, Gradient(u), lf.fvec);
+    dirichletBnd = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
     edgeResidual = integrateNormalJump(f, qr, ...
-        @(j) zeros(size(j)), {}, mesh.boundaries{1}, ...    % no jump on dirichlet edges
-        @(j) j.^2, {}, ':');                                % normal jump on inner edges
+        @(j) zeros(size(j)), {}, dirichletBnd, ...    % no jump on dirichlet edges
+        @(j) j.^2, {}, ':');                          % normal jump on inner edges
     
     % combine the resdiuals suitably
     hT = sqrt(trafo.area);

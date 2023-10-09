@@ -1,41 +1,17 @@
 % assemble Assembles matrix of bilinear form.
 %
-%   A = assemble(obj) assembles the data of the given BilinearForm and
-%   returns a sparse matrix A.
+%   A = assemble(obj, fes) assembles the data of the given BilinearForm for a
+%       FeSpace fes and returns a sparse matrix A.
 %
 %   See also: BilinearForm
 
-function mat = assemble(obj)
-%% setup
-if all([isempty(obj.a), isempty(obj.b), isempty(obj.c), isempty(obj.robin)])
-    error('BilinearForm:NoCoefficients', 'No coefficients are given.')
+function mat = assemble(obj, fes)
+arguments
+    obj
+    fes FeSpace
 end
-fes = obj.fes;
-
-%% integrate element data
-mat = 0;
-phi = TestFunction(fes);
-Dphi = TestFunctionGradient(fes);
-
-% diffusion
-if ~isempty(obj.a)
-    f = CompositeFunction(@BilinearForm.diffusionPart, obj.a, Dphi);
-    mat = mat + integrateElement(f, obj.qra);
-end
-
-% convection
-if ~isempty(obj.b)
-    f = CompositeFunction(@BilinearForm.convectionPart, obj.b, Dphi, phi);
-    mat = mat + integrateElement(f, obj.qrb);
-end
-
-% reaction
-if ~isempty(obj.c)
-    f = CompositeFunction(@BilinearForm.reactionPart, obj.c, phi);
-    mat = mat + integrateElement(f, obj.qrc);
-end
-
 %% construct sparse matrix
+mat = computeVolumeData(obj, fes);
 dofs = getDofs(fes);
 
 if ~isequal(mat, 0)
@@ -49,11 +25,13 @@ end
 %% integrate and add boundary data
 % Robin data
 if ~isempty(obj.robin)
+    qrRobin = QuadratureRule.ifEmptyOfOrder(obj.qrRobin, 2*fes.finiteElement.order, "1D");
+    phi = TestFunction(fes);
     f = CompositeFunction(@BilinearForm.robinPart, obj.robin, phi);
-    idx = getCombinedBndEdges(fes.mesh, obj.bndRobin);
+    idx = getCombinedBndEdges(fes.mesh, fes.bnd.robin);
     [I, J] = getLocalDofs(size(dofs.edge2Dofs, Dim.Vector));
     mat = mat + sparse(dofs.edge2Dofs(I,idx), dofs.edge2Dofs(J,idx), ...
-        integrateEdge(f, obj.qrRobin, idx), dofs.nDofs, dofs.nDofs);
+        integrateEdge(f, qrRobin, idx), dofs.nDofs, dofs.nDofs);
 end
 
 end

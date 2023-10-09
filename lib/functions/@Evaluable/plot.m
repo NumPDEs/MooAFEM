@@ -26,7 +26,10 @@ end
 data = eval(obj, Barycentric2D([1;0;0]), 1);
 nComponents = size(data, Dim.Vector);
 ax = cell(nComponents, 1);
-for i = 1:nComponents
+ax{1} = gca;
+cla(ax{1})
+% TODO better handling of several components 
+for i = 2:nComponents
     ax{i} = axes(figure());
 end
 

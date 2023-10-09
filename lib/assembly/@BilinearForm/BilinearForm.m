@@ -4,37 +4,25 @@
 
 classdef BilinearForm < handle    
     %% properties
-    properties (GetAccess=public, SetAccess=protected)
-        fes
-    end
-    
     properties (Access=public)
         a {mustBeEvaluableOrEmpty} = []     % Diffusion matrix (or scalar)
         b {mustBeEvaluableOrEmpty} = []     % Convection vector field
         c {mustBeEvaluableOrEmpty} = []     % Reaction coefficient
         robin {mustBeEvaluableOrEmpty} = [] % Robin coefficient
-        qrNeumann (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
-        qra (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrb (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrc (1,1) QuadratureRule = QuadratureRule.ofOrder(1)
-        qrRobin (1,1) QuadratureRule = QuadratureRule.ofOrder(1, '1D')
-        bndRobin {mustBeIndexVector} = []
+        qra (1,1) QuadratureRule = UnspecifiedQR
+        qrb (1,1) QuadratureRule = UnspecifiedQR
+        qrc (1,1) QuadratureRule = UnspecifiedQR
+        qrRobin (1,1) QuadratureRule = UnspecifiedQR
     end
     
     %% methods
-    methods
-        function obj = BilinearForm(fes)
-        % BilinearForm Construct bilinear form from FeSpace.
-            arguments
-                fes (1,1) FeSpace
-            end
-            
-            obj.fes = fes;
-        end
+    methods (Access=public)
+        mat = assemble(obj, fes);
+        mat = assemblePatchwise(obj, fes);
     end
     
-    methods (Access=public)
-        mat = assemble(obj);
+    methods (Access=protected)
+        data = computeVolumeData(obj, fes);
     end
     
     methods (Static, Access=protected)
