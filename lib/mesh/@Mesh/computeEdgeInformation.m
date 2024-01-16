@@ -11,7 +11,8 @@
 %
 %   See also: Mesh
 
-function [edges, element2edges, flipEdges, boundary2edges] = computeEdgeInformation(elements, boundaries)
+function [edges, element2edges, edge2elemens, flipEdges, boundary2edges] = ...
+    computeEdgeInformation(elements, boundaries)
 
 arguments
     elements (3,:) double
@@ -34,6 +35,12 @@ pointer = cumsum([nEdges, cellfun(@(x) size(x, Dim.Elements), boundaries)']);
 leftIndices = num2cell( pointer(1:(end-1)) +  1 );
 rightIndices = num2cell( pointer(2:end) );
 boundary2edges = cellfun(@(l,r) ie(l:r), leftIndices, rightIndices, 'UniformOutput', false);
+
+% recover neighbouring information
+nElem = size(elements, 2);
+elemNumbers = repmat(1:nElem, 1, 3);
+edge2elemens = [elemNumbers(ia); ...
+                accumarray(ie, elemNumbers, [1 nEdges]) - elemNumbers(ia)];
 
 % preserve original orientation of edges (at least on boundary)
 reverseUnique = reverse(ia);
