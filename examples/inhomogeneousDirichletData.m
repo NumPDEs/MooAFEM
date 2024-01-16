@@ -140,13 +140,13 @@ edgeResidual = integrateNormalJump(f, qr, ...
 
 % compute boundary-data oscillations
 ncfes = FeSpace(mesh, LowestOrderL2Fe());
-dofs = getDofs(ncfes);
 duD_dt_mean = FeFunction(ncfes);
 idx = getCombinedBndEdges(u.fes.mesh, u.fes.bnd.dirichlet);
 dirichletEdgeData = integrateEdge(duD_dt, qr, idx);
-dirichletEdge2element = dofs.edge2Dofs(:,idx);
+isBoundaryEdge = (mesh.edge2elements(2,:) == 0);
+dirichletEdge2elements = mesh.edge2elements(1,isBoundaryEdge);
 edgeData = duD_dt_mean.data;
-edgeData(dirichletEdge2element) = dirichletEdgeData;
+edgeData(dirichletEdge2elements) = dirichletEdgeData;
 duD_dt_mean.setData(edgeData);
 % WARNING
 % The following only works if triangles have at most one boundary edge!
