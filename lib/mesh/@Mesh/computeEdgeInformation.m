@@ -20,7 +20,8 @@ arguments
 end
 
 % get all edges (and boundary information if present)
-nEdges = 3*size(elements, Dim.Elements);
+nElems = size(elements, Dim.Elements);
+nEdges = 3*nElems;
 edges = [reshape(elements([1,2,2,3,3,1],:),2,[]), horzcat(boundaries{:})]';
 
 % find unique edges
@@ -37,10 +38,10 @@ rightIndices = num2cell( pointer(2:end) );
 boundary2edges = cellfun(@(l,r) ie(l:r), leftIndices, rightIndices, 'UniformOutput', false);
 
 % recover neighbouring information
-nElem = size(elements, 2);
-elemNumbers = repmat(1:nElem, 1, 3);
+elemNumbers = repmat(1:nElems, 1, 3);
 edge2elemens = [elemNumbers(ia); ...
-                accumarray(ie, elemNumbers, [1 nEdges]) - elemNumbers(ia)];
+                transpose(accumarray(ie(1:nEdges), elemNumbers', [length(ia) 1])) ...
+                - elemNumbers(ia)];
 
 % preserve original orientation of edges (at least on boundary)
 reverseUnique = reverse(ia);
