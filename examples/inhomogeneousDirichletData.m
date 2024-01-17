@@ -152,9 +152,11 @@ edgeData = duD_dt_mean.data;
 edgeData(dirichletEdge2elements) = dirichletEdgeData;
 duD_dt_mean.setData(edgeData);
 f = CompositeFunction(@(dudt, mean) (dudt - mean), duD_dt, duD_dt_mean);
-% boundaryDataError = zeros(size(edgeResidual));
-% boundaryDataError(idx) = integrateJump(f, qr, idx);
 boundaryDataError = integrateJump(f, qr, @(j) j.^2, {}, idx);
+
+% maybe prefer something like:
+% boundaryDataError = zeros(size(edgeResidual));
+% boundaryDataError(idx) = integrateEdge(f, qr, idx);
 
 % combine the terms suitably
 hT = sqrt(trafo.area);
