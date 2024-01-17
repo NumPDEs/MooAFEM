@@ -120,6 +120,11 @@ xlabel('\(\sum_{|\ell^{\prime}, k^{\prime}, j^{\prime}| \le |\ell, \underline{k}
 ylabel('\(\eta_\ell(u_{\ell}^{\underline{k}, \underline{j}})\)', 'interpreter', 'latex')
 title('error estimator over computational costs')
 
+figure;
+plot(mesh);
+
+figure;
+plot(u);
 
 function indicators = estimate(blf, lf, u, duD_dt)
 p = u.fes.finiteElement.order;
