@@ -105,5 +105,6 @@ classdef Mesh < handle
         obj = unitTriangle()
         [edges, element2edges, edge2elements, flipEdges, boundary2edges] = ...
             computeEdgeInformation(elements, boundaries)
+        edge2elements = computeEdgeAdjacency(element2edges, flipEdges)
     end
 end

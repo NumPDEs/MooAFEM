@@ -1,17 +1,17 @@
-% computeEdgeInformation Compute edge information: edges, element2edges, and
-%   boundary edges.
+% computeEdgeInformation Compute edge information: edges, element2edges,
+%   edge2elements, and boundary edges.
 %
-%   [edges, element2edges, flipEdges, boundary2edges] = ...
+%   [edges, element2edges, edge2elements, flipEdges, boundary2edges] = ...
 %       Mesh.computeEdgeInformation(elements) computes edge information from
 %       elements only. The array boundary2edges is empty.
 %
-%   [edges, element2edges, flipEdges, boundary2edges] = ...
+%   [edges, element2edges, edge2elements, flipEdges, boundary2edges] = ...
 %       Mesh.computeEdgeInformation(elements, boundaries) computes edge
 %       information and takes also boundary parts into account.
 %
 %   See also: Mesh
 
-function [edges, element2edges, edge2elemens, flipEdges, boundary2edges] = ...
+function [edges, element2edges, edge2elements, flipEdges, boundary2edges] = ...
     computeEdgeInformation(elements, boundaries)
 
 arguments
@@ -37,17 +37,15 @@ leftIndices = num2cell( pointer(1:(end-1)) +  1 );
 rightIndices = num2cell( pointer(2:end) );
 boundary2edges = cellfun(@(l,r) ie(l:r), leftIndices, rightIndices, 'UniformOutput', false);
 
-% recover neighbouring information
-elemNumbers = repmat(1:nElems, 1, 3);
-edge2elemens = [elemNumbers(ia); ...
-                transpose(accumarray(ie(1:nEdges), elemNumbers', [length(ia) 1])) ...
-                - elemNumbers(ia)];
-
 % preserve original orientation of edges (at least on boundary)
 reverseUnique = reverse(ia);
 edges(:,reverseUnique) = flipud(edges(:,reverseUnique));
 reverse = xor(reverse, reverseUnique(ie));
 flipEdges = reshape(reverse(1:nEdges), 3, []);
+
+% determine edge adjacency information (respecting the orientation of the
+% egdes)
+edge2elements = Mesh.computeEdgeAdjacency(element2edges, flipEdges);
 
 end
 

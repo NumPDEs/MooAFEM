@@ -87,11 +87,15 @@ for k = find(bisecData.nRefinedElements)'
     newFlip(:,children) = bisecData.bisection{k}.refineEdgeOrientation(arg{5});
 end
 
+%% recompute adjacency information on the edges
+newEd2El = Mesh.computeEdgeAdjacency(newEl2Ed, newFlip);
+
 %% assign new arrays
 obj.coordinates = newCoordinates;
 obj.elements = newElements;
 obj.edges = newEdges;
 obj.element2edges = newEl2Ed;
+obj.edge2elements = newEd2El;
 obj.flipEdges = newFlip;
 obj.boundaries = newBoundaries;
 
