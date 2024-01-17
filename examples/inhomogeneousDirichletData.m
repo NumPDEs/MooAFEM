@@ -49,27 +49,24 @@ while ~meshSufficientlyFine
     %% setup
     ell = ell + 1;
 
+    % evaluate piecewise constant coefficent function
     a.setData(nodalInterpolation(MeshFunction(mesh, @(x) diffusion(x)), ncFes));
 
-    uExact.setData(nodalInterpolation(MeshFunction(mesh, @uExact_fct), fes, mesh.boundaryElems));
-
-
-
-    fixedDofs = getFixedDofs(fes);
-    uDirData = uExact.data(fixedDofs);
-
-    uLifting.setData(0);
-    uLifting.setFixedData(uDirData);
-
+    % assemble linear system
     A = assemble(blf, fes);
     F = assemble(lf, fes);
     freeDofs = getFreeDofs(fes);
     solver.setupSystemMatrix(A(freeDofs, freeDofs));
     nDofs(ell) = getDofs(fes).nDofs; %#ok<SAGROW>
 
-    rhs = F - A*uLifting.data';
-    uEllExact = A(freeDofs, freeDofs) \ rhs(freeDofs);
+    % include Dirichlet boundary conditions
+    [rhs, uDirData] = setDirichletData(@uExact_fct, fes, A, F);
     u.setFixedData(uDirData);
+
+    % exact algebraic solution
+    uEllExact = A(freeDofs, freeDofs) \ rhs(freeDofs);
+
+    % iterative algebraic solver step
     solver.setupRhs(rhs(freeDofs), u.data(freeDofs)');
 
     solverIsConverged = false;
