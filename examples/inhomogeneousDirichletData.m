@@ -51,8 +51,11 @@ while ~meshSufficientlyFine
 
     a.setData(nodalInterpolation(MeshFunction(mesh, @(x) diffusion(x)), ncFes));
     uExact.setData(nodalInterpolation(MeshFunction(mesh, @uExact_fct), fes));
-    uLifting.setData(uExact.data);
-    uLifting.setFreeData(0);
+    fixedDofs = getFixedDofs(fes);
+    uDirData = uExact.data(fixedDofs);
+
+    uLifting.setData(0);
+    uLifting.setFixedData(uDirData);
 
     A = assemble(blf, fes);
     F = assemble(lf, fes);
@@ -62,8 +65,7 @@ while ~meshSufficientlyFine
 
     rhs = F - A*uLifting.data';
     uEllExact = A(freeDofs, freeDofs) \ rhs(freeDofs);
-    uLifting.setFreeData(u.data(freeDofs));
-    u.setData(uLifting.data);
+    u.setFixedData(uDirData);
     solver.setupRhs(rhs(freeDofs), u.data(freeDofs)');
 
     solverIsConverged = false;
