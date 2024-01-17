@@ -50,7 +50,15 @@ while ~meshSufficientlyFine
     ell = ell + 1;
 
     a.setData(nodalInterpolation(MeshFunction(mesh, @(x) diffusion(x)), ncFes));
-    uExact.setData(nodalInterpolation(MeshFunction(mesh, @uExact_fct), fes));
+
+
+    isBoundaryEdge = (mesh.edge2elements(2,:) == 0);
+    dirichletEdge2elements = mesh.edge2elements(1,isBoundaryEdge);
+
+    uExact.setData(nodalInterpolation(MeshFunction(mesh, @uExact_fct), fes, dirichletEdge2elements));
+
+
+
     fixedDofs = getFixedDofs(fes);
     uDirData = uExact.data(fixedDofs);
 
