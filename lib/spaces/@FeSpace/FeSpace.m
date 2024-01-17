@@ -47,6 +47,7 @@ classdef FeSpace < handle
             % initialize lazily evaluated properties
             obj.dofs = [];
             obj.freeDofs = [];
+            obj.fixedDofs = [];
             
             obj.mesh = mesh;
             obj.finiteElement = fe;
