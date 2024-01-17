@@ -233,7 +233,7 @@ function val = dmu_dtheta(theta)
     val(Ind3) = - gamma * cos(sigma * gamma) * sin((theta(Ind3) - pi - rho) * gamma);
     val(Ind4) = - gamma * cos((pi/2 - rho) * gamma) * sin((theta(Ind4) - 3/2*pi - sigma) * gamma);
 end
-function val = gradUExact_fct(x)
+function val = gradUExact_fct(x) %#ok<DEFNU>
     % Constants
     gamma = 0.1;
     % Transform to polar coordinates
