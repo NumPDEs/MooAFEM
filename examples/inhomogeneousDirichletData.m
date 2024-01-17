@@ -51,11 +51,7 @@ while ~meshSufficientlyFine
 
     a.setData(nodalInterpolation(MeshFunction(mesh, @(x) diffusion(x)), ncFes));
 
-
-    isBoundaryEdge = (mesh.edge2elements(2,:) == 0);
-    dirichletEdge2elements = mesh.edge2elements(1,isBoundaryEdge);
-
-    uExact.setData(nodalInterpolation(MeshFunction(mesh, @uExact_fct), fes, dirichletEdge2elements));
+    uExact.setData(nodalInterpolation(MeshFunction(mesh, @uExact_fct), fes, mesh.boundaryElems));
 
 
 
@@ -159,12 +155,10 @@ duD_dt_mean = FeFunction(ncfes);
 duD_dt_mean.setData(0);
 idx = getCombinedBndEdges(u.fes.mesh, u.fes.bnd.dirichlet);
 dirichletEdgeData = integrateEdge(duD_dt, qr, idx);
-isBoundaryEdge = (mesh.edge2elements(2,:) == 0);
-dirichletEdge2elements = mesh.edge2elements(1,isBoundaryEdge);
 % WARNING
 % The following only works if triangles have at most one boundary edge!
 edgeData = duD_dt_mean.data;
-edgeData(dirichletEdge2elements) = dirichletEdgeData;
+edgeData(mesh.boundaryElems) = dirichletEdgeData;
 duD_dt_mean.setData(edgeData);
 f = CompositeFunction(@(dudt, mean) (dudt - mean), duD_dt, duD_dt_mean);
 boundaryDataError = integrateJump(f, qr, @(j) j.^2, {}, idx);

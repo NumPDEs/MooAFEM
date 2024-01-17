@@ -22,6 +22,7 @@ classdef Mesh < handle
         nElements
         nEdges
         nBoundaries
+        boundaryElems
     end
     
     %% private properties for caching purposes
@@ -96,6 +97,10 @@ classdef Mesh < handle
         
         function val = get.nBoundaries(obj)
             val = numel(obj.boundaries);
+        end
+
+        function val = get.boundaryElems(obj)
+            val = obj.edge2elements(1,obj.edge2elements(2,:) == 0);
         end
     end
     
