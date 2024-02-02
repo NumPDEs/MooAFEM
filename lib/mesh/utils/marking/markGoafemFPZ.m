@@ -16,8 +16,8 @@ arguments
     C (1,1) double {mustBeGreaterThan(C, 0)} = 1
 end
 
-[markedEta, totalEta] = markDoerflerSorting(eta, theta);
-[markedZeta, totalZeta] = markDoerflerSorting(zeta, theta);
+[markedEta, totalEta] = markDoerflerBinning(eta, theta);
+[markedZeta, totalZeta] = markDoerflerBinning(zeta, theta);
 
 total = totalEta*totalZeta;
 N = min(numel(markedEta), numel(markedZeta));

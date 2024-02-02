@@ -12,6 +12,6 @@ arguments
 end
 
 rho = eta*sum(zeta) + sum(eta)*zeta;
-[marked, total] = markDoerflerSorting(rho, theta);
+[marked, total] = markDoerflerBinning(rho, theta);
 
 end
