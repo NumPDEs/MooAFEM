@@ -8,6 +8,6 @@ function marked = markDoerflerQuick(eta, theta)
     permutation = 1:length(eta);
 
     [permutation, nSelected] = quickMark(eta, permutation, lower, upper, threshold);
-    marked = permutation(1:nSelected);
+    marked = reshape(permutation(1:nSelected), [], 1);
 
 end
