@@ -8,12 +8,12 @@ theta = 0.3;
 
 
 % Doerfler marking by sorting
-[etaSorting, Ind] = sort(eta, 'descend');
-cumsumEta = cumsum(etaSorting);
-nMarked = find(cumsumEta >= theta * cumsumEta(end), 1, 'first');
-eMarked = Ind(1:nMarked);
+eMarked = markDoerflerSorting(eta, theta);
+
+eNotSoOptimalMarked = markDoerflerBinning(eta, theta);
 
 % Doerfler marking by QuickMark
-eQuickMarked = markDoerflerQuick(eta, theta);
+% eQuickMarked = markDoerflerQuick(eta, theta);
+eVeryQuickMarked = quickMark(eta, theta);
 
-assert(all(sort(eMarked) == sort(eQuickMarked)));
+assert(all(sort(eMarked) == sort(eVeryQuickMarked)));

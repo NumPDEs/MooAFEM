@@ -1,24 +1,62 @@
-function [permutation, nSelected] = quickMark(eta, permutation, lower, upper, threshold)
+function marked = quickMark(eta, theta)
 
-    % Compute median as pivot element
-    [~, idx] = quickMedian(eta(permutation(lower:upper)));
-    pivot = lower - 1 + idx;
-    med = eta(permutation(pivot));
+    % Compute threshold for break condition
+    threshold = theta * sum(eta);
 
-    % Update permutation
-    [permutation, greater, smaller] = partition(eta, permutation, lower, upper, pivot);
+    % Initialize permutation of values in eta
+    lower = 1;
+    upper = length(eta);
+    permutation = lower:upper;
 
-    selectedSum = sum(eta(permutation(lower:greater)));
-    selectedSumWithPivots = selectedSum + (smaller - greater - 1) * med;
+    % Iterative realization of the quickMark algorithm
+    minimalSetMarked = false;
+    while ~minimalSetMarked
+        % Abbreviate active indices
+        indices = lower:upper;
 
-    if selectedSum >= threshold
-        [permutation, nSelected] = quickMark(eta, permutation, lower, greater, threshold);
-    elseif selectedSumWithPivots >= threshold
-        nSelected = greater + ceil((threshold - selectedSum) / med);
-    else
-        newThreshold = threshold - selectedSumWithPivots;
-        [permutation, nSelected] = quickMark(eta, permutation, smaller, upper, newThreshold);
+        % Compute median (MATLAB built-in with linear complexity)
+        m = matlab.internal.math.columnmedian(eta(permutation(lower:upper)), false);
+
+        % Choose exact median or larger one of the two values closest to the median
+        position = find(abs(abs(eta(permutation(lower:upper)) - m) - min(abs(eta(permutation(lower:upper)) - m))) < 1e-12, 1);
+        pivot = lower - 1 + position;
+        etaPivot = eta(permutation(pivot));
+
+        % Compare all active indices to the pivot value (median)
+        IdxGreater = eta(permutation(lower:upper)) > etaPivot;
+        IdxEqual = eta(permutation(lower:upper)) == etaPivot;
+        IdxSmaller = ~IdxGreater & ~IdxEqual;
+
+        % Compute boundary indices for the partition
+        smaller = upper + 1 - nnz(IdxSmaller);
+        greater = lower - 1 + nnz(IdxGreater);
+
+        % Update permutation by overwriting active indices
+        permutation(lower:upper) = permutation([indices(IdxGreater), ...
+                                                indices(IdxEqual), ...
+                                                indices(IdxSmaller)]);
+
+        % Compute the sum of the selected values
+        selectedSum = sum(eta(permutation(lower:greater)));
+        selectedSumWithPivots = selectedSum + (smaller - greater - 1) * etaPivot;
+
+        % Check if the threshold is reached
+        if selectedSum >= threshold
+            % Threshold is reached, but set is not minimal
+            upper = greater;
+        elseif selectedSumWithPivots >= threshold
+            % Threshold is reached and set is minimal
+            nSelected = greater + ceil((threshold - selectedSum) / etaPivot);
+            minimalSetMarked = true;
+        else
+            % Threshold is not reached
+            threshold = threshold - selectedSumWithPivots;
+            lower = smaller;
+        end
     end
+
+    % Select the marked indices
+    marked = reshape(permutation(1:nSelected), [], 1);
 end
 
 
@@ -27,36 +65,12 @@ function [m, position] = quickMedian(x, varargin)
         varargin = {};
     end
     % Compute median (MATLAB built-in with linear complexity)
-    m = median(x, varargin{:});
-    % Choose two values closest to the median
+    % m = median(x, varargin{:});
+    m = matlab.internal.math.columnmedian(x, false);
+    % Choose larger one of two values closest to the median
     position = find(abs(abs(x - m) - min(abs(x - m))) < 1e-12);
-    xmedian = x(position);
-    % Choose larger one of them
-    [~, idx] = min(xmedian);
+    [~, idx] = min(x(position));
     position = position(idx);
-end
-
-
-function [permutation, greater, smaller] = partition(eta, permutation, lower, upper, pivot)
-
-    % Initialize all possibly modified indices
-    indices = lower:upper;
-
-    etaPivot = eta(permutation(pivot));
-
-    % Select indices for smaller values
-    permutationGreater = permutation(indices(eta(permutation(indices)) > etaPivot));
-    permutationSmaller = permutation(indices(eta(permutation(indices)) < etaPivot));
-    permutationEqual = permutation(indices(eta(permutation(indices)) == etaPivot));
-
-    smaller = upper + 1 - length(permutationSmaller);
-    greater = lower - 1 + length(permutationGreater);
-
-    % Return the updated permutation
-    permutation = [permutation(1:lower-1), ...
-                   permutationGreater, ...
-                   permutationEqual, ...
-                   permutationSmaller, ...
-                   permutation(upper+1:end)];
 
 end
+
