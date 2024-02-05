@@ -1,5 +1,5 @@
 
-N = 1e6;
+N = 10;
 
 % rng(10);
 eta = abs(fix(sqrt(N))*randn(N, 1));
@@ -15,5 +15,7 @@ eNotSoOptimalMarked = markDoerflerBinning(eta, theta);
 % Doerfler marking by QuickMark
 % eQuickMarked = markDoerflerQuick(eta, theta);
 eVeryQuickMarked = quickMark(eta, theta);
+
+eEvenQuickerMarked = quickMarkOptimized(eta, theta);
 
 assert(all(sort(eMarked) == sort(eVeryQuickMarked)));

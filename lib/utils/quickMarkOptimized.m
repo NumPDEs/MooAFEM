@@ -1,4 +1,4 @@
-function marked = quickMark(eta, theta)
+function marked = quickMarkOptimized(eta, theta)
 
     % Compute threshold for break condition
     threshold = theta * sum(eta);
@@ -27,13 +27,8 @@ function marked = quickMark(eta, theta)
         IdxEqual = eta(activePermutation) == etaPivot;
         IdxSmaller = ~IdxGreater & ~IdxEqual;
 
-        % Compute boundary indices for the partition
-        nSmaller = nnz(IdxSmaller);
-        smaller = length(activePermutation) + 1 - nSmaller;
-        nGreater = nnz(IdxGreater);
-        greater = nGreater;
-        nEqual = length(activePermutation) - nSmaller - nGreater;
-        equal = (smaller - greater - 1);
+        greater = nnz(IdxGreater);
+        smaller = greater + nnz(IdxEqual);
 
         % Update permutation by overwriting active indices
         activePermutation = activePermutation([indices(IdxGreater), ...
@@ -42,7 +37,7 @@ function marked = quickMark(eta, theta)
 
         % Compute the sum of the selected values
         selectedSum = sum(eta(activePermutation(1:greater)));
-        selectedSumWithPivots = selectedSum + equal * etaPivot;
+        selectedSumWithPivots = selectedSum + nEqual * etaPivot;
 
         % Check if the threshold is met
         if selectedSum >= threshold

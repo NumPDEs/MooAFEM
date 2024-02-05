@@ -12,11 +12,16 @@ function leveldata = TimeQuickMark(nLevel)
         quickMark(eta(1:N(j)), theta);
         runtimeQuick = toc;
         tic;
+        quickMarkOptimized(eta(1:N(j)), theta);
+        runtimeInPlace = toc;
+        tic;
         markDoerflerSorting(eta(1:N(j)), theta);
         runtimeSort = toc;
         leveldata.append("jLevel", j, "N", N(j));
-        leveldata.setTime(leveldata.nLevel, "runtimeQuick", runtimeQuick, ...
-                          "runtimeSort", runtimeSort);
+        leveldata.setTime(leveldata.nLevel, ...
+                           "runtimeQuick", runtimeQuick, ...
+                           "runtimeInPlace", runtimeInPlace, ...
+                           "runtimeSort", runtimeSort);
         leveldata.printLevel();
     end
 
