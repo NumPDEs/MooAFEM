@@ -32,7 +32,7 @@ function leveldatacollection = TimeIt(identifier, nRun, storeResults, functionNa
 
     % Welcome statement
     fprintf('\n#\n# MooAFEM - TIME MEASUREMENT\n');
-    fprintf('# Current Time: %s\n#\n\n', datestr(now));
+    fprintf('# Current Time: %s\n#\n\n', string(datetime));
     fprintf('This is TimeIt wrapper for function "%s"\n\n', functionName);
 
     % Initialisation of collection for LevelData objects
@@ -57,6 +57,11 @@ function leveldatacollection = TimeIt(identifier, nRun, storeResults, functionNa
         % Print information on current run
         leveldatacollection.printItem();
     end
+
+    % Copy metadata from leveldata
+    leveldatacollection.metaData("problem") = leveldata.metaData("problem");
+    leveldatacollection.metaData("domain") = leveldata.metaData("domain");
+    leveldatacollection.metaData("method") = leveldata.metaData("method");
 
     % Closing
     fprintf('\n');

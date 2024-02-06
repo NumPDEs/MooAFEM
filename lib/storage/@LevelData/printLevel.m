@@ -40,7 +40,7 @@ function printLevel(obj, jLevel)
         for jVariable = 1:obj.nVariable
             if obj.isScalar(jVariable)
                 ind = ind + 1;
-                data{ind} = obj.level(jLevel(k)).(obj.label{jVariable});
+                data{ind} = full(obj.level(jLevel(k)).(obj.label{jVariable}));
             end
         end
         % Print information on current level to command line
