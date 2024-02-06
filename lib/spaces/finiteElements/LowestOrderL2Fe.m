@@ -22,7 +22,7 @@ classdef LowestOrderL2Fe < NodalFiniteElement
         
         function val = evalShapeFunctions(obj, bary)
             arguments
-                obj
+                obj %#ok<INUSA>
                 bary Barycentric2D
             end
             
@@ -31,7 +31,7 @@ classdef LowestOrderL2Fe < NodalFiniteElement
         
         function val = evalShapeFunctionDerivs(obj, bary)
             arguments
-                obj
+                obj %#ok<INUSA>
                 bary Barycentric2D
             end
             
@@ -40,7 +40,7 @@ classdef LowestOrderL2Fe < NodalFiniteElement
         
         function val = evalShapeFunctionHessian(obj, bary)
             arguments
-                obj
+                obj %#ok<INUSA>
                 bary Barycentric2D
             end
             
