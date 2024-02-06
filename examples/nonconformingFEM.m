@@ -123,3 +123,30 @@ ax.Children.EdgeColor = 'none';
 % saveFigure(h, leveldata.foldername, leveldata.filename + '_solution', [], false);
 
 
+
+function indicators = estimate(blf, lf, u)
+    
+    % abbreviate data structures
+    fes = u.fes;
+    mesh =  fes.mesh;
+    trafo = getAffineTransformation(mesh);
+    
+    % compute volume residual element-wise
+    res_handle = @(a, v,f) (a .* (v(1,:,:) + v(4,:,:)) + f).^2;
+    res = CompositeFunction(res_handle, blf.a, Hessian(u), lf.f);
+    qr = QuadratureRule.ofOrder(2);
+    volumeResidual = integrateElement(res, qr);
+
+    % compute edge residual edge-wise
+    qr = QuadratureRule.ofOrder(1, '1D');
+    f = CompositeFunction(@(p, a) a .* p, Gradient(u), blf.a);
+    dirichletBnd = getCombinedBndEdges(mesh, fes.bnd.dirichlet);
+    edgeResidual = integrateTangentialJump(f, qr, ...
+        @(j) zeros(size(j)), {}, dirichletBnd, ...    % no jump on dirichlet edges
+        @(j) j.^2, {}, ':');                          % tangential jump on inner edges
+    
+    % combine the resdiuals suitably
+    hT = sqrt(trafo.area);
+    indicators = ... hT.^2 .* volumeResidual + ...
+        hT .* sum(edgeResidual(mesh.element2edges), Dim.Vector);
+end
