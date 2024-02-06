@@ -66,7 +66,7 @@ function ax = plotData(xData, variableName, data)
     ax = gca;
 
     % Create unified list for formatting plot lines
-    [COLOURORDER, MARKER] = getPlotStyle();
+    [COLOURORDER, ~] = getPlotStyle();
 
     % Iterate over given variables
     for j = 1:length(variableName)

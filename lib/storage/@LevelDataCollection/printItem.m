@@ -40,7 +40,9 @@ function printItem(obj, jItem)
         ind = 1;
         for l = 1:obj.nTimeVariable
             ind = ind + 1;
-            data{ind} = obj.item{jItem(k)}.level.(obj.timeVariable{l});
+            % Extract final value
+            tmp = {obj.item{jItem(k)}.level.(obj.timeVariable{l})};
+            data{ind} = tmp{end};
         end
         % Print information on current item to command line
         fprintf(obj.getFormatSpecifier('  '), data{1:ind});
