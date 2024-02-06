@@ -27,5 +27,8 @@ tags
 *.swp
 *.swo
 
+# VScode files
+.vscode/
+
 # Output files
 *.csv
