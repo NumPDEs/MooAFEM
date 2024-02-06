@@ -127,7 +127,9 @@ classdef LevelData < handle & matlab.mixin.CustomDisplay
             if numel(rootpath) > 0 && ~strcmp(rootpath(end), '/')
                 rootpath = [rootpath, '/'];
             end
-            path = rootpath + strjoin([obj.metaData("problem"), obj.metaData("domain"), obj.metaData("method")], '_');
+            path = rootpath + strjoin([obj.metaData("problem"), ...
+                                       obj.metaData("domain"), ...
+                                       obj.metaData("method")], '_') + '/';
         end
 
         function file = get.filename(obj)
