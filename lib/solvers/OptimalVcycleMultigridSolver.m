@@ -51,6 +51,14 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
             obj.projectedMatrix{obj.nLevels} = projectedA;
         end
 
+        function updateSystemMatrix(obj, A, varargin)
+            % override superclass method, because ALL matrices are needed
+            updateSystemMatrix@IterativeSolver(obj, A, varargin{:});
+
+            projectedA = obj.smoother.update(A, varargin{:});
+            obj.projectedMatrix{obj.nLevels} = projectedA;
+        end
+
         function setupRhs(obj, b, varargin)
             setupRhs@IterativeSolver(obj, b, varargin{:});
             % initialize residual & hierarchy

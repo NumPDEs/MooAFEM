@@ -69,6 +69,14 @@ classdef IterativeSolver < handle
             end
             obj.A = A;
         end
+        
+        function updateSystemMatrix(obj, A)
+            arguments
+                obj
+                A (:,:) double {IterativeSolver.mustBeQuadratic}
+            end
+            obj.A = A;
+        end
 
         function setupRhs(obj, b, x0)
             arguments

@@ -32,15 +32,30 @@ classdef JacobiLowOrderCascade < MultilevelSmoother
             mesh = fes.mesh;
             obj.loFes = FeSpace(mesh, LowestOrderH1Fe(), 'dirichlet', fes.bnd.dirichlet);
             obj.P = Prolongation.chooseFor(obj.loFes);
-            
         end
 
         function nonInvertedSmootherMatrix = setup(obj, A)
             setup@MultilevelSmoother(obj, A);
-            
             L = obj.nLevels;
+
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.loFes);
+
+            if L >= 2
+                % note: p1 smoother is already indexed by free vertices -> use find here
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
+                % intermediate level transfer operators
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                % finest level transfer operator
+                obj.inclusionMatrix = SpaceProlongation(obj.loFes, obj.fes) ...
+                    .matrix(getFreeDofs(obj.loFes), getFreeDofs(obj.fes));
+            end
+            
+            nonInvertedSmootherMatrix = update(obj, A);
+        end
+
+        function nonInvertedSmootherMatrix = update(obj, ~)            
+            L = obj.nLevels;
             
             p1Matrix = assemble(obj.blf, obj.loFes);
             p1Matrix = p1Matrix(obj.freeVertices, obj.freeVertices);
@@ -48,15 +63,10 @@ classdef JacobiLowOrderCascade < MultilevelSmoother
             nonInvertedSmootherMatrix = p1Matrix;
             
             if L >= 2
-                % note: p1 smoother is already indexed by free vertices -> use find here
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
-                % intermediate level smoothers and transfer operators
-                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                % intermediate level smoother
                 obj.p1Smoother{L} = obj.p1Smoother{L}(obj.changedPatches{L});
-                % finest level smoother and transfer operator
+                % finest level smoother
                 obj.hoSmoother = assemblePatchwise(obj.blf, obj.fes, ':');
-                obj.inclusionMatrix = SpaceProlongation(obj.loFes, obj.fes) ...
-                    .matrix(getFreeDofs(obj.loFes), getFreeDofs(obj.fes));
             end
         end
 

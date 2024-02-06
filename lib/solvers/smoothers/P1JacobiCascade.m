@@ -42,12 +42,21 @@ classdef P1JacobiCascade < MultilevelSmoother
             obj.freeVerticesOld = obj.freeVertices;
             obj.freeVertices = getFreeDofs(obj.fes);
             
+            if L >= 2
+                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
+                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
+            end
+
+            nonInvertedSmootherMatrix = update(obj, A);
+        end
+
+        function nonInvertedSmootherMatrix = update(obj, A)
+            L = obj.nLevels;
+            
             nonInvertedSmootherMatrix = A;
             obj.inverseDiagonal{L} = full(diag(A)).^(-1);
             
             if L >= 2
-                obj.intergridMatrix{L} = obj.P.matrix(obj.freeVertices, obj.freeVerticesOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeVertices));
                 obj.inverseDiagonal{L} = obj.inverseDiagonal{L}(obj.changedPatches{L});
             end
         end
