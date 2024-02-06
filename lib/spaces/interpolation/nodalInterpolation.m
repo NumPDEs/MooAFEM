@@ -3,11 +3,12 @@
 %   val = nodalInterpolation(f, fes) compute data for nodal interpolation of f
 %       into FeSpace fes.
 
-function val = nodalInterpolation(f, fes)
+function val = nodalInterpolation(f, fes, idx)
 
 arguments
     f Evaluable
     fes FeSpace
+    idx (1,:) {mustBeIndexVector} = ':'
 end
 
 fe = fes.finiteElement;
@@ -17,18 +18,24 @@ assert(isa(fe, 'NodalFiniteElement'), ...
 
 bary = getDofLocations(fe);
 localMatrix = squeeze(evalShapeFunctions(fe, bary));
-feval = eval(f, bary);
+feval = eval(f, bary, idx);
 
 assert(isequal(size(feval, Dim.Vector), 1), ...
     'Only scalar function can be interpolated.')
 
+if strcmp(idx, ':')
+    nElems = fes.mesh.nElements;
+else
+    nElems = length(idx);
+end
+
 feval = repeatAlongDimension(feval, Dim.QuadratureNodes, bary.nNodes);
 elementValues = (shiftdim(feval,1) / localMatrix)';
-elementValues = repeatAlongDimension(elementValues, Dim.Elements, fes.mesh.nElements);
+elementValues = repeatAlongDimension(elementValues, Dim.Elements, nElems);
 
 dofs = getDofs(fes);
 val = zeros(dofs.nDofs, 1);
-val(dofs.element2Dofs) = elementValues;
+val(dofs.element2Dofs(:,idx)) = elementValues;
 
 end
 
