@@ -1,12 +1,24 @@
-function marked = quickMarkOptimized(eta, theta)
+% markDoerflerQuick Employ Doerfler marking with minimal cardinality by 
+% quick-select-type algorithm of average complexit O(N).
+%
+%   [marked, total] = markDoerflerSorting(indicators, theta) marks elements
+%       based on element-wise indicators and marking parameter theta.
+
+function [marked, total] = markDoerflerQuick(indicators, theta)
+
+    arguments
+        indicators (:,1) double
+        theta (1,1) double {mustBeInRange(theta, 0, 1)}
+    end
 
     % Compute threshold for break condition
-    threshold = theta * sum(eta);
+    total = sum(indicators);
+    threshold = theta * total;
 
-    % Initialize permutation of values in eta
+    % Initialize permutation of values in indicators
     lower = 1;  % first invalid entry of permutation
-    upper = length(eta);  % final invalid entry of permutation
-    permutation = nan(size(eta));
+    upper = length(indicators);  % final invalid entry of permutation
+    permutation = nan(size(indicators));
     activePermutation = lower:upper;
 
     % Iterative realization of the quickMark algorithm
@@ -16,15 +28,15 @@ function marked = quickMarkOptimized(eta, theta)
         indices = 1:length(activePermutation);
 
         % Compute median (MATLAB built-in with linear complexity)
-        m = matlab.internal.math.columnmedian(eta(activePermutation), false);
+        m = matlab.internal.math.columnmedian(indicators(activePermutation), false);
 
         % Choose exact median or larger one of the two values closest to the median
-        pivot = find(abs(abs(eta(activePermutation) - m) - min(abs(eta(activePermutation) - m))) < 1e-12, 1);
-        etaPivot = eta(activePermutation(pivot));
+        pivot = find(abs(abs(indicators(activePermutation) - m) - min(abs(indicators(activePermutation) - m))) < 1e-12, 1);
+        etaPivot = indicators(activePermutation(pivot));
 
         % Compare all active indices to the pivot value (median)
-        IdxGreater = eta(activePermutation) > etaPivot;
-        IdxEqual = eta(activePermutation) == etaPivot;
+        IdxGreater = indicators(activePermutation) > etaPivot;
+        IdxEqual = indicators(activePermutation) == etaPivot;
         IdxSmaller = ~IdxGreater & ~IdxEqual;
 
         greater = nnz(IdxGreater);
@@ -36,7 +48,7 @@ function marked = quickMarkOptimized(eta, theta)
                                                indices(IdxSmaller)]);
 
         % Compute the sum of the selected values
-        selectedSum = sum(eta(activePermutation(1:greater)));
+        selectedSum = sum(indicators(activePermutation(1:greater)));
         selectedSumWithPivots = selectedSum + nEqual * etaPivot;
 
         % Check if the threshold is met
@@ -70,7 +82,3 @@ function marked = quickMarkOptimized(eta, theta)
     % Select the marked indices
     marked = reshape(permutation(1:nSelected), [], 1);
 end
-
-
-
-
