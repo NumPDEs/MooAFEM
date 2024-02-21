@@ -32,8 +32,8 @@ leveldata.metaData("problem") = "Poisson";
 leveldata.metaData("domain") = "square";
 leveldata.metaData("method") = "CR";
 leveldata.metaData("identifier") = "S_nDofsMax" + num2str(nDofsMax) + ...
-                                "_theta" + num2str(fix(100*theta)) + ...
-                                "_lambda0";
+                                   "_theta" + num2str(fix(100*theta)) + ...
+                                   "_lambda0";
 
 %% adaptive loop
 meshSufficientlyFine = false;  % initialize break condition
