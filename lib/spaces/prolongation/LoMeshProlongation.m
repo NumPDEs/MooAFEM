@@ -22,9 +22,11 @@ classdef LoMeshProlongation < MeshProlongation
                     obj.feType = 'L2';
                 case 'LowestOrderH1Fe'
                     obj.feType = 'H1';
+                case 'LowestOrderCRFe'
+                    obj.feType = 'CR';
                 otherwise
                     eid = 'LoMeshProlongation:wrongFeType';
-                    msg = 'LoMeshProlongation needs a lowest order L2 or H1 finite element space.';
+                    msg = 'LoMeshProlongation needs a lowest order L2, H1, or CR finite element space.';
                     throwAsCaller(MException(eid, msg));
             end
         end
@@ -36,6 +38,8 @@ classdef LoMeshProlongation < MeshProlongation
                 setupMatrixL2(obj, mesh, data);
             elseif isequal(obj.feType, 'H1')
                 setupMatrixH1(obj, mesh, data);
+            elseif isequal(obj.feType, 'CR')
+                setupMatrixCR(obj, mesh, data);
             end
         end
         
@@ -47,6 +51,57 @@ classdef LoMeshProlongation < MeshProlongation
             
             obj.matrix = sparse(1:nNewElements, repelem(1:mesh.nElements, nChildren), ...
                 ones(nNewElements,1), nNewElements, mesh.nElements);
+        end
+
+
+        function setupMatrixCR(obj, mesh, data)
+            % use that for lowest order CR elements the dofs correspond to
+            % coordinates and new coordinates reside on edges or on inner nodes
+            %
+            % fixed boundary dofs remain zero 
+            dofs = getDofs(obj.fes);
+            nEntries = mesh.nEdges + 2 * nnz(data.bisectedEdges) + ...
+                3*sum(data.nInnerNodes.*data.nRefinedElements);
+            [I, J, V] = deal(zeros(nEntries, 1));
+
+            conFES = LowestOrderH1Fe(obj.fes.mesh);
+            conDofs = getDofs(conFES);
+            
+            angles = mesh.computeElementAngles();
+
+            % old nodal S1 dofs on the coarse level get averaged values of CR function
+            S1toCRlocal = [1 1 -1; -1 1 1; 1 -1 1];
+            for j = 1:mesh.nElements
+                idx = (j-1)*3 + (1:3);
+                I(idx) = repmat(conDofs.element2Dofs(:,j), 3, 1);
+                J(idx) = repelem(dofs.element2Dofs(:,j), 3, 1);
+                V(idx) = reshape(S1toCRlocal .* angles(:,j), [], 1);
+            end
+            
+            % new nodal S1 dofs are copied from unique dofs of old CR function
+            % NB: This uses that each edge is bisected at most once
+            n = nnz(data.bisectedEdges);
+            idx = idx(end) + (1:2*n);
+            I(idx) = repelem(dofNr + (1:n)', 2);
+            J(idx) = reshape(dofs.edge2Dofs(:,data.bisectedEdges), [], 1);
+            V(idx) = ones(2*n, 1)/2;
+            dofNr = idx(end) + n;
+            
+            % inner dofs are weighted sum of element dofs
+            idxEnd = idx(end);
+            for k = find(data.nRefinedElements)'
+                n = data.nRefinedElements(k)*data.nInnerNodes(k);
+                idx = idxEnd + (1:3*n);
+                I(idx) = repelem(dofNr + (1:n)', 3);
+                J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
+                V(idx) = reshape(repmat(data.bisection{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
+                dofNr = dofNr + n;
+                idxEnd = idxEnd + 3*n;
+            end
+            
+            nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
+                sum(data.nInnerNodes.*data.nRefinedElements);
+            obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
         end
         
         function setupMatrixH1(obj, mesh, data)
