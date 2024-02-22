@@ -22,15 +22,15 @@ function TestCRProlongation()
 
     mesh.refineUniform(1);
 
-    uS1 = FeFunction(fesS1);
-    uS1.setData(0);
+    uCRFine = FeFunction(fesCR);
+    uCRFine.setData(0);
 
 
     tmp = prolongate(P, uCR);
-    uS1.setData(tmp);
+    uCRFine.setData(tmp);
 
     figure(2);
-    plot(uS1);
+    plot(uCRFine);
 
 
 end

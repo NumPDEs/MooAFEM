@@ -42,6 +42,13 @@ classdef LoMeshProlongation < MeshProlongation
                 setupMatrixCR(obj, mesh, data);
             end
         end
+
+        % override only in case of CR elements
+        function connectDofs(obj, mesh, data)
+            if isequal(obj.feType, 'CR')
+                connectDofsCR(obj, mesh, data);
+            end
+        end
         
         function setupMatrixL2(obj, mesh, data)
             % use that for lowest order L2 elements the dofs correspond to
@@ -59,12 +66,15 @@ classdef LoMeshProlongation < MeshProlongation
             % coordinates and new coordinates reside on edges or on inner nodes
             %
             % fixed boundary dofs remain zero 
+
+            meshFine = obj.fes.mesh;
+
             dofs = getDofs(obj.fes);
             nEntries = 9 * mesh.nElements + nnz(data.bisectedEdges) + ...
                 3 * sum(data.nInnerNodes .* data.nRefinedElements);
             [I, J, V] = deal(zeros(nEntries, 1));
 
-            conFES = FeSpace(obj.fes.mesh, LowestOrderH1Fe());
+            conFES = FeSpace(meshFine, LowestOrderH1Fe());
             conDofs = getDofs(conFES);
             conFreeDofs = getFreeDofs(conFES);
             conFixedDofs = getFixedDofs(conFES);
@@ -107,9 +117,39 @@ classdef LoMeshProlongation < MeshProlongation
             
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
                 sum(data.nInnerNodes.*data.nRefinedElements);
-            obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
-            obj.matrix(conFixedDofs, :) = 0;
+
+            Prol = sparse(I, J, V, nNewDofs, dofs.nDofs);
+            Prol(conFixedDofs, :) = 0;
+
+            obj.matrix = Prol;
         end
+
+        function connectDofsCR(obj, mesh, data)
+            
+            % Create inclusion matrix S1fine -> CRfine
+
+            Select = [1 2; 2 3; 1 3];
+
+            % ncFES = FeSpace(mesh, LowestOrderCRFe());
+            [I, J, V] = deal(zeros(2 * mesh.nEdges, 1));
+            
+            % TODO: vectorize this!
+            edge2elements = mesh.edge2elements;
+            neighbor1 = edge2elements(1,:);
+            localEdgeNo = (1:mesh.nEdges == mesh.element2edges(:,neighbor1));
+            edge2neighbour1nodes = mesh.elements(:,neighbor1);
+            for j = 1:mesh.nEdges
+                idx = (j-1)*2 + (1:2);
+                I(idx) = repelem(j, 2);
+                J(idx) = edge2neighbour1nodes(Select(localEdgeNo(:,j),:),j);
+                V(idx) = [0.5; 0.5];
+            end
+
+            Incl = sparse(I, J, V, mesh.nEdges, mesh.nCoordinates);
+
+            obj.matrix = Incl * obj.matrix;
+        end
+
         
         function setupMatrixH1(obj, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
@@ -149,10 +189,6 @@ classdef LoMeshProlongation < MeshProlongation
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
                 sum(data.nInnerNodes.*data.nRefinedElements);
             obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
-        end
-
-        % no-op override to avoid wrong call to superclass method
-        function connectDofs(~, ~, ~)
         end
     end
 end
