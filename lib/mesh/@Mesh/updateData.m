@@ -47,13 +47,13 @@ end
 
 %% refine element data
 newElements = zeros(3, oldElement2parent(end)-1);
-newE2E = zeros(3, oldElement2parent(end)-1);
+newEl2Ed = zeros(3, oldElement2parent(end)-1);
 newFlip = false(3, oldElement2parent(end)-1);
 
 oldEdgeNewIdx = oldEdge2parent(obj.element2edges);
 elems = bisecData.getRefinedElementIdx(0);
 newElements(:,oldElement2parent(elems)) = obj.elements(:,elems);
-newE2E(:,oldElement2parent(elems)) = oldEdgeNewIdx(:,elems);
+newEl2Ed(:,oldElement2parent(elems)) = oldEdgeNewIdx(:,elems);
 newFlip(:,oldElement2parent(elems)) = obj.flipEdges(:,elems);
 
 %% get left and right edge per element
@@ -83,15 +83,19 @@ for k = find(bisecData.nRefinedElements)'
     
     newEdges(:,idx) = bisecData.bisection{k}.createNewEdges(arg{1}, arg{2}, intNodes);
     newElements(:,children) = bisecData.bisection{k}.refineElement(arg{1}, arg{2}, intNodes);
-    newE2E(:,children) = bisecData.bisection{k}.refineEdgeConnectivity(parentEdges, arg{3}, arg{4}, intEdges);
+    newEl2Ed(:,children) = bisecData.bisection{k}.refineEdgeConnectivity(parentEdges, arg{3}, arg{4}, intEdges);
     newFlip(:,children) = bisecData.bisection{k}.refineEdgeOrientation(arg{5});
 end
+
+%% recompute adjacency information on the edges
+newEd2El = Mesh.computeEdgeAdjacency(newEl2Ed, newFlip);
 
 %% assign new arrays
 obj.coordinates = newCoordinates;
 obj.elements = newElements;
 obj.edges = newEdges;
-obj.element2edges = newE2E;
+obj.element2edges = newEl2Ed;
+obj.edge2elements = newEd2El;
 obj.flipEdges = newFlip;
 obj.boundaries = newBoundaries;
 

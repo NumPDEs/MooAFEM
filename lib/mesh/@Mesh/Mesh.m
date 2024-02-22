@@ -11,6 +11,7 @@ classdef Mesh < handle
         elements (3,:) double
         edges (2,:) double
         element2edges (3,:) double
+        edge2elements (2,:) double
         flipEdges (3,:) logical
         boundaries (:,1) cell
     end
@@ -46,7 +47,8 @@ classdef Mesh < handle
             
             obj.coordinates = coordinates;
             obj.elements = elements;
-            [obj.edges, obj.element2edges, obj.flipEdges, obj.boundaries] ...
+            [obj.edges, obj.element2edges, obj.edge2elements, ...
+             obj.flipEdges, obj.boundaries] ...
                 = obj.computeEdgeInformation(obj.elements, boundaries);
             obj.trafo = [];
         end
@@ -101,6 +103,8 @@ classdef Mesh < handle
     methods (Static)
         obj = loadFromGeometry(geometryIdentifier)
         obj = unitTriangle()
-        [edges, element2edges, flipEdges, boundary2edges] = computeEdgeInformation(elements, boundaries)
+        [edges, element2edges, edge2elements, flipEdges, boundary2edges] = ...
+            computeEdgeInformation(elements, boundaries)
+        edge2elements = computeEdgeAdjacency(element2edges, flipEdges)
     end
 end

@@ -14,6 +14,7 @@ obj.coordinates = otherMesh.coordinates;
 obj.elements = otherMesh.elements;
 obj.edges = otherMesh.edges;
 obj.element2edges = otherMesh.element2edges;
+obj.edge2elements = otherMesh.edge2elements;
 obj.flipEdges = otherMesh.flipEdges;
 obj.boundaries = otherMesh.boundaries;
 
