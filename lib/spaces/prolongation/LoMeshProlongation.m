@@ -70,33 +70,33 @@ classdef LoMeshProlongation < MeshProlongation
             angles = mesh.computeElementAngles();
 
             % old nodal S1 dofs on the coarse level get averaged values of CR function
-            S1toCRlocal = [1 1 -1; -1 1 1; 1 -1 1];
+            CRtoS1local = [1 1 -1; -1 1 1; 1 -1 1];
             for j = 1:mesh.nElements
                 idx = (j-1)*3 + (1:3);
                 I(idx) = repmat(conDofs.element2Dofs(:,j), 3, 1);
                 J(idx) = repelem(dofs.element2Dofs(:,j), 3, 1);
-                V(idx) = reshape(S1toCRlocal .* angles(:,j), [], 1);
+                V(idx) = reshape(CRtoS1local .* angles(:,j), [], 1);
             end
+            dofNr = mesh.nCoordinates;
             
             % new nodal S1 dofs are copied from unique dofs of old CR function
             % NB: This uses that each edge is bisected at most once
-            n = nnz(data.bisectedEdges);
-            idx = idx(end) + (1:2*n);
-            I(idx) = repelem(dofNr + (1:n)', 2);
-            J(idx) = reshape(dofs.edge2Dofs(:,data.bisectedEdges), [], 1);
-            V(idx) = ones(2*n, 1)/2;
-            dofNr = idx(end) + n;
+            nNewEdgeNodes = nnz(data.bisectedEdges);
+            idx = length(idx) + (1:nNewEdgeNodes);
+            I(idx) = repelem(dofNr + (1:nNewEdgeNodes)', 2);
+            J(idx) = transpose(dofs.edge2Dofs(:,data.bisectedEdges));
+            V(idx) = ones(nNewEdgeNodes, 1);
+            dofNr = dofNr + nNewEdgeNodes;
             
             % inner dofs are weighted sum of element dofs
-            idxEnd = idx(end);
             for k = find(data.nRefinedElements)'
-                n = data.nRefinedElements(k)*data.nInnerNodes(k);
-                idx = idxEnd + (1:3*n);
-                I(idx) = repelem(dofNr + (1:n)', 3);
+                nNewInnerNodes = data.nRefinedElements(k)*data.nInnerNodes(k);
+                idx = length(idx) + (1:3*nNewInnerNodes);
+                I(idx) = repelem(dofNr + (1:nNewInnerNodes)', 3);
                 J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
-                V(idx) = reshape(repmat(data.bisection{k}.innerNodes, 1, data.nInnerNodes(k)), [], 1);
-                dofNr = dofNr + n;
-                idxEnd = idxEnd + 3*n;
+                evalCR = data.bisection{k}.innerNodes * CRtoS1local;
+                V(idx) = reshape(repmat(evalCR, 1, data.nInnerNodes(k)), [], 1);
+                % dofNr = dofNr + nNewInnerNodes;
             end
             
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
