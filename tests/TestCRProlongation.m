@@ -6,12 +6,14 @@ function TestCRProlongation()
     fesCR = FeSpace(mesh, LowestOrderCRFe());
     P = LoMeshProlongation(fesCR);
 
+    figure(3); plot(mesh, 'labelEdges', true);
+
     uCR = FeFunction(fesCR);
     uCR.setData(0);
     freeDofsCR = getFreeDofs(fesCR);
     nFreeDofsCR = length(freeDofsCR);
     tmp = zeros(nFreeDofsCR, 1);
-    tmp(randi(nFreeDofsCR, 1)) = 1;
+    tmp(freeDofsCR(1)) = 1;
     uCR.setFreeData(tmp);
 
 

@@ -66,17 +66,19 @@ classdef LoMeshProlongation < MeshProlongation
 
             conFES = FeSpace(obj.fes.mesh, LowestOrderH1Fe());
             conDofs = getDofs(conFES);
+            conFreeDofs = getFreeDofs(conFES);
+            conFixedDofs = getFixedDofs(conFES);
             
             angles = mesh.computeElementAngles();
 
             % old nodal S1 dofs on the coarse level get averaged values of CR function
-            CRtoS1local = [1 1 -1; -1 1 1; 1 -1 1];
+            CRtoS1local = [1 -1 1; 1 1 -1; -1 1 1];
             % TODO: vectorize this!
             for j = 1:mesh.nElements
                 idx = (j-1)*9 + (1:9);
                 I(idx) = repmat(conDofs.element2Dofs(:,j), 3, 1);
                 J(idx) = repelem(dofs.element2Dofs(:,j), 3, 1);
-                V(idx) = reshape(CRtoS1local .* angles(:,j), [], 1);
+                V(idx) = reshape(CRtoS1local .* angles(:,j) ./ 2 ./ pi, [], 1);
             end
             idxNr = 9 * mesh.nElements;
             dofNr = mesh.nCoordinates;
@@ -106,6 +108,7 @@ classdef LoMeshProlongation < MeshProlongation
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
                 sum(data.nInnerNodes.*data.nRefinedElements);
             obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
+            obj.matrix(conFixedDofs, :) = 0;
         end
         
         function setupMatrixH1(obj, mesh, data)
