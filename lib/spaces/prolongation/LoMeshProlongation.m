@@ -60,42 +60,46 @@ classdef LoMeshProlongation < MeshProlongation
             %
             % fixed boundary dofs remain zero 
             dofs = getDofs(obj.fes);
-            nEntries = mesh.nEdges + 2 * nnz(data.bisectedEdges) + ...
-                3*sum(data.nInnerNodes.*data.nRefinedElements);
+            nEntries = 9 * mesh.nElements + nnz(data.bisectedEdges) + ...
+                3 * sum(data.nInnerNodes .* data.nRefinedElements);
             [I, J, V] = deal(zeros(nEntries, 1));
 
-            conFES = LowestOrderH1Fe(obj.fes.mesh);
+            conFES = FeSpace(obj.fes.mesh, LowestOrderH1Fe());
             conDofs = getDofs(conFES);
             
             angles = mesh.computeElementAngles();
 
             % old nodal S1 dofs on the coarse level get averaged values of CR function
             CRtoS1local = [1 1 -1; -1 1 1; 1 -1 1];
+            % TODO: vectorize this!
             for j = 1:mesh.nElements
-                idx = (j-1)*3 + (1:3);
+                idx = (j-1)*9 + (1:9);
                 I(idx) = repmat(conDofs.element2Dofs(:,j), 3, 1);
                 J(idx) = repelem(dofs.element2Dofs(:,j), 3, 1);
                 V(idx) = reshape(CRtoS1local .* angles(:,j), [], 1);
             end
+            idxNr = 9 * mesh.nElements;
             dofNr = mesh.nCoordinates;
             
             % new nodal S1 dofs are copied from unique dofs of old CR function
             % NB: This uses that each edge is bisected at most once
             nNewEdgeNodes = nnz(data.bisectedEdges);
-            idx = length(idx) + (1:nNewEdgeNodes);
-            I(idx) = repelem(dofNr + (1:nNewEdgeNodes)', 2);
+            idx = idxNr + (1:nNewEdgeNodes);
+            I(idx) = dofNr + transpose(1:nNewEdgeNodes);
             J(idx) = transpose(dofs.edge2Dofs(:,data.bisectedEdges));
             V(idx) = ones(nNewEdgeNodes, 1);
             dofNr = dofNr + nNewEdgeNodes;
+            idxNr = idxNr + nNewEdgeNodes;
             
             % inner dofs are weighted sum of element dofs
             for k = find(data.nRefinedElements)'
                 nNewInnerNodes = data.nRefinedElements(k)*data.nInnerNodes(k);
-                idx = length(idx) + (1:3*nNewInnerNodes);
+                idx = idxNr + (1:3*nNewInnerNodes);
                 I(idx) = repelem(dofNr + (1:nNewInnerNodes)', 3);
                 J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
-                evalCR = data.bisection{k}.innerNodes * CRtoS1local;
+                evalCR = transpose(CRtoS1local) * data.bisection{k}.innerNodes;
                 V(idx) = reshape(repmat(evalCR, 1, data.nInnerNodes(k)), [], 1);
+                idxNr = idxNr + 3*nNewInnerNodes;
                 % dofNr = dofNr + nNewInnerNodes;
             end
             
