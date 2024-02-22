@@ -14,7 +14,7 @@ classdef Prolongation < handle
     
     %% methods
     methods (Access=public)
-        function obj = Prolongation(fes)
+        function obj = Prolongation(fes) %#ok<INUSD>
             obj.matrix = [];
         end
         
