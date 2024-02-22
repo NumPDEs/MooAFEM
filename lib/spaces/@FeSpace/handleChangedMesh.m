@@ -7,5 +7,6 @@ function handleChangedMesh(obj, src, event)
 
 obj.dofs = [];
 obj.freeDofs = [];
+obj.fixedDofs = [];
 
 end
