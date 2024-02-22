@@ -62,6 +62,14 @@ classdef FeFunction < Evaluable
             obj.dataIsValid = true;
         end
         
+        function setFixedData(obj, data)
+            fixedDofs = getFixedDofs(obj.fes);
+            assertAdmissibleDataSize(obj, data, length(fixedDofs))
+            obj.allocateZeroDataIfWrongFormat();
+            obj.data(fixedDofs) = data(:);
+            obj.dataIsValid = true;
+        end
+        
         function val = eval(obj, bary, idx)
             arguments
                 obj

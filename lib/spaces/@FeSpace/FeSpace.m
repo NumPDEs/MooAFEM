@@ -13,6 +13,7 @@ classdef FeSpace < handle
     properties (Access=private)
         dofs
         freeDofs
+        fixedDofs
     end
     
     %% events
@@ -83,6 +84,14 @@ classdef FeSpace < handle
                 obj.freeDofs = obj.assembleFreeDofs();
             end
             freeDofs = obj.freeDofs;
+        end
+        
+        function fixedDofs = getFixedDofs(obj)
+            if isempty(obj.fixedDofs)
+                obj.fixedDofs = ...
+                    setdiff(1:obj.getDofs().nDofs, obj.getFreeDofs(), 'stable');
+            end
+            fixedDofs = obj.fixedDofs;
         end
         
         dofs = createVertexDofs(obj, idx)
