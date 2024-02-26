@@ -2,7 +2,7 @@ function TestCRProlongation()
 
 
     mesh = Mesh.loadFromGeometry("unitsquare");
-    fesS1 = FeSpace(mesh, LowestOrderH1Fe());
+    % fesS1 = FeSpace(mesh, LowestOrderH1Fe());
     fesCR = FeSpace(mesh, LowestOrderCRFe());
     P = LoMeshProlongation(fesCR);
 

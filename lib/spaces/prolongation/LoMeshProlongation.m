@@ -80,14 +80,10 @@ classdef LoMeshProlongation < MeshProlongation
 
             % old nodal S1 dofs on the coarse level get averaged values of CR function
             CRtoS1local = [1 -1 1; 1 1 -1; -1 1 1];
-            % TODO: vectorize this!
-            for j = 1:mesh.nElements
-                idx = (j-1)*9 + (1:9);
-                I(idx) = repmat(conDofs.element2Dofs(:,j), 3, 1);
-                J(idx) = repelem(dofs.element2Dofs(:,j), 3, 1);
-                V(idx) = reshape(CRtoS1local .* angles(:,j) ./ 2 ./ pi, [], 1);
-            end
             idxNr = 9 * mesh.nElements;
+            I(1:9*mesh.nElements) = repmat(conDofs.element2Dofs, 3, 1);
+            J(1:9*mesh.nElements) = repelem(dofs.element2Dofs, 3, 1);
+            V(1:9*mesh.nElements) = CRtoS1local(:) .* repmat(angles, 3, 1) ./ 2 ./ pi;
             dofNr = mesh.nCoordinates;
             
             % new nodal S1 dofs are copied from unique dofs of old CR function
@@ -125,22 +121,16 @@ classdef LoMeshProlongation < MeshProlongation
             
             % Create inclusion matrix S1fine -> CRfine
 
-            Select = [1 2; 2 3; 1 3];
-
-            % ncFES = FeSpace(mesh, LowestOrderCRFe());
-            [I, J, V] = deal(zeros(2 * mesh.nEdges, 1));
+            Select = [1 2; 2 3; 1 3]';
             
-            % TODO: vectorize this!
             edge2elements = mesh.edge2elements;
             neighbor1 = edge2elements(1,:);
-            localEdgeNo = (1:mesh.nEdges == mesh.element2edges(:,neighbor1));
+            localEdgeNo = [1 2 3] * (1:mesh.nEdges == mesh.element2edges(:,neighbor1));
             edge2neighbour1nodes = mesh.elements(:,neighbor1);
-            for j = 1:mesh.nEdges
-                idx = (j-1)*2 + (1:2);
-                I(idx) = repelem(j, 2);
-                J(idx) = edge2neighbour1nodes(Select(localEdgeNo(:,j),:),j);
-                V(idx) = [0.5; 0.5];
-            end
+            I = repelem((1:mesh.nEdges)', 2);
+            J = edge2neighbour1nodes(sub2ind(size(edge2neighbour1nodes), ...
+                                             reshape(Select(:,localEdgeNo), [], 1), I));
+            V = repmat(0.5, size(I));
 
             Incl = sparse(I, J, V, mesh.nEdges, mesh.nCoordinates);
 
