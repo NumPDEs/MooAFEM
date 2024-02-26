@@ -67,16 +67,13 @@ classdef LoMeshProlongation < MeshProlongation
             %
             % fixed boundary dofs remain zero 
 
-            meshFine = obj.fes.mesh;
-
             dofs = getDofs(obj.fes);
             nEntries = 9 * mesh.nElements + nnz(data.bisectedEdges) + ...
                 3 * sum(data.nInnerNodes .* data.nRefinedElements);
             [I, J, V] = deal(zeros(nEntries, 1));
 
-            conFES = FeSpace(meshFine, LowestOrderH1Fe());
+            conFES = FeSpace(obj.fes.mesh, LowestOrderH1Fe());
             conDofs = getDofs(conFES);
-            conFreeDofs = getFreeDofs(conFES);
             conFixedDofs = getFixedDofs(conFES);
             
             angles = mesh.computeElementAngles();
@@ -124,7 +121,7 @@ classdef LoMeshProlongation < MeshProlongation
             obj.matrix = Prol;
         end
 
-        function connectDofsCR(obj, mesh, data)
+        function connectDofsCR(obj, mesh, ~)
             
             % Create inclusion matrix S1fine -> CRfine
 
