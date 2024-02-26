@@ -12,11 +12,11 @@
 %       Prolongation P, that can be used to prolongate the solution of the
 %       solver to the next finer mesh.
 
-function [solver, P] = choose(fes, blf, class, variant)
+function [solver, P] = choose(fes, blf, method, variant)
 arguments
     fes FeSpace
     blf BilinearForm
-    class (1,1) string {mustBeMember(class, ["cg", "pcg", "multigrid", "direct"])}
+    method (1,1) string {mustBeMember(method, ["cg", "pcg", "multigrid", "direct"])}
     variant (1,1) string {mustBeMember(variant, [ "", ...
         "iChol", "jacobi", ...
         "additiveSchwarzLowOrder", "additiveSchwarzHighOrder" ...
@@ -26,7 +26,7 @@ end
 order = fes.finiteElement.order;
 P = Prolongation.chooseFor(fes);
 
-switch class
+switch method
     % non-preconditioned CG
     case "cg"
         solver = PcgSolver(NoPreconditioner());
@@ -64,10 +64,10 @@ switch class
         switch variant
             case {"", "lowOrderVcycle"}
                 if order == 1
-                    switch class(fes)
-                        case "LowestOrderH1Fe"
+                    switch class(fes.finiteElement)
+                        case 'LowestOrderH1Fe'
                             smoother = P1JacobiCascade(fes, blf, P);
-                        case "LowestOrderCRFe"
+                        case 'LowestOrderCRFe'
                             smoother = CRJacobiCascade(fes, blf, P);
                     otherwise
                         error('No multigrid for finite element %s!', class(fes))
@@ -92,7 +92,7 @@ switch class
    
     % default
     otherwise
-        error('No iterative solver of class %s!', class)
+        error('No iterative solver of class %s!', method)
 end
     
 end

@@ -46,7 +46,8 @@ classdef Prolongation < handle
     methods (Static, Access=public)
         function P = chooseFor(fes)
             if isa(fes.finiteElement, 'LowestOrderH1Fe') ...
-                    || isa(fes.finiteElement, 'LowestOrderL2Fe')
+                    || isa(fes.finiteElement, 'LowestOrderL2Fe') ...
+                    || isa(fes.finiteElement, 'LowestOrderCRFe')
                 P = LoMeshProlongation(fes);
             else
                 P = MeshProlongation(fes);
