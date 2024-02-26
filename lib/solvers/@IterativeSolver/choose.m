@@ -20,7 +20,7 @@ arguments
     variant (1,1) string {mustBeMember(variant, [ "", ...
         "iChol", "jacobi", ...
         "additiveSchwarzLowOrder", "additiveSchwarzHighOrder" ...
-        "lowOrderVcycle", "highOrderVcycle"])} = ""
+        "lowOrderVcycle", "highOrderVcycle", "CRjacobi"])} = ""
 end
 
 order = fes.finiteElement.order;
@@ -64,7 +64,14 @@ switch class
         switch variant
             case {"", "lowOrderVcycle"}
                 if order == 1
-                    smoother = P1JacobiCascade(fes, blf, P);
+                    switch class(fes)
+                        case "LowestOrderH1Fe"
+                            smoother = P1JacobiCascade(fes, blf, P);
+                        case "LowestOrderCRFe"
+                            smoother = CRJacobiCascade(fes, blf, P);
+                    otherwise
+                        error('No multigrid for finite element %s!', class(fes))
+                    end
                 else
                     smoother = JacobiLowOrderCascade(fes, blf);
                 end
