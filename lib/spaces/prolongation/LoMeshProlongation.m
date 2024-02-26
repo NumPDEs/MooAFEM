@@ -67,16 +67,21 @@ classdef LoMeshProlongation < MeshProlongation
             %
             % fixed boundary dofs remain zero 
 
-            dofs = getDofs(obj.fes);
-            nEntries = 9 * mesh.nElements + nnz(data.bisectedEdges) + ...
-                3 * sum(data.nInnerNodes .* data.nRefinedElements);
-            [I, J, V] = deal(zeros(nEntries, 1));
+            % compute geometric information
+            angles = mesh.computeElementAngles();
 
+            % determine dofs of CR function space
+            dofs = getDofs(obj.fes);
+
+            % determine dofs of conforming subspace
             conFES = FeSpace(obj.fes.mesh, LowestOrderH1Fe());
             conDofs = getDofs(conFES);
             conFixedDofs = getFixedDofs(conFES);
-            
-            angles = mesh.computeElementAngles();
+
+            % initialize components of sparse matrix generation
+            nEntries = 9 * mesh.nElements + nnz(data.bisectedEdges) + ...
+                3 * sum(data.nInnerNodes .* data.nRefinedElements);
+            [I, J, V] = deal(zeros(nEntries, 1));
 
             % old nodal S1 dofs on the coarse level get averaged values of CR function
             CRtoS1local = [1 -1 1; 1 1 -1; -1 1 1];
@@ -108,32 +113,25 @@ classdef LoMeshProlongation < MeshProlongation
                 % dofNr = dofNr + nNewInnerNodes;
             end
             
+            % assemble and store averaging part of prolongation matrix
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
                 sum(data.nInnerNodes.*data.nRefinedElements);
-
             Prol = sparse(I, J, V, nNewDofs, dofs.nDofs);
             Prol(conFixedDofs, :) = 0;
-
             obj.matrix = Prol;
         end
 
         function connectDofsCR(obj, mesh, ~)
+            % Create inclusion matrix S1fine -> CRfine by averaging the values in
+            % two nodes for the value in the edge midpoint
             
-            % Create inclusion matrix S1fine -> CRfine
-
-            Select = [1 2; 2 3; 1 3]';
-            
-            edge2elements = mesh.edge2elements;
-            neighbor1 = edge2elements(1,:);
-            localEdgeNo = [1 2 3] * (1:mesh.nEdges == mesh.element2edges(:,neighbor1));
-            edge2neighbour1nodes = mesh.elements(:,neighbor1);
+            % determine node numbers to average
             I = repelem((1:mesh.nEdges)', 2);
-            J = edge2neighbour1nodes(sub2ind(size(edge2neighbour1nodes), ...
-                                             reshape(Select(:,localEdgeNo), [], 1), I));
+            J = reshape(mesh.edges, [], 1);
             V = repmat(0.5, size(I));
 
+            % assemble and apply inclusion part of prolongation matrix
             Incl = sparse(I, J, V, mesh.nEdges, mesh.nCoordinates);
-
             obj.matrix = Incl * obj.matrix;
         end
 
