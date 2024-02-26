@@ -42,7 +42,7 @@ methods (Test)
         testCase.verifyGreaterThan(normBefore, normAfterwards);
     end
 
-    function solverIsLinear(testCase, p, variant)
+    function solverIsLinear(testCase, variant)
         [mesh, fes, blf, lf] = setupProblem(testCase);
         s = variant(1); v = variant(2);
         solver = IterativeSolver.choose(fes, blf, s, v);

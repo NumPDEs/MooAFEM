@@ -8,6 +8,7 @@
 classdef CRJacobiCascade < MultilevelSmoother
     properties (Access=protected)
         P
+        confFes
         patchwiseA
         intergridMatrix
         freeDofs
@@ -28,16 +29,15 @@ classdef CRJacobiCascade < MultilevelSmoother
                 P Prolongation
             end
 
-            % TODO assert CR element
-            assert(class(fes.finiteElement) == "LowestOrderCRFe" && ...
-                class(P.feType) == "CR", ...
-                ['CRJacobiSmoother only works for lowest order nonconforming', ... 
+            assert(isa(fes.finiteElement, 'LowestOrderCRFe'), ...
+                ['CRJacobiCascade only works for lowest order nonconforming', ... 
                 'Crouzeix-Raviart finite elements.'])
             assert(fes.finiteElement.order == 1, ...
-                'CRJacobiSmoother only works for lowest order finite elements.')
+                'CRJacobiCascade only works for lowest order finite elements.')
             
             obj = obj@MultilevelSmoother(fes, blf);
             obj.P = P;
+            obj.confFes = FeSpace(fes.mesh, LowestOrderH1Fe);
         end
 
         function nonInvertedSmootherMatrix = setup(obj, A)
@@ -46,14 +46,14 @@ classdef CRJacobiCascade < MultilevelSmoother
             L = obj.nLevels;
             obj.freeDofsOld = obj.freeDofs;
             obj.freeDofs = getFreeDofs(obj.fes);
+            freeVertices = getFreeDofs(obj.confFes);
             nonInvertedSmootherMatrix = A;
             
             if L > 1
                 obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
-                obj.changedPatches{L} = find(obj.changedPatches{L}(obj.freeDofs));
+                obj.changedPatches{L} = find(obj.changedPatches{L}(freeVertices));
                 obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.fes, obj.changedPatches{L});
             end
-
         end
 
         function Cx = smooth(obj, x, k)
