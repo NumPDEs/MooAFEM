@@ -1,10 +1,10 @@
-function TestCRProlongation()
+function TestCRAveraging()
 
 
     mesh = Mesh.loadFromGeometry("unitsquare");
     % fesS1 = FeSpace(mesh, LowestOrderH1Fe());
     fesCR = FeSpace(mesh, LowestOrderCRFe());
-    P = LoMeshProlongation(fesCR);
+    P = LoMeshAveraging(fesCR);
 
     figure(3); plot(mesh, 'labelEdges', true);
 
