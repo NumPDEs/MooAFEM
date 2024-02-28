@@ -63,9 +63,13 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
             setupRhs@IterativeSolver(obj, b, varargin{:});
             % initialize residual & hierarchy
             obj.residual = b - obj.A * obj.x;
-            [obj.Cresidual, obj.algEstimator] = obj.Vcycle(obj.residual);
-            obj.residualCNorm = sqrt(dot(obj.residual, obj.Cresidual, Dim.Vector));
             obj.lhsNorm = vecnorm(b, 2, Dim.Vector);
+            % TODO this does not belong here!
+            % [obj.Cresidual, obj.algEstimator] = obj.Vcycle(obj.residual);
+            % obj.residualCNorm = sqrt(dot(obj.residual, obj.Cresidual, Dim.Vector));
+            obj.Cresidual = zeros(size(obj.residual));
+            obj.algEstimator = Inf;
+            obj.residualCNorm = Inf;
         end
         
         % stopping criterion
@@ -81,14 +85,14 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
         function computeUpdate(obj)
             % only iterate on active components
             idx = find(obj.activeComponents);
-            
-            % update solution & residual
-            obj.x(:,idx) = obj.x(:,idx) + obj.Cresidual(:,idx);
-            obj.residual(:,idx) = obj.residual(:,idx) - obj.A * obj.Cresidual(:,idx);
 
             % residual & update error correction
             [obj.Cresidual(:,idx), obj.algEstimator(idx)] = obj.Vcycle(obj.residual(:,idx));
-            obj.residualCNorm(:,idx) = sqrt(dot(obj.residual(:,idx), obj.Cresidual(:,idx), Dim.Vector));
+            obj.residualCNorm(:,idx) = sqrt(dot(obj.residual(:,idx), obj.Cresidual(:,idx), Dim.Vector));   
+
+            % update solution & residual
+            obj.x(:,idx) = obj.x(:,idx) + obj.Cresidual(:,idx);
+            obj.residual(:,idx) = obj.residual(:,idx) - obj.A * obj.Cresidual(:,idx);
         end
 
         function [Cx, algEstimator] = Vcycle(obj, x)
