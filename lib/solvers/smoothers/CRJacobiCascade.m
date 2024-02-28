@@ -7,10 +7,12 @@
 
 classdef CRJacobiCascade < MultilevelSmoother
     properties (Access=protected)
+        Av
         P
         confFes
         patchwiseA
-        intergridMatrix
+        intergridAveraging  % averaging of CR on fine level
+        intergridProlongation  % inclusion of conforming S1 given by CR coefficients
         freeDofs
         freeDofsOld
     end
@@ -22,10 +24,11 @@ classdef CRJacobiCascade < MultilevelSmoother
 
     %% methods
     methods (Access=public)
-        function obj = CRJacobiCascade(fes, blf, P)
+        function obj = CRJacobiCascade(fes, blf, Av, P)
             arguments
                 fes
                 blf
+                Av Prolongation
                 P Prolongation
             end
 
@@ -36,6 +39,7 @@ classdef CRJacobiCascade < MultilevelSmoother
                 'CRJacobiCascade only works for lowest order finite elements.')
             
             obj = obj@MultilevelSmoother(fes, blf);
+            obj.Av = Av;
             obj.P = P;
             obj.confFes = FeSpace(fes.mesh, LowestOrderH1Fe);
         end
@@ -50,7 +54,8 @@ classdef CRJacobiCascade < MultilevelSmoother
             nonInvertedSmootherMatrix = A;
             
             if L > 1
-                obj.intergridMatrix{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
+                obj.intergridAveraging{L} = obj.Av.matrix(obj.freeDofs, obj.freeDofsOld);
+                obj.intergridProlongation{L} = obj.P.matrix(obj.freeDofs, obj.freeDofsOld);
                 obj.changedPatches{L} = find(obj.changedPatches{L}(freeVertices));
                 obj.patchwiseA{L} = assemblePatchwise(obj.blf, obj.fes, obj.changedPatches{L});
             end
@@ -61,11 +66,19 @@ classdef CRJacobiCascade < MultilevelSmoother
         end
 
         function Px = prolongate(obj, x, k)
-            Px = obj.intergridMatrix{k} * x;
+            Px = obj.intergridProlongation{k} * x;
         end
 
         function Px = restrict(obj, x, k)
-            Px = obj.intergridMatrix{k}' * x;
+            Px = obj.intergridProlongation{k}' * x;
+        end
+
+        function Px = average(obj, x, k)
+            Px = obj.intergridAveraging{k} * x;
+        end
+
+        function Px = averageRestrict(obj, x, k)
+            Px = obj.intergridAveraging{k}' * x;
         end
     end
 end
