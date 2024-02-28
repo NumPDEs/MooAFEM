@@ -64,9 +64,6 @@ classdef OptimalVcycleMultigridSolver < IterativeSolver
             % initialize residual & hierarchy
             obj.residual = b - obj.A * obj.x;
             obj.lhsNorm = vecnorm(b, 2, Dim.Vector);
-            % TODO this does not belong here!
-            % [obj.Cresidual, obj.algEstimator] = obj.Vcycle(obj.residual);
-            % obj.residualCNorm = sqrt(dot(obj.residual, obj.Cresidual, Dim.Vector));
             obj.Cresidual = zeros(size(obj.residual));
             obj.algEstimator = Inf;
             obj.residualCNorm = Inf;
