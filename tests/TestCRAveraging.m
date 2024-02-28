@@ -2,11 +2,13 @@ function TestCRAveraging()
 
 
     mesh = Mesh.loadFromGeometry("unitsquare");
+    mesh.refineUniform(1);
     % fesS1 = FeSpace(mesh, LowestOrderH1Fe());
     fesCR = FeSpace(mesh, LowestOrderCRFe());
-    P = LoMeshAveraging(fesCR);
+    P = LoMeshProlongation(fesCR);
 
     figure(3); plot(mesh, 'labelEdges', true);
+
 
     uCR = FeFunction(fesCR);
     uCR.setData(0);
@@ -20,7 +22,7 @@ function TestCRAveraging()
     figure(1);
     plot(uCR);
 
-    mesh.refineUniform(1);
+    mesh.refineLocally(1);
 
     uCRFine = FeFunction(fesCR);
     uCRFine.setData(0);

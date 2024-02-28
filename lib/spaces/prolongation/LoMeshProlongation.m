@@ -65,7 +65,10 @@ classdef LoMeshProlongation < MeshProlongation
             % use that for lowest order CR elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
             %
-            % fixed boundary dofs remain zero 
+            % fixed boundary dofs remain zero
+            %
+            % does averaging of nodal values if CR function is not conforming 
+            % on the coarse level
 
             % compute geometric information
             angles = mesh.computeElementAngles();
@@ -78,47 +81,20 @@ classdef LoMeshProlongation < MeshProlongation
             conDofs = getDofs(conFES);
             conFixedDofs = getFixedDofs(conFES);
 
-            % initialize components of sparse matrix generation
-            nEntries = 9 * mesh.nElements + nnz(data.bisectedEdges) + ...
-                3 * sum(data.nInnerNodes .* data.nRefinedElements);
-            [I, J, V] = deal(zeros(nEntries, 1));
-
             % old nodal S1 dofs on the coarse level get averaged values of CR function
             CRtoS1local = [1 -1 1; 1 1 -1; -1 1 1];
-            idxNr = 9 * mesh.nElements;
-            I(1:9*mesh.nElements) = repmat(conDofs.element2Dofs, 3, 1);
-            J(1:9*mesh.nElements) = repelem(dofs.element2Dofs, 3, 1);
-            V(1:9*mesh.nElements) = CRtoS1local(:) .* repmat(angles, 3, 1) ./ 2 ./ pi;
-            dofNr = mesh.nCoordinates;
-            
-            % new nodal S1 dofs are copied from unique dofs of old CR function
-            % NB: This uses that each edge is bisected at most once
-            nNewEdgeNodes = nnz(data.bisectedEdges);
-            idx = idxNr + (1:nNewEdgeNodes);
-            I(idx) = dofNr + transpose(1:nNewEdgeNodes);
-            J(idx) = transpose(dofs.edge2Dofs(:,data.bisectedEdges));
-            V(idx) = ones(nNewEdgeNodes, 1);
-            dofNr = dofNr + nNewEdgeNodes;
-            idxNr = idxNr + nNewEdgeNodes;
-            
-            % inner dofs are weighted sum of element dofs
-            for k = find(data.nRefinedElements)'
-                nNewInnerNodes = data.nRefinedElements(k)*data.nInnerNodes(k);
-                idx = idxNr + (1:3*nNewInnerNodes);
-                I(idx) = repelem(dofNr + (1:nNewInnerNodes)', 3);
-                J(idx) = reshape(repelem(dofs.element2Dofs, [1;1;1], data.nInnerNodes(k)), [], 1);
-                evalCR = transpose(CRtoS1local) * data.bisection{k}.innerNodes;
-                V(idx) = reshape(repmat(evalCR, 1, data.nInnerNodes(k)), [], 1);
-                idxNr = idxNr + 3*nNewInnerNodes;
-                % dofNr = dofNr + nNewInnerNodes;
-            end
+            I = repmat(conDofs.element2Dofs, 3, 1);
+            J = repelem(dofs.element2Dofs, 3, 1);
+            V = CRtoS1local(:) .* repmat(angles, 3, 1) ./ 2 ./ pi;
             
             % assemble and store averaging part of prolongation matrix
-            nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
-                sum(data.nInnerNodes.*data.nRefinedElements);
-            Prol = sparse(I, J, V, nNewDofs, dofs.nDofs);
-            Prol(conFixedDofs, :) = 0;
-            obj.matrix = Prol;
+            averaging = sparse(I, J, V, mesh.nCoordinates, dofs.nDofs);
+            averaging(conFixedDofs, :) = 0;
+            obj.matrix = averaging;
+
+            % apply prolongation as S1 finite element function
+            prolongationS1 = computeProlongationMatrixH1(obj, conFES, mesh, data);
+            obj.matrix = prolongationS1 * obj.matrix;
         end
 
         function connectDofsCR(obj, mesh, ~)
@@ -131,15 +107,21 @@ classdef LoMeshProlongation < MeshProlongation
             V = repmat(0.5, size(I));
 
             % assemble and apply inclusion part of prolongation matrix
-            Incl = sparse(I, J, V, mesh.nEdges, mesh.nCoordinates);
-            obj.matrix = Incl * obj.matrix;
+            inclusion = sparse(I, J, V, mesh.nEdges, mesh.nCoordinates);
+            obj.matrix = inclusion * obj.matrix;
         end
 
         
         function setupMatrixH1(obj, mesh, data)
+            obj.matrix = computeProlongationMatrixH1(obj, obj.fes, mesh, data);
+        end
+    end
+
+    methods (Access=private)
+        function prolongation = computeProlongationMatrixH1(obj, fes, mesh, data)
             % use that for lowest order H1 elements the dofs correspond to
             % coordinates and new coordinates reside on edges or on inner nodes
-            dofs = getDofs(obj.fes);
+            dofs = getDofs(fes);
             nEntries = mesh.nCoordinates + 2*nnz(data.bisectedEdges) + ...
                 3*sum(data.nInnerNodes.*data.nRefinedElements);
             [I, J, V] = deal(zeros(nEntries, 1));
@@ -173,7 +155,9 @@ classdef LoMeshProlongation < MeshProlongation
             
             nNewDofs = mesh.nCoordinates + nnz(data.bisectedEdges) + ...
                 sum(data.nInnerNodes.*data.nRefinedElements);
-            obj.matrix = sparse(I, J, V, nNewDofs, dofs.nDofs);
+            prolongation = sparse(I, J, V, nNewDofs, dofs.nDofs);
         end
+
+
     end
 end
