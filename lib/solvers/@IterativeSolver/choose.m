@@ -65,7 +65,7 @@ switch method
             case {"", "lowOrderVcycle"}
                 if order == 1
                     switch class(fes.finiteElement)
-                        case 'LowestOrderH1Fe'
+                        case {"LowestOrderH1Fe", "HigherOrderH1Fe"}
                             smoother = P1JacobiCascade(fes, blf, P);
                         case 'LowestOrderCRFe'
                             smoother = CRJacobiCascade(fes, blf, P);
