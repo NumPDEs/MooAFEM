@@ -1,4 +1,4 @@
-% OptimalVcycleMultigridSolver (subclass of IterativeSolver) Solves linear
+% LocalMultiplicativeMultigridCRSolver (subclass of IterativeSolver) Solves linear
 %   equations iteratively, using a geometric multigrid solver with specified
 %   MultiLevelSmoother.
 %   One iteration = Vcycle(0,1) (no pre-/one post-smoothing step).
@@ -14,13 +14,11 @@
 % See also IterativeSolver, MultigridSolver, MultiLevelSmoother, DiagonalJacobi,
 %   LowOrderBlockJacobi, HighOrderBlockJacobi
 
-classdef OptimalVcycleMultigridSolver < MultigridSolver
-    
+classdef LocalMultiplicativeMultigridCRSolver < MultigridSolver
     %% methods
     methods
-        function obj = OptimalVcycleMultigridSolver(smoother)
-            obj = obj@MultigridSolver();
-            obj.smoother = smoother;
+        function obj = LocalMultiplicativeMultigridCRSolver(smoother)
+            obj = obj@MultigridSolver(smoother);
         end
     end
         
@@ -30,8 +28,9 @@ classdef OptimalVcycleMultigridSolver < MultigridSolver
             [Cx, algEstimator] = obj.Vcycle(x);
         end
 
-        function [Cx, algEstimator] = Vcycle(obj, x)
-            assert(isequal(size(x, 1), size(obj.A, 1)), ...
+        function [Cx, algEstimator] = Vcycle(obj, x) 
+            % one step of the Vcycle
+            assert(isequal(size(x, 1), size(obj.A, 1)), ... 
                 'Setup for multilevel iteration not complete!')
             
             % if there is only one coarse level: exact solve
@@ -70,5 +69,22 @@ classdef OptimalVcycleMultigridSolver < MultigridSolver
             Cx = Cx + xUpdate;
             algEstimator = sqrt(eta2 + etaUpdate2);
         end
+    end
+end
+
+%% auxiliary functions
+% error correction with optimal stepsize 
+function [etaUpdate2, resUpdate] = computeOptimalUpdate(A, res, rho)
+    rhoArho = dot(rho, A*rho, Dim.Vector);
+    if max(abs(rho)) < eps
+        lambda = 1; 
+    else
+        lambda = dot(res, rho, Dim.Vector) ./ rhoArho;
+    end
+    resUpdate = lambda .* rho;
+    etaUpdate2 = rhoArho .* lambda.^2;
+    
+    if any(lambda > 3)
+       warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
     end
 end
