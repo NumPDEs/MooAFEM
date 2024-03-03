@@ -56,7 +56,7 @@ classdef LocalMultiplicativeMultigridCRSolver < MultigridSolver
                 Cx = obj.smoother.prolongate(Cx, k);
                 updatedResidual = res{k} - obj.projectedMatrix{k} * Cx;
                 rho = obj.smoother.smooth(updatedResidual, k);
-                [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.projectedMatrix{k}, updatedResidual, rho);
+                [etaUpdate2, xUpdate] = MultigridSolver.computeOptimalUpdate(obj.projectedMatrix{k}, updatedResidual, rho);
                 Cx = Cx + xUpdate;
                 eta2 = eta2 + etaUpdate2;
             end
@@ -65,26 +65,9 @@ classdef LocalMultiplicativeMultigridCRSolver < MultigridSolver
             Cx = obj.smoother.prolongate(Cx, L);
             updatedResidual = res{L} - obj.A * Cx;
             rho = obj.smoother.smooth(updatedResidual, L);
-            [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.A, updatedResidual, rho);
+            [etaUpdate2, xUpdate] = MultigridSolver.computeOptimalUpdate(obj.A, updatedResidual, rho);
             Cx = Cx + xUpdate;
             algEstimator = sqrt(eta2 + etaUpdate2);
         end
-    end
-end
-
-%% auxiliary functions
-% error correction with optimal stepsize 
-function [etaUpdate2, resUpdate] = computeOptimalUpdate(A, res, rho)
-    rhoArho = dot(rho, A*rho, Dim.Vector);
-    if max(abs(rho)) < eps
-        lambda = 1; 
-    else
-        lambda = dot(res, rho, Dim.Vector) ./ rhoArho;
-    end
-    resUpdate = lambda .* rho;
-    etaUpdate2 = rhoArho .* lambda.^2;
-    
-    if any(lambda > 3)
-       warning('MG step-sizes no longer bound by d+1. Optimality of step size cannot be guaranteed!')
     end
 end

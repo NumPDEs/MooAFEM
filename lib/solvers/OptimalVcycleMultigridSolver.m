@@ -19,8 +19,7 @@ classdef OptimalVcycleMultigridSolver < MultigridSolver
     %% methods
     methods
         function obj = OptimalVcycleMultigridSolver(smoother)
-            obj = obj@MultigridSolver();
-            obj.smoother = smoother;
+            obj = obj@MultigridSolver(smoother);
         end
     end
         
@@ -57,7 +56,7 @@ classdef OptimalVcycleMultigridSolver < MultigridSolver
                 Cx = obj.smoother.prolongate(Cx, k);
                 updatedResidual = res{k} - obj.projectedMatrix{k} * Cx;
                 rho = obj.smoother.smooth(updatedResidual, k);
-                [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.projectedMatrix{k}, updatedResidual, rho);
+                [etaUpdate2, xUpdate] = MultigridSolver.computeOptimalUpdate(obj.projectedMatrix{k}, updatedResidual, rho);
                 Cx = Cx + xUpdate;
                 eta2 = eta2 + etaUpdate2;
             end
@@ -66,7 +65,7 @@ classdef OptimalVcycleMultigridSolver < MultigridSolver
             Cx = obj.smoother.prolongate(Cx, L);
             updatedResidual = res{L} - obj.A * Cx;
             rho = obj.smoother.smooth(updatedResidual, L);
-            [etaUpdate2, xUpdate] = computeOptimalUpdate(obj.A, updatedResidual, rho);
+            [etaUpdate2, xUpdate] = MultigridSolver.computeOptimalUpdate(obj.A, updatedResidual, rho);
             Cx = Cx + xUpdate;
             algEstimator = sqrt(eta2 + etaUpdate2);
         end
