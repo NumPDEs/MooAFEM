@@ -37,11 +37,13 @@ classdef LocalMultiplicativeMultigridCRSolver < MultigridSolver
 
             % sequential multiplicative V-cycle update
             algEstimator = 0;
+            res = x;
             v = obj.x;
             for ell = 1:L
-                xUpdate = obj.Vcycle(x, ell);
+                % Apply V-cycle down to level ell
+                xUpdate = obj.Vcycle(res, ell);
                 % A priori step size
-                if ell == L-1
+                if ell == L
                     rho = 1;
                 else
                     rho = 0.8;
@@ -55,7 +57,7 @@ classdef LocalMultiplicativeMultigridCRSolver < MultigridSolver
                 % Update estimator
                 % algEstimator = algEstimator + etaUpdate2;
                 % Update residual
-                x = x - obj.A * rho * xUpdate;
+                res = res - obj.A * rho * xUpdate;
             end
             Cx = v;
         end
