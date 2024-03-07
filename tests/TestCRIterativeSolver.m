@@ -3,7 +3,7 @@ classdef TestCRIterativeSolver < matlab.unittest.TestCase
 properties (TestParameter)
     variant = struct('CG', ["cg", ""],...
         'direct', ["direct", ""], ...
-        'MG', ["multigrid", "lowOrderVcycle"]);
+        'MG', ["multigrid", "multiplicativeCR"]);
 end
 
 methods (Test)

@@ -20,7 +20,7 @@ arguments
     variant (1,1) string {mustBeMember(variant, [ "", ...
         "iChol", "jacobi", ...
         "additiveSchwarzLowOrder", "additiveSchwarzHighOrder" ...
-        "lowOrderVcycle", "highOrderVcycle", "CRjacobi"])} = ""
+        "lowOrderVcycle", "highOrderVcycle", "multiplicativeCR"])} = ""
 end
 
 order = fes.finiteElement.order;
@@ -64,27 +64,25 @@ switch method
         switch variant
             case {"", "lowOrderVcycle"}
                 if order == 1
-                    switch class(fes.finiteElement)
-                        case {"LowestOrderH1Fe", "HigherOrderH1Fe"}
-                            smoother = P1JacobiCascade(fes, blf, P);
-                        case 'LowestOrderCRFe'
-                            smoother = CRJacobiCascade(fes, blf, P);
-                    otherwise
-                        error('No multigrid for finite element %s!', class(fes))
-                    end
+                    smoother = P1JacobiCascade(fes, blf, P);
                 else
                     smoother = JacobiLowOrderCascade(fes, blf);
                 end
+                solver = OptimalVcycleMultigridSolver(smoother);
             case "highOrderVcycle"
                 if order == 1
                     smoother = P1JacobiCascade(fes, blf, P);
                 else
                     smoother = JacobiHighOrderCascade(fes, blf, P);
                 end
+                solver = OptimalVcycleMultigridSolver(smoother);
+            case "multiplicativeCR"
+                Av = LoMeshAveraging(fes);  % TODO: use proper choose function
+                smoother = CRJacobiCascade(fes, blf, Av, P);
+                solver = LocalMultiplicativeMultigridCRSolver(smoother);
             otherwise
                 error('No multigrid variant %s!', variant)
         end
-        solver = OptimalVcycleMultigridSolver(smoother);
         
     % direct solve (for testing purposes)
     case "direct"
