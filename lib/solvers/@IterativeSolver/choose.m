@@ -20,7 +20,8 @@ arguments
     variant (1,1) string {mustBeMember(variant, [ "", ...
         "iChol", "jacobi", ...
         "additiveSchwarzLowOrder", "additiveSchwarzHighOrder" ...
-        "lowOrderVcycle", "highOrderVcycle", "multiplicativeCR"])} = ""
+        "lowOrderVcycle", "highOrderVcycle", ...
+        "multiplicativeCR", "vcycleCR"])} = ""
 end
 
 order = fes.finiteElement.order;
@@ -80,6 +81,10 @@ switch method
                 Av = LoMeshAveraging(fes);  % TODO: use proper choose function
                 smoother = CRJacobiCascade(fes, blf, Av, P);
                 solver = LocalMultiplicativeMultigridCRSolver(smoother);
+            case "vcycleCR"
+                Av = LoMeshAveraging(fes);  % TODO: use proper choose function
+                smoother = CRJacobiCascade(fes, blf, Av, P);
+                solver = LocalMultigridVcycleCRSolver(smoother);
             otherwise
                 error('No multigrid variant %s!', variant)
         end
