@@ -21,7 +21,7 @@ arguments
         "iChol", "jacobi", ...
         "additiveSchwarzLowOrder", "additiveSchwarzHighOrder" ...
         "lowOrderVcycle", "highOrderVcycle", ...
-        "multiplicativeCR", "vcycleCR"])} = ""
+        "multiplicativeCR", "vcycleCR", "additiveCR"])} = ""
 end
 
 order = fes.finiteElement.order;
@@ -55,6 +55,10 @@ switch method
                 else
                     preconditioner = OptimalMLAdditiveSchwarz(JacobiHighOrderCascade(fes, blf, P));
                 end
+            case "additiveCR"
+                Av = LoMeshAveraging(fes);  % TODO: use proper choose function
+                smoother = CRJacobiCascade(fes, blf, Av, P);
+                preconditioner = LocalAdditiveMultilevelCRPreconditioner(smoother);
             otherwise
                 error('No PCG variant %s!', variant)
         end

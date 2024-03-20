@@ -3,7 +3,8 @@ classdef TestCRIterativeSolver < matlab.unittest.TestCase
 properties (TestParameter)
     variant = struct('CG', ["cg", ""],...
         'direct', ["direct", ""], ...
-        'MG', ["multigrid", "multiplicativeCR"], ...
+        'additiveCR', ["pcg", "additiveCR"], ...
+        ... 'MG', ["multigrid", "multiplicativeCR"]), ...
         'MGvcycle', ["multigrid", "vcycleCR"]);
 end
 
@@ -56,6 +57,14 @@ methods (Test)
         
         solver.setupRhs([F, -pi*F], 0*[F, F]);
         solver.solve();
+        % while true
+        %     xBefore = solver.x;
+        %     solver.step();
+        %     incrementNorm = sqrt((xBefore(:,1) - solver.x(:,1))' * A * (xBefore(:,1) - solver.x(:,1)));
+        %     if incrementNorm < 1e-12
+        %         break;
+        %     end
+        % end
 
         testCase.verifyEqual(-pi*solver.x(:,1), solver.x(:,2), 'RelTol', 2e-5);
         testCase.verifyEqual(solver.x(:,1), xstar, 'RelTol', 2e-5);
