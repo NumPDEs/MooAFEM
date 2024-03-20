@@ -39,6 +39,9 @@ classdef LocalAdditiveMultilevelCRPreconditioner < Preconditioner
         function Cx = Vcycle(obj, x)
             % one step of the Vcycle
             
+            % damping parameter 
+            mu = 0.8;
+
             % if there is only one coarse level: exact solve
             L = obj.nLevels;
             if L == 1
@@ -59,17 +62,17 @@ classdef LocalAdditiveMultilevelCRPreconditioner < Preconditioner
             resPerLevel{1} = obj.smoother.averageRestrict(res, 2);
 
             % exact solution step on level 1
-            Cx = obj.Acoarse \ resPerLevel{1};
+            Cx = mu * obj.Acoarse \ resPerLevel{1};
             Cx = obj.smoother.average(Cx, 2);
 
             % ascending cascade: no smoothing
             for k = 3:L
-                update = obj.smoother.smooth(resPerLevel{k-1}, k-1);
+                update = mu * obj.smoother.smooth(resPerLevel{k-1}, k-1);
                 Cx = obj.smoother.prolongate(Cx, k) + obj.smoother.average(update, k);
             end
 
             % final coarse smooth
-            Cx = obj.smoother.smooth(Cx, L);
+            Cx = Cx + obj.smoother.smooth(resPerLevel{L}, L);
         end
     end
 end
