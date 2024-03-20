@@ -61,8 +61,14 @@ classdef CRJacobiCascade < MultilevelSmoother
             end
         end
 
-        function Cx = smooth(obj, x, k)
+        function Cx = smooth(obj, x, k, nSteps)
+            if nargin < 4
+                nSteps = 1;
+            end
             Cx = obj.patchwiseA{k} \ x;
+            for j = 2:nSteps
+                Cx = obj.patchwiseA{k} \ Cx;
+            end
         end
 
         function Px = prolongate(obj, x, k)
