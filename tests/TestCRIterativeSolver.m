@@ -57,11 +57,14 @@ methods (Test)
         
         solver.setupRhs([F, -pi*F], 0*[F, F]);
         solver.solve();
+        % j = 0;
         % while true
+        %     j = j + 1;
         %     xBefore = solver.x;
         %     solver.step();
         %     incrementNorm = sqrt((xBefore(:,1) - solver.x(:,1))' * A * (xBefore(:,1) - solver.x(:,1)));
         %     if incrementNorm < 1e-12
+        %         % disp(j)
         %         break;
         %     end
         % end
