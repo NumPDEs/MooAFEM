@@ -86,5 +86,10 @@ classdef CRJacobiCascade < MultilevelSmoother
         function Px = averageRestrict(obj, x, k)
             Px = obj.intergridAveraging{k}' * x;
         end
+
+        % Debugging
+        function plot(obj, k)
+            plot(obj.fes.mesh)
+        end
     end
 end
